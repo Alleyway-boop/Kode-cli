@@ -8,12 +8,13 @@ import { getActiveAgents } from '@utils/agentLoader'
 import { getModelManager } from '@utils/model'
 import { glob } from 'glob'
 import { matchCommands } from '@utils/fuzzyMatcher'
-import { 
-  getCommonSystemCommands, 
+import {
+  getCommonSystemCommands,
   getCommandPriority,
   getEssentialCommands,
-  getMinimalFallbackCommands 
+  getMinimalFallbackCommands
 } from '@utils/commonUnixCommands'
+import { useCompletionWindowSize } from '@hooks/useCompletionWindowSize'
 import type { Command } from '@commands'
 
 // Unified suggestion type for all completion types
@@ -83,7 +84,7 @@ const INITIAL_STATE: CompletionState = {
   emptyDirMessage: '',
   suppressUntil: 0,
   windowStart: 0,
-  windowSize: 8 // Show max 8 items at once
+  windowSize: 8 // Will be updated dynamically
 }
 
 export function useUnifiedCompletion({
@@ -94,8 +95,31 @@ export function useUnifiedCompletion({
   commands,
   onSubmit,
 }: Props) {
+  // Get dynamic window size based on terminal height
+  const { windowSize: dynamicWindowSize, isCompactMode } = useCompletionWindowSize()
+
   // Single state for entire completion system - Linus approved
-  const [state, setState] = useState<CompletionState>(INITIAL_STATE)
+  const [state, setState] = useState<CompletionState>(() => ({
+    ...INITIAL_STATE,
+    windowSize: dynamicWindowSize
+  }))
+
+  // Update window size when terminal resizes
+  useEffect(() => {
+    if (state.windowSize !== dynamicWindowSize) {
+      // Adjust window position if necessary when size changes
+      const newWindowStart = Math.min(
+        state.windowStart,
+        Math.max(0, state.suggestions.length - dynamicWindowSize)
+      )
+
+      setState(prev => ({
+        ...prev,
+        windowSize: dynamicWindowSize,
+        windowStart: newWindowStart
+      }))
+    }
+  }, [dynamicWindowSize, state.windowSize, state.windowStart, state.suggestions.length])
 
   // State update helpers - clean and simple
   const updateState = useCallback((updates: Partial<CompletionState>) => {
@@ -1453,6 +1477,7 @@ export function useUnifiedCompletion({
     // For rendering indicators
     totalCount: suggestions.length,
     windowStart,
-    windowSize
+    windowSize,
+    isCompactMode
   }
 }

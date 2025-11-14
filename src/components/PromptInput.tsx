@@ -166,6 +166,7 @@ function PromptInput({
     visibleSuggestions,
     totalCount,
     windowStart,
+    isCompactMode,
   } = useUnifiedCompletion({
     input,
     cursorOffset,
@@ -703,37 +704,49 @@ function PromptInput({
           <Box flexDirection="column">
             {renderedSuggestions}
 
-            {/* Virtual scrolling indicators */}
+            {/* Virtual scrolling indicators - responsive design */}
             {totalCount > visibleSuggestions.suggestions.length && (
               <Box marginTop={0} justifyContent="center">
                 <Text color={theme.secondaryText} dimColor>
-                  {visibleSuggestions.hasLess && '▲ '}
-                  {windowStart + 1}-{Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)} of {totalCount}
-                  {visibleSuggestions.hasMore && ' ▼'}
+                  {isCompactMode
+                    ? `${windowStart + 1}-${Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)}/${totalCount}`
+                    : `${visibleSuggestions.hasLess && '▲ '}${windowStart + 1}-${Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)} of ${totalCount}${visibleSuggestions.hasMore && ' ▼'}`
+                  }
                 </Text>
               </Box>
             )}
 
-            {/* 简洁操作提示框 */}
-            <Box marginTop={1} paddingX={3} borderStyle="round" borderColor="gray">
-              <Text dimColor={!emptyDirMessage} color={emptyDirMessage ? "yellow" : undefined}>
-                {emptyDirMessage || (() => {
-                  const selected = suggestions[selectedIndex]
-                  if (!selected) {
-                    return totalCount > visibleSuggestions.suggestions.length
-                      ? '↑↓ scroll through list • → accept • Tab cycle • Esc close'
-                      : '↑↓ navigate • → accept • Tab cycle • Esc close'
-                  }
-                  if (selected?.value.endsWith('/')) {
-                    return '→ enter directory • ↑↓ navigate • Tab cycle • Esc close'
-                  } else if (selected?.type === 'agent') {
-                    return '→ select agent • ↑↓ navigate • Tab cycle • Esc close'
-                  } else {
-                    return '→ insert reference • ↑↓ navigate • Tab cycle • Esc close'
-                  }
-                })()}
-              </Text>
-            </Box>
+            {/* 响应式操作提示框 */}
+            {!isCompactMode ? (
+              <Box marginTop={1} paddingX={3} borderStyle="round" borderColor="gray">
+                <Text dimColor={!emptyDirMessage} color={emptyDirMessage ? "yellow" : undefined}>
+                  {emptyDirMessage || (() => {
+                    const selected = suggestions[selectedIndex]
+                    if (!selected) {
+                      return totalCount > visibleSuggestions.suggestions.length
+                        ? '↑↓ scroll through list • → accept • Tab cycle • Esc close'
+                        : '↑↓ navigate • → accept • Tab cycle • Esc close'
+                    }
+                    if (selected?.value.endsWith('/')) {
+                      return '→ enter directory • ↑↓ navigate • Tab cycle • Esc close'
+                    } else if (selected?.type === 'agent') {
+                      return '→ select agent • ↑↓ navigate • Tab cycle • Esc close'
+                    } else {
+                      return '→ insert reference • ↑↓ navigate • Tab cycle • Esc close'
+                    }
+                  })()}
+                </Text>
+              </Box>
+            ) : (
+              // 紧凑模式：简化提示
+              <Box marginTop={0} justifyContent="center">
+                <Text color={theme.secondaryText} dimColor>
+                  {emptyDirMessage || (totalCount > visibleSuggestions.suggestions.length
+                    ? '↑↓ scroll • → accept • Esc'
+                    : '↑↓ navigate • → accept • Esc')}
+                </Text>
+              </Box>
+            )}
           </Box>
           <SentryErrorBoundary children={
             <Box justifyContent="flex-end" gap={1}>
