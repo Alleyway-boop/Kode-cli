@@ -163,6 +163,9 @@ function PromptInput({
     selectedIndex,
     isActive: completionActive,
     emptyDirMessage,
+    visibleSuggestions,
+    totalCount,
+    windowStart,
   } = useUnifiedCompletion({
     input,
     cursorOffset,
@@ -175,23 +178,25 @@ function PromptInput({
   // Get theme early for memoized rendering
   const theme = getTheme()
 
-  // Memoized completion suggestions rendering - after useUnifiedCompletion
+  // Memoized completion suggestions rendering - with virtual scrolling
   const renderedSuggestions = useMemo(() => {
-    if (suggestions.length === 0) return null
+    if (!visibleSuggestions.suggestions.length) return null
 
-    return suggestions.map((suggestion, index) => {
-      const isSelected = index === selectedIndex
+    return visibleSuggestions.suggestions.map((suggestion, visibleIndex) => {
+      // Calculate actual index in the full list
+      const actualIndex = windowStart + visibleIndex
+      const isSelected = actualIndex === selectedIndex
       const isAgent = suggestion.type === 'agent'
-      
+
       // Simple color logic without complex lookups
-      const displayColor = isSelected 
-        ? theme.suggestion 
+      const displayColor = isSelected
+        ? theme.suggestion
         : (isAgent && suggestion.metadata?.color)
           ? suggestion.metadata.color
           : undefined
-      
+
       return (
-        <Box key={`${suggestion.type}-${suggestion.value}-${index}`} flexDirection="row">
+        <Box key={`${suggestion.type}-${suggestion.value}-${actualIndex}`} flexDirection="row">
           <Text
             color={displayColor}
             dimColor={!isSelected && !displayColor}
@@ -202,7 +207,7 @@ function PromptInput({
         </Box>
       )
     })
-  }, [suggestions, selectedIndex, theme.suggestion])
+  }, [visibleSuggestions.suggestions, selectedIndex, windowStart, theme.suggestion])
 
   const onChange = useCallback(
     (value: string) => {
@@ -697,14 +702,27 @@ function PromptInput({
         >
           <Box flexDirection="column">
             {renderedSuggestions}
-            
+
+            {/* Virtual scrolling indicators */}
+            {totalCount > visibleSuggestions.suggestions.length && (
+              <Box marginTop={0} justifyContent="center">
+                <Text color={theme.secondaryText} dimColor>
+                  {visibleSuggestions.hasLess && '▲ '}
+                  {windowStart + 1}-{Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)} of {totalCount}
+                  {visibleSuggestions.hasMore && ' ▼'}
+                </Text>
+              </Box>
+            )}
+
             {/* 简洁操作提示框 */}
             <Box marginTop={1} paddingX={3} borderStyle="round" borderColor="gray">
               <Text dimColor={!emptyDirMessage} color={emptyDirMessage ? "yellow" : undefined}>
                 {emptyDirMessage || (() => {
                   const selected = suggestions[selectedIndex]
                   if (!selected) {
-                    return '↑↓ navigate • → accept • Tab cycle • Esc close'
+                    return totalCount > visibleSuggestions.suggestions.length
+                      ? '↑↓ scroll through list • → accept • Tab cycle • Esc close'
+                      : '↑↓ navigate • → accept • Tab cycle • Esc close'
                   }
                   if (selected?.value.endsWith('/')) {
                     return '→ enter directory • ↑↓ navigate • Tab cycle • Esc close'

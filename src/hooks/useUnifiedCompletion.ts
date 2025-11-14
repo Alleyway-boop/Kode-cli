@@ -69,6 +69,9 @@ interface CompletionState {
   } | null
   emptyDirMessage: string
   suppressUntil: number // timestamp for suppression
+  // Virtual scrolling window state
+  windowStart: number // Start index of visible window
+  windowSize: number   // Size of visible window
 }
 
 const INITIAL_STATE: CompletionState = {
@@ -78,7 +81,9 @@ const INITIAL_STATE: CompletionState = {
   context: null,
   preview: null,
   emptyDirMessage: '',
-  suppressUntil: 0
+  suppressUntil: 0,
+  windowStart: 0,
+  windowSize: 8 // Show max 8 items at once
 }
 
 export function useUnifiedCompletion({
@@ -105,7 +110,8 @@ export function useUnifiedCompletion({
       isActive: false,
       context: null,
       preview: null,
-      emptyDirMessage: ''
+      emptyDirMessage: '',
+      windowStart: 0
     }))
   }, [])
 
@@ -116,12 +122,51 @@ export function useUnifiedCompletion({
       selectedIndex: 0,
       isActive: true,
       context,
-      preview: null
+      preview: null,
+      windowStart: 0
     }))
   }, [])
 
   // Direct state access - no legacy wrappers needed
-  const { suggestions, selectedIndex, isActive, emptyDirMessage } = state
+  const { suggestions, selectedIndex, isActive, emptyDirMessage, windowStart, windowSize } = state
+
+  // Virtual scrolling helpers
+  const getVisibleSuggestions = useCallback((): { suggestions: UnifiedSuggestion[], hasMore: boolean, hasLess: boolean } => {
+    if (suggestions.length <= windowSize) {
+      return {
+        suggestions: suggestions,
+        hasMore: false,
+        hasLess: false
+      }
+    }
+
+    const visibleSuggestions = suggestions.slice(windowStart, windowStart + windowSize)
+    return {
+      suggestions: visibleSuggestions,
+      hasMore: windowStart + windowSize < suggestions.length,
+      hasLess: windowStart > 0
+    }
+  }, [suggestions, windowStart, windowSize])
+
+  // Update window position based on selected index
+  const updateWindowPosition = useCallback((selectedIndex: number) => {
+    if (suggestions.length <= windowSize) return
+
+    let newWindowStart = windowStart
+
+    // If selection is before current window, shift window up
+    if (selectedIndex < windowStart) {
+      newWindowStart = Math.max(0, selectedIndex)
+    }
+    // If selection is after current window, shift window down
+    else if (selectedIndex >= windowStart + windowSize) {
+      newWindowStart = Math.min(suggestions.length - windowSize, selectedIndex - windowSize + 1)
+    }
+
+    if (newWindowStart !== windowStart) {
+      updateState({ windowStart: newWindowStart })
+    }
+  }, [windowStart, windowSize, suggestions.length, updateState])
 
   // Find common prefix among suggestions (terminal behavior)
   const findCommonPrefix = useCallback((suggestions: UnifiedSuggestion[]): string => {
@@ -1109,18 +1154,21 @@ export function useUnifiedCompletion({
     
     if (!state.isActive || state.suggestions.length === 0) return false
     
-    // Arrow key navigation with preview
+    // Arrow key navigation with preview and virtual scrolling
     const handleNavigation = (newIndex: number) => {
       const preview = state.suggestions[newIndex].value
-      
+
+      // Update window position for virtual scrolling
+      updateWindowPosition(newIndex)
+
       if (state.preview?.isActive && state.context) {
-        const newInput = input.slice(0, state.context.startPos) + 
-                         preview + 
+        const newInput = input.slice(0, state.context.startPos) +
+                         preview +
                          input.slice(state.preview.wordRange[1])
-        
+
         onInputChange(newInput)
         setCursorOffset(state.context.startPos + preview.length)
-        
+
         updateState({
           selectedIndex: newIndex,
           preview: {
@@ -1132,16 +1180,16 @@ export function useUnifiedCompletion({
         updateState({ selectedIndex: newIndex })
       }
     }
-    
+
     if (key.downArrow) {
       const nextIndex = (state.selectedIndex + 1) % state.suggestions.length
       handleNavigation(nextIndex)
       return true
     }
-    
+
     if (key.upArrow) {
-      const nextIndex = state.selectedIndex === 0 
-        ? state.suggestions.length - 1 
+      const nextIndex = state.selectedIndex === 0
+        ? state.suggestions.length - 1
         : state.selectedIndex - 1
       handleNavigation(nextIndex)
       return true
@@ -1401,5 +1449,10 @@ export function useUnifiedCompletion({
     selectedIndex,
     isActive,
     emptyDirMessage,
+    visibleSuggestions: getVisibleSuggestions(),
+    // For rendering indicators
+    totalCount: suggestions.length,
+    windowStart,
+    windowSize
   }
 }
