@@ -1,8 +1,7 @@
-import { useEffect } from 'react'
-import { logUnaryEvent, CompletionType } from '@utils/unaryLogging'
-import { ToolUseConfirm } from '@components/permissions/PermissionRequest'
-import { env } from '@utils/env'
- 
+import {useEffect} from 'react'
+import {logUnaryEvent, CompletionType} from '@utils/unaryLogging'
+import {ToolUseConfirm} from '@components/permissions/PermissionRequest'
+import {env} from '@utils/env'
 
 type UnaryEventType = {
   completion_type: CompletionType
@@ -13,13 +12,8 @@ type UnaryEventType = {
  * Logs permission request events via unary logging.
  * Can handle either a string or Promise<string> for language_name.
  */
-export function usePermissionRequestLogging(
-  toolUseConfirm: ToolUseConfirm,
-  unaryEvent: UnaryEventType,
-): void {
+export function usePermissionRequestLogging(toolUseConfirm: ToolUseConfirm, unaryEvent: UnaryEventType): void {
   useEffect(() => {
-    
-
     // Handle string or Promise language name
     const languagePromise = Promise.resolve(unaryEvent.language_name)
 
@@ -31,8 +25,8 @@ export function usePermissionRequestLogging(
         metadata: {
           language_name: language,
           message_id: toolUseConfirm.assistantMessage.message.id,
-          platform: env.platform,
-        },
+          platform: env.platform
+        }
       })
     })
   }, [toolUseConfirm, unaryEvent])

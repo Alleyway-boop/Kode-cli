@@ -1,51 +1,42 @@
-import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Box, Newline, Static, Text } from 'ink'
-import ProjectOnboarding, {
-  markProjectOnboardingComplete,
-} from '@components/ProjectOnboarding'
-import { CostThresholdDialog } from '@components/CostThresholdDialog'
+import {ToolUseBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {Box, Newline, Static, Text} from 'ink'
+import ProjectOnboarding, {markProjectOnboardingComplete} from '@components/ProjectOnboarding'
+import {CostThresholdDialog} from '@components/CostThresholdDialog'
 import * as React from 'react'
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
-import { Command } from '@commands'
-import { Logo } from '@components/Logo'
-import { Message } from '@components/Message'
-import { MessageResponse } from '@components/MessageResponse'
-import { MessageSelector } from '@components/MessageSelector'
-import {
-  PermissionRequest,
-  type ToolUseConfirm,
-} from '@components/permissions/PermissionRequest'
+import {useEffect, useMemo, useRef, useState, useCallback} from 'react'
+import {Command} from '@commands'
+import {Logo} from '@components/Logo'
+import {Message} from '@components/Message'
+import {MessageResponse} from '@components/MessageResponse'
+import {MessageSelector} from '@components/MessageSelector'
+import {PermissionRequest, type ToolUseConfirm} from '@components/permissions/PermissionRequest'
 import PromptInput from '@components/PromptInput'
-import { Spinner } from '@components/Spinner'
-import { getSystemPrompt } from '@constants/prompts'
-import { getContext } from '@context'
-import { getTotalCost, useCostSummary } from '@costTracker'
-import { useLogStartupTime } from '@hooks/useLogStartupTime'
-import { addToHistory } from '@history'
-import { useApiKeyVerification } from '@hooks/useApiKeyVerification'
-import { useCancelRequest } from '@hooks/useCancelRequest'
+import {Spinner} from '@components/Spinner'
+import {getSystemPrompt} from '@constants/prompts'
+import {getContext} from '@context'
+import {getTotalCost, useCostSummary} from '@costTracker'
+import {useLogStartupTime} from '@hooks/useLogStartupTime'
+import {addToHistory} from '@history'
+import {useApiKeyVerification} from '@hooks/useApiKeyVerification'
+import {useCancelRequest} from '@hooks/useCancelRequest'
 import useCanUseTool from '@hooks/useCanUseTool'
-import { useLogMessages } from '@hooks/useLogMessages'
-import { PermissionProvider } from '@context/PermissionContext'
-import { ModeIndicator } from '@components/ModeIndicator'
-import {
-  setMessagesGetter,
-  setMessagesSetter,
-  setModelConfigChangeHandler,
-} from '@messages'
+import {useLogMessages} from '@hooks/useLogMessages'
+import {PermissionProvider} from '@context/PermissionContext'
+import {ModeIndicator} from '@components/ModeIndicator'
+import {setMessagesGetter, setMessagesSetter, setModelConfigChangeHandler} from '@messages'
 import {
   type AssistantMessage,
   type BinaryFeedbackResult,
   type Message as MessageType,
   type ProgressMessage,
-  query,
+  query
 } from '@query'
-import type { WrappedClient } from '@services/mcpClient'
-import type { Tool } from '@tool'
+import type {WrappedClient} from '@services/mcpClient'
+import type {Tool} from '@tool'
 // Auto-updater removed; only show a new version banner passed from CLI
-import { getGlobalConfig, saveGlobalConfig } from '@utils/config'
-import { MACRO } from '@constants/macros'
-import { getNextAvailableLogForkNumber } from '@utils/log'
+import {getGlobalConfig, saveGlobalConfig} from '@utils/config'
+import {MACRO} from '@constants/macros'
+import {getNextAvailableLogForkNumber} from '@utils/log'
 import {
   getErroredToolUseMessages,
   getInProgressToolUseIDs,
@@ -60,15 +51,15 @@ import {
   processUserInput,
   reorderMessages,
   extractTag,
-  createAssistantMessage,
+  createAssistantMessage
 } from '@utils/messages'
-import { getModelManager, ModelManager } from '@utils/model'
-import { clearTerminal, updateTerminalTitle } from '@utils/terminal'
-import { BinaryFeedback } from '@components/binary-feedback/BinaryFeedback'
-import { getMaxThinkingTokens } from '@utils/thinking'
-import { getOriginalCwd } from '@utils/state'
-import { handleHashCommand } from '@commands/terminalSetup'
-import { debug as debugLogger } from '@utils/debugLogger'
+import {getModelManager, ModelManager} from '@utils/model'
+import {clearTerminal, updateTerminalTitle} from '@utils/terminal'
+import {BinaryFeedback} from '@components/binary-feedback/BinaryFeedback'
+import {getMaxThinkingTokens} from '@utils/thinking'
+import {getOriginalCwd} from '@utils/state'
+import {handleHashCommand} from '@commands/terminalSetup'
+import {debug as debugLogger} from '@utils/debugLogger'
 
 type Props = {
   commands: Command[]
@@ -112,21 +103,18 @@ export function REPL({
   mcpClients = [],
   isDefaultModel = true,
   initialUpdateVersion,
-  initialUpdateCommands,
+  initialUpdateCommands
 }: Props): React.ReactNode {
   // Cache verbose config to avoid synchronous file reads on every render
   const [verboseConfig] = useState(() => verboseFromCLI ?? getGlobalConfig().verbose)
   const verbose = verboseConfig
 
   // Used to force the logo to re-render and conversation log to use a new file
-  const [forkNumber, setForkNumber] = useState(
-    getNextAvailableLogForkNumber(messageLogName, initialForkNumber, 0),
-  )
+  const [forkNumber, setForkNumber] = useState(getNextAvailableLogForkNumber(messageLogName, initialForkNumber, 0))
 
-  const [
-    forkConvoWithMessagesOnTheNextRender,
-    setForkConvoWithMessagesOnTheNextRender,
-  ] = useState<MessageType[] | null>(null)
+  const [forkConvoWithMessagesOnTheNextRender, setForkConvoWithMessagesOnTheNextRender] = useState<
+    MessageType[] | null
+  >(null)
 
   // 🔧 Simplified AbortController management - inspired by reference system
   const [abortController, setAbortController] = useState<AbortController | null>(null)
@@ -136,50 +124,39 @@ export function REPL({
     jsx: React.ReactNode | null
     shouldHidePromptInput: boolean
   } | null>(null)
-  const [toolUseConfirm, setToolUseConfirm] = useState<ToolUseConfirm | null>(
-    null,
-  )
+  const [toolUseConfirm, setToolUseConfirm] = useState<ToolUseConfirm | null>(null)
   const [messages, setMessages] = useState<MessageType[]>(initialMessages ?? [])
   const [inputValue, setInputValue] = useState('')
-  const [inputMode, setInputMode] = useState<'bash' | 'prompt' | 'koding'>(
-    'prompt',
-  )
+  const [inputMode, setInputMode] = useState<'bash' | 'prompt' | 'koding'>('prompt')
   const [submitCount, setSubmitCount] = useState(0)
-  const [isMessageSelectorVisible, setIsMessageSelectorVisible] =
-    useState(false)
+  const [isMessageSelectorVisible, setIsMessageSelectorVisible] = useState(false)
   const [showCostDialog, setShowCostDialog] = useState(false)
-  const [haveShownCostDialog, setHaveShownCostDialog] = useState(
-    getGlobalConfig().hasAcknowledgedCostThreshold,
-  )
+  const [haveShownCostDialog, setHaveShownCostDialog] = useState(getGlobalConfig().hasAcknowledgedCostThreshold)
 
-  const [binaryFeedbackContext, setBinaryFeedbackContext] =
-    useState<BinaryFeedbackContext | null>(null)
+  const [binaryFeedbackContext, setBinaryFeedbackContext] = useState<BinaryFeedbackContext | null>(null)
   // New version banner: passed in from CLI to guarantee top placement
   const updateAvailableVersion = initialUpdateVersion ?? null
   const updateCommands = initialUpdateCommands ?? null
   // No separate Static for banner; it renders inside Logo
 
   const getBinaryFeedbackResponse = useCallback(
-    (
-      m1: AssistantMessage,
-      m2: AssistantMessage,
-    ): Promise<BinaryFeedbackResult> => {
+    (m1: AssistantMessage, m2: AssistantMessage): Promise<BinaryFeedbackResult> => {
       return new Promise<BinaryFeedbackResult>(resolvePromise => {
         setBinaryFeedbackContext({
           m1,
           m2,
-          resolve: resolvePromise,
+          resolve: resolvePromise
         })
       })
     },
-    [],
+    []
   )
 
   const readFileTimestamps = useRef<{
     [filename: string]: number
   }>({})
 
-  const { status: apiKeyStatus, reverify } = useApiKeyVerification()
+  const {status: apiKeyStatus, reverify} = useApiKeyVerification()
   function onCancel() {
     if (!isLoading) {
       return
@@ -199,7 +176,7 @@ export function REPL({
     onCancel,
     isLoading,
     isMessageSelectorVisible,
-    abortController?.signal,
+    abortController?.signal
   )
 
   useEffect(() => {
@@ -213,7 +190,6 @@ export function REPL({
   useEffect(() => {
     const totalCost = getTotalCost()
     if (totalCost >= 5 /* $5 */ && !showCostDialog && !haveShownCostDialog) {
-      
       setShowCostDialog(true)
     }
   }, [messages, showCostDialog, haveShownCostDialog])
@@ -248,13 +224,13 @@ export function REPL({
           messageLogName,
           tools,
           verbose,
-          maxThinkingTokens: 0,
+          maxThinkingTokens: 0
         },
         messageId: getLastAssistantMessageId(messages),
         setForkConvoWithMessagesOnTheNextRender,
-        readFileTimestamps: readFileTimestamps.current,
+        readFileTimestamps: readFileTimestamps.current
       },
-      null,
+      null
     )
 
     if (newMessages.length) {
@@ -275,13 +251,12 @@ export function REPL({
         return
       }
 
-      const [systemPrompt, context, model, maxThinkingTokens] =
-        await Promise.all([
-          getSystemPrompt(),
-          getContext(),
-          new ModelManager(getGlobalConfig()).getModelName('main'),
-          getMaxThinkingTokens([...messages, ...newMessages]),
-        ])
+      const [systemPrompt, context, model, maxThinkingTokens] = await Promise.all([
+        getSystemPrompt(),
+        getContext(),
+        new ModelManager(getGlobalConfig()).getModelName('main'),
+        getMaxThinkingTokens([...messages, ...newMessages])
+      ])
 
       for await (const message of query(
         [...messages, ...newMessages],
@@ -296,14 +271,14 @@ export function REPL({
             tools,
             verbose,
             safeMode,
-            maxThinkingTokens,
+            maxThinkingTokens
           },
           messageId: getLastAssistantMessageId([...messages, ...newMessages]),
           readFileTimestamps: readFileTimestamps.current,
           abortController: newAbortController,
-          setToolJSX,
+          setToolJSX
         },
-        getBinaryFeedbackResponse,
+        getBinaryFeedbackResponse
       )) {
         setMessages(oldMessages => [...oldMessages, message])
       }
@@ -312,9 +287,7 @@ export function REPL({
       // TODO: setHistoryIndex
     }
 
-    setHaveShownCostDialog(
-      getGlobalConfig().hasAcknowledgedCostThreshold || false,
-    )
+    setHaveShownCostDialog(getGlobalConfig().hasAcknowledgedCostThreshold || false)
 
     // 🔧 Fix: Clean up state after onInit completion
     setIsLoading(false)
@@ -345,10 +318,7 @@ export function REPL({
     const lastMessage = newMessages[newMessages.length - 1]!
 
     // Update terminal title based on user message
-    if (
-      lastMessage.type === 'user' &&
-      typeof lastMessage.message.content === 'string'
-    ) {
+    if (lastMessage.type === 'user' && typeof lastMessage.message.content === 'string') {
       // updateTerminalTitle(lastMessage.message.content)
     }
     if (lastMessage.type === 'assistant') {
@@ -357,13 +327,12 @@ export function REPL({
       return
     }
 
-    const [systemPrompt, context, model, maxThinkingTokens] =
-      await Promise.all([
-        getSystemPrompt(),
-        getContext(),
-        new ModelManager(getGlobalConfig()).getModelName('main'),
-        getMaxThinkingTokens([...messages, lastMessage]),
-      ])
+    const [systemPrompt, context, model, maxThinkingTokens] = await Promise.all([
+      getSystemPrompt(),
+      getContext(),
+      new ModelManager(getGlobalConfig()).getModelName('main'),
+      getMaxThinkingTokens([...messages, lastMessage])
+    ])
 
     let lastAssistantMessage: MessageType | null = null
 
@@ -383,14 +352,14 @@ export function REPL({
           safeMode,
           maxThinkingTokens,
           // If this came from Koding mode, pass that along
-          isKodingRequest: isKodingRequest || undefined,
+          isKodingRequest: isKodingRequest || undefined
         },
         messageId: getLastAssistantMessageId([...messages, lastMessage]),
         readFileTimestamps: readFileTimestamps.current,
         abortController: controllerToUse,
-        setToolJSX,
+        setToolJSX
       },
-      getBinaryFeedbackResponse,
+      getBinaryFeedbackResponse
     )) {
       setMessages(oldMessages => [...oldMessages, message])
 
@@ -402,11 +371,7 @@ export function REPL({
 
     // If this was a Koding request and we got an assistant message back,
     // save it to AGENTS.md (and CLAUDE.md if exists)
-    if (
-      isKodingRequest &&
-      lastAssistantMessage &&
-      lastAssistantMessage.type === 'assistant'
-    ) {
+    if (isKodingRequest && lastAssistantMessage && lastAssistantMessage.type === 'assistant') {
       try {
         const content =
           typeof lastAssistantMessage.message.content === 'string'
@@ -458,29 +423,16 @@ export function REPL({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const normalizedMessages = useMemo(
-    () => normalizeMessages(messages).filter(isNotEmptyMessage),
-    [messages],
-  )
+  const normalizedMessages = useMemo(() => normalizeMessages(messages).filter(isNotEmptyMessage), [messages])
 
-  const unresolvedToolUseIDs = useMemo(
-    () => getUnresolvedToolUseIDs(normalizedMessages),
-    [normalizedMessages],
-  )
+  const unresolvedToolUseIDs = useMemo(() => getUnresolvedToolUseIDs(normalizedMessages), [normalizedMessages])
 
-  const inProgressToolUseIDs = useMemo(
-    () => getInProgressToolUseIDs(normalizedMessages),
-    [normalizedMessages],
-  )
+  const inProgressToolUseIDs = useMemo(() => getInProgressToolUseIDs(normalizedMessages), [normalizedMessages])
 
   const erroredToolUseIDs = useMemo(
     () =>
-      new Set(
-        getErroredToolUseMessages(normalizedMessages).map(
-          _ => (_.message.content[0]! as ToolUseBlockParam).id,
-        ),
-      ),
-    [normalizedMessages],
+      new Set(getErroredToolUseMessages(normalizedMessages).map(_ => (_.message.content[0]! as ToolUseBlockParam).id)),
+    [normalizedMessages]
   )
 
   const messagesJSX = useMemo(() => {
@@ -497,14 +449,14 @@ export function REPL({
             />
             <ProjectOnboarding workspaceDir={getOriginalCwd()} />
           </Box>
-        ),
+        )
       },
       ...reorderMessages(normalizedMessages).map(_ => {
         const toolUseID = getToolUseID(_)
         const message =
           _.type === 'progress' ? (
             _.content.message.content[0]?.type === 'text' &&
-            // TaskTool interrupts use Progress messages without extra ⎿ 
+            // TaskTool interrupts use Progress messages without extra ⎿
             // since <Message /> component already adds the margin
             _.content.message.content[0].text === INTERRUPT_MESSAGE ? (
               <Message
@@ -521,25 +473,23 @@ export function REPL({
                 shouldShowDot={false}
               />
             ) : (
-              <MessageResponse children={
-                <Message
-                  message={_.content}
-                  messages={_.normalizedMessages}
-                  addMargin={false}
-                  tools={_.tools}
-                  verbose={verbose ?? false}
-                  debug={debug}
-                  erroredToolUseIDs={new Set()}
-                  inProgressToolUseIDs={new Set()}
-                  unresolvedToolUseIDs={
-                    new Set([
-                      (_.content.message.content[0]! as ToolUseBlockParam).id,
-                    ])
-                  }
-                  shouldAnimate={false}
-                  shouldShowDot={false}
-                />
-              } />
+              <MessageResponse
+                children={
+                  <Message
+                    message={_.content}
+                    messages={_.normalizedMessages}
+                    addMargin={false}
+                    tools={_.tools}
+                    verbose={verbose ?? false}
+                    debug={debug}
+                    erroredToolUseIDs={new Set()}
+                    inProgressToolUseIDs={new Set()}
+                    unresolvedToolUseIDs={new Set([(_.content.message.content[0]! as ToolUseBlockParam).id])}
+                    shouldAnimate={false}
+                    shouldShowDot={false}
+                  />
+                }
+              />
             )
           ) : (
             <Message
@@ -562,27 +512,16 @@ export function REPL({
             />
           )
 
-        const type = shouldRenderStatically(
-          _,
-          normalizedMessages,
-          unresolvedToolUseIDs,
-        )
-          ? 'static'
-          : 'transient'
+        const type = shouldRenderStatically(_, normalizedMessages, unresolvedToolUseIDs) ? 'static' : 'transient'
 
         if (debug) {
           return {
             type,
             jsx: (
-              <Box
-                borderStyle="single"
-                borderColor={type === 'static' ? 'green' : 'red'}
-                key={_.uuid}
-                width="100%"
-              >
+              <Box borderStyle="single" borderColor={type === 'static' ? 'green' : 'red'} key={_.uuid} width="100%">
                 {message}
               </Box>
-            ),
+            )
           }
         }
 
@@ -592,9 +531,9 @@ export function REPL({
             <Box key={_.uuid} width="100%">
               {message}
             </Box>
-          ),
+          )
         }
-      }),
+      })
     ]
   }, [
     forkNumber,
@@ -609,162 +548,142 @@ export function REPL({
     isMessageSelectorVisible,
     unresolvedToolUseIDs,
     mcpClients,
-    isDefaultModel,
+    isDefaultModel
   ])
 
   // only show the dialog once not loading
   const showingCostDialog = !isLoading && showCostDialog
 
   return (
-    <PermissionProvider 
+    <PermissionProvider
       isBypassPermissionsModeAvailable={!safeMode}
       children={
         <React.Fragment>
-        {/* Update banner now renders inside Logo for stable placement */}
-        <ModeIndicator />
-      <React.Fragment key={`static-messages-${forkNumber}`}>
-        <Static
-          items={messagesJSX.filter(_ => _.type === 'static')}
-          children={(item: any) => item.jsx}
-        />
-      </React.Fragment>
-      {messagesJSX.filter(_ => _.type === 'transient').map(_ => _.jsx)}
-      <Box
-        borderColor="red"
-        borderStyle={debug ? 'single' : undefined}
-        flexDirection="column"
-        width="100%"
-      >
-        {!toolJSX && !toolUseConfirm && !binaryFeedbackContext && isLoading && (
-          <Spinner />
-        )}
-        {toolJSX ? toolJSX.jsx : null}
-        {!toolJSX && binaryFeedbackContext && !isMessageSelectorVisible && (
-          <BinaryFeedback
-            m1={binaryFeedbackContext.m1}
-            m2={binaryFeedbackContext.m2}
-            resolve={result => {
-              binaryFeedbackContext.resolve(result)
-              setTimeout(() => setBinaryFeedbackContext(null), 0)
-            }}
-            verbose={verbose}
-            normalizedMessages={normalizedMessages}
-            tools={tools}
-            debug={debug}
-            erroredToolUseIDs={erroredToolUseIDs}
-            inProgressToolUseIDs={inProgressToolUseIDs}
-            unresolvedToolUseIDs={unresolvedToolUseIDs}
-          />
-        )}
-        {!toolJSX &&
-          toolUseConfirm &&
-          !isMessageSelectorVisible &&
-          !binaryFeedbackContext && (
-            <PermissionRequest
-              toolUseConfirm={toolUseConfirm}
-              onDone={() => setToolUseConfirm(null)}
-              verbose={verbose}
-            />
-          )}
-        {!toolJSX &&
-          !toolUseConfirm &&
-          !isMessageSelectorVisible &&
-          !binaryFeedbackContext &&
-          showingCostDialog && (
-            <CostThresholdDialog
-              onDone={() => {
-                setShowCostDialog(false)
-                setHaveShownCostDialog(true)
-                const projectConfig = getGlobalConfig()
-                saveGlobalConfig({
-                  ...projectConfig,
-                  hasAcknowledgedCostThreshold: true,
-                })
-                
-              }}
-            />
-          )}
-
-        {!toolUseConfirm &&
-          !toolJSX?.shouldHidePromptInput &&
-          shouldShowPromptInput &&
-          !isMessageSelectorVisible &&
-          !binaryFeedbackContext &&
-          !showingCostDialog && (
-            <>
-              <PromptInput
-                commands={commands}
-                forkNumber={forkNumber}
-                messageLogName={messageLogName}
-                tools={tools}
-                isDisabled={apiKeyStatus === 'invalid'}
-                isLoading={isLoading}
-                onQuery={onQuery}
-                debug={debug}
+          {/* Update banner now renders inside Logo for stable placement */}
+          <ModeIndicator />
+          <React.Fragment key={`static-messages-${forkNumber}`}>
+            <Static items={messagesJSX.filter(_ => _.type === 'static')} children={(item: any) => item.jsx} />
+          </React.Fragment>
+          {messagesJSX.filter(_ => _.type === 'transient').map(_ => _.jsx)}
+          <Box borderColor="red" borderStyle={debug ? 'single' : undefined} flexDirection="column" width="100%">
+            {!toolJSX && !toolUseConfirm && !binaryFeedbackContext && isLoading && <Spinner />}
+            {toolJSX ? toolJSX.jsx : null}
+            {!toolJSX && binaryFeedbackContext && !isMessageSelectorVisible && (
+              <BinaryFeedback
+                m1={binaryFeedbackContext.m1}
+                m2={binaryFeedbackContext.m2}
+                resolve={result => {
+                  binaryFeedbackContext.resolve(result)
+                  setTimeout(() => setBinaryFeedbackContext(null), 0)
+                }}
                 verbose={verbose}
-                messages={messages}
-                setToolJSX={setToolJSX}
-                input={inputValue}
-                onInputChange={setInputValue}
-                mode={inputMode}
-                onModeChange={setInputMode}
-                submitCount={submitCount}
-                onSubmitCountChange={setSubmitCount}
-                setIsLoading={setIsLoading}
-                setAbortController={setAbortController}
-                onShowMessageSelector={() =>
-                  setIsMessageSelectorVisible(prev => !prev)
-                }
-                setForkConvoWithMessagesOnTheNextRender={
-                  setForkConvoWithMessagesOnTheNextRender
-                }
-                readFileTimestamps={readFileTimestamps.current}
-                abortController={abortController}
-                onModelChange={() => setForkNumber(prev => prev + 1)}
+                normalizedMessages={normalizedMessages}
+                tools={tools}
+                debug={debug}
+                erroredToolUseIDs={erroredToolUseIDs}
+                inProgressToolUseIDs={inProgressToolUseIDs}
+                unresolvedToolUseIDs={unresolvedToolUseIDs}
               />
-            </>
+            )}
+            {!toolJSX && toolUseConfirm && !isMessageSelectorVisible && !binaryFeedbackContext && (
+              <PermissionRequest
+                toolUseConfirm={toolUseConfirm}
+                onDone={() => setToolUseConfirm(null)}
+                verbose={verbose}
+              />
+            )}
+            {!toolJSX &&
+              !toolUseConfirm &&
+              !isMessageSelectorVisible &&
+              !binaryFeedbackContext &&
+              showingCostDialog && (
+                <CostThresholdDialog
+                  onDone={() => {
+                    setShowCostDialog(false)
+                    setHaveShownCostDialog(true)
+                    const projectConfig = getGlobalConfig()
+                    saveGlobalConfig({
+                      ...projectConfig,
+                      hasAcknowledgedCostThreshold: true
+                    })
+                  }}
+                />
+              )}
+
+            {!toolUseConfirm &&
+              !toolJSX?.shouldHidePromptInput &&
+              shouldShowPromptInput &&
+              !isMessageSelectorVisible &&
+              !binaryFeedbackContext &&
+              !showingCostDialog && (
+                <>
+                  <PromptInput
+                    commands={commands}
+                    forkNumber={forkNumber}
+                    messageLogName={messageLogName}
+                    tools={tools}
+                    isDisabled={apiKeyStatus === 'invalid'}
+                    isLoading={isLoading}
+                    onQuery={onQuery}
+                    debug={debug}
+                    verbose={verbose}
+                    messages={messages}
+                    setToolJSX={setToolJSX}
+                    input={inputValue}
+                    onInputChange={setInputValue}
+                    mode={inputMode}
+                    onModeChange={setInputMode}
+                    submitCount={submitCount}
+                    onSubmitCountChange={setSubmitCount}
+                    setIsLoading={setIsLoading}
+                    setAbortController={setAbortController}
+                    onShowMessageSelector={() => setIsMessageSelectorVisible(prev => !prev)}
+                    setForkConvoWithMessagesOnTheNextRender={setForkConvoWithMessagesOnTheNextRender}
+                    readFileTimestamps={readFileTimestamps.current}
+                    abortController={abortController}
+                    onModelChange={() => setForkNumber(prev => prev + 1)}
+                  />
+                </>
+              )}
+          </Box>
+          {isMessageSelectorVisible && (
+            <MessageSelector
+              erroredToolUseIDs={erroredToolUseIDs}
+              unresolvedToolUseIDs={unresolvedToolUseIDs}
+              messages={normalizeMessagesForAPI(messages)}
+              onSelect={async message => {
+                setIsMessageSelectorVisible(false)
+
+                // If the user selected the current prompt, do nothing
+                if (!messages.includes(message)) {
+                  return
+                }
+
+                // Cancel tool use calls/requests
+                onCancel()
+
+                // Hack: make sure the "Interrupted by user" message is
+                // rendered in response to the cancellation. Otherwise,
+                // the screen will be cleared but there will remain a
+                // vestigial "Interrupted by user" message at the top.
+                setImmediate(async () => {
+                  // Clear messages, and re-render
+                  await clearTerminal()
+                  setMessages([])
+                  setForkConvoWithMessagesOnTheNextRender(messages.slice(0, messages.indexOf(message)))
+
+                  // Populate/reset the prompt input
+                  if (typeof message.message.content === 'string') {
+                    setInputValue(message.message.content)
+                  }
+                })
+              }}
+              onEscape={() => setIsMessageSelectorVisible(false)}
+              tools={tools}
+            />
           )}
-      </Box>
-      {isMessageSelectorVisible && (
-        <MessageSelector
-          erroredToolUseIDs={erroredToolUseIDs}
-          unresolvedToolUseIDs={unresolvedToolUseIDs}
-          messages={normalizeMessagesForAPI(messages)}
-          onSelect={async message => {
-            setIsMessageSelectorVisible(false)
-
-            // If the user selected the current prompt, do nothing
-            if (!messages.includes(message)) {
-              return
-            }
-
-            // Cancel tool use calls/requests
-            onCancel()
-
-            // Hack: make sure the "Interrupted by user" message is
-            // rendered in response to the cancellation. Otherwise,
-            // the screen will be cleared but there will remain a
-            // vestigial "Interrupted by user" message at the top.
-            setImmediate(async () => {
-              // Clear messages, and re-render
-              await clearTerminal()
-              setMessages([])
-              setForkConvoWithMessagesOnTheNextRender(
-                messages.slice(0, messages.indexOf(message)),
-              )
-
-              // Populate/reset the prompt input
-              if (typeof message.message.content === 'string') {
-                setInputValue(message.message.content)
-              }
-            })
-          }}
-          onEscape={() => setIsMessageSelectorVisible(false)}
-          tools={tools}
-        />
-      )}
-      {/** Fix occasional rendering artifact */}
-      <Newline />
+          {/** Fix occasional rendering artifact */}
+          <Newline />
         </React.Fragment>
       }
     />
@@ -774,7 +693,7 @@ export function REPL({
 function shouldRenderStatically(
   message: NormalizedMessage,
   messages: NormalizedMessage[],
-  unresolvedToolUseIDs: Set<string>,
+  unresolvedToolUseIDs: Set<string>
 ): boolean {
   switch (message.type) {
     case 'user':
@@ -788,16 +707,13 @@ function shouldRenderStatically(
       }
 
       const correspondingProgressMessage = messages.find(
-        _ => _.type === 'progress' && _.toolUseID === toolUseID,
+        _ => _.type === 'progress' && _.toolUseID === toolUseID
       ) as ProgressMessage | null
       if (!correspondingProgressMessage) {
         return true
       }
 
-      return !intersects(
-        unresolvedToolUseIDs,
-        correspondingProgressMessage.siblingToolUseIDs,
-      )
+      return !intersects(unresolvedToolUseIDs, correspondingProgressMessage.siblingToolUseIDs)
     }
     case 'progress':
       return !intersects(unresolvedToolUseIDs, message.siblingToolUseIDs)

@@ -1,9 +1,9 @@
 import * as React from 'react'
-import type { Command } from '@commands'
-import { Onboarding } from '@components/Onboarding'
-import { clearTerminal } from '@utils/terminal'
-import { getGlobalConfig, saveGlobalConfig } from '@utils/config'
-import { clearConversation } from './clear'
+import type {Command} from '@commands'
+import {Onboarding} from '@components/Onboarding'
+import {clearTerminal} from '@utils/terminal'
+import {getGlobalConfig, saveGlobalConfig} from '@utils/config'
+import {clearConversation} from './clear'
 
 export default {
   type: 'local-jsx',
@@ -16,7 +16,7 @@ export default {
     const config = getGlobalConfig()
     saveGlobalConfig({
       ...config,
-      theme: 'dark',
+      theme: 'dark'
     })
 
     return (
@@ -30,5 +30,5 @@ export default {
   },
   userFacingName() {
     return 'onboarding'
-  },
+  }
 } satisfies Command

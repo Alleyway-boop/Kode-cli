@@ -1,6 +1,6 @@
-import { ModelAdapterFactory } from '@services/modelAdapterFactory'
-import { getModelCapabilities } from '@constants/modelCapabilities'
-import { ModelProfile } from '@utils/config'
+import {ModelAdapterFactory} from '@services/modelAdapterFactory'
+import {getModelCapabilities} from '@constants/modelCapabilities'
+import {ModelProfile} from '@utils/config'
 
 // Test different models' adapter selection
 const testModels: ModelProfile[] = [
@@ -59,12 +59,12 @@ const testModels: ModelProfile[] = [
 ]
 
 console.log('🧪 Testing Model Adapter System\n')
-console.log('=' .repeat(60))
+console.log('='.repeat(60))
 
 testModels.forEach(model => {
   console.log(`\n📊 Testing: ${model.name} (${model.modelName})`)
   console.log('-'.repeat(40))
-  
+
   // Get capabilities
   const capabilities = getModelCapabilities(model.modelName)
   console.log(`  ✓ API Architecture: ${capabilities.apiArchitecture.primary}`)
@@ -73,18 +73,18 @@ testModels.forEach(model => {
   console.log(`  ✓ Tool Calling Mode: ${capabilities.toolCalling.mode}`)
   console.log(`  ✓ Supports Freeform: ${capabilities.toolCalling.supportsFreeform}`)
   console.log(`  ✓ Supports Streaming: ${capabilities.streaming.supported}`)
-  
+
   // Test adapter creation
   const adapter = ModelAdapterFactory.createAdapter(model)
   console.log(`  ✓ Adapter Type: ${adapter.constructor.name}`)
-  
+
   // Test shouldUseResponsesAPI
   const shouldUseResponses = ModelAdapterFactory.shouldUseResponsesAPI(model)
   console.log(`  ✓ Should Use Responses API: ${shouldUseResponses}`)
-  
+
   // Test with custom endpoint
   if (model.baseURL) {
-    const customModel = { ...model, baseURL: 'https://custom.api.com/v1' }
+    const customModel = {...model, baseURL: 'https://custom.api.com/v1'}
     const customShouldUseResponses = ModelAdapterFactory.shouldUseResponsesAPI(customModel)
     console.log(`  ✓ With Custom Endpoint: ${customShouldUseResponses ? 'Responses API' : 'Chat Completions'}`)
   }

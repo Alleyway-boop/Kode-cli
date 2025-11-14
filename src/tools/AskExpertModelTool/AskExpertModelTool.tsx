@@ -1,40 +1,30 @@
 import * as React from 'react'
-import { Box, Text } from 'ink'
-import { z } from 'zod'
-import { Tool, ValidationResult } from '@tool'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { getModelManager } from '@utils/model'
-import { getTheme } from '@utils/theme'
-import {
-  createUserMessage,
-  createAssistantMessage,
-  INTERRUPT_MESSAGE,
-} from '@utils/messages'
-import { logError } from '@utils/log'
+import {Box, Text} from 'ink'
+import {z} from 'zod'
+import {Tool, ValidationResult} from '@tool'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {getModelManager} from '@utils/model'
+import {getTheme} from '@utils/theme'
+import {createUserMessage, createAssistantMessage, INTERRUPT_MESSAGE} from '@utils/messages'
+import {logError} from '@utils/log'
 import {
   createExpertChatSession,
   loadExpertChatSession,
   getSessionMessages,
-  addMessageToSession,
+  addMessageToSession
 } from '@utils/expertChatStorage'
-import { queryLLM } from '@services/claude'
-import { debug as debugLogger } from '@utils/debugLogger'
-import { applyMarkdown } from '@utils/markdown'
+import {queryLLM} from '@services/claude'
+import {debug as debugLogger} from '@utils/debugLogger'
+import {applyMarkdown} from '@utils/markdown'
 
 export const inputSchema = z.strictObject({
-  question: z.string().describe(
-    'COMPLETE SELF-CONTAINED QUESTION: Must include full background context, relevant details, and a clear independent question. The expert model will receive ONLY this content with no access to previous conversation or external context. Structure as: 1) Background/Context 2) Specific situation/problem 3) Clear question. Ensure the expert can fully understand and respond without needing additional information.'
-  ),
-  expert_model: z
+  question: z
     .string()
     .describe(
-      'The expert model to use (e.g., gpt-5, claude-3-5-sonnet-20241022)',
+      'COMPLETE SELF-CONTAINED QUESTION: Must include full background context, relevant details, and a clear independent question. The expert model will receive ONLY this content with no access to previous conversation or external context. Structure as: 1) Background/Context 2) Specific situation/problem 3) Clear question. Ensure the expert can fully understand and respond without needing additional information.'
     ),
-  chat_session_id: z
-    .string()
-    .describe(
-      'Chat session ID: use "new" for new session or existing session ID',
-    ),
+  expert_model: z.string().describe('The expert model to use (e.g., gpt-5, claude-3-5-sonnet-20241022)'),
+  chat_session_id: z.string().describe('Chat session ID: use "new" for new session or existing session ID')
 })
 
 type In = typeof inputSchema
@@ -47,7 +37,7 @@ export type Out = {
 export const AskExpertModelTool = {
   name: 'AskExpertModel',
   async description() {
-    return "Consult external AI models for expert opinions and analysis"
+    return 'Consult external AI models for expert opinions and analysis'
   },
   async prompt() {
     return `Ask a question to a specific external AI model for expert analysis.
@@ -98,32 +88,26 @@ Question: What are the most effective React optimization techniques for handling
   needsPermissions(): boolean {
     return false
   },
-  async validateInput({
-    question,
-    expert_model,
-    chat_session_id,
-  }, context?: any): Promise<ValidationResult> {
+  async validateInput({question, expert_model, chat_session_id}, context?: any): Promise<ValidationResult> {
     if (!question.trim()) {
-      return { result: false, message: 'Question cannot be empty' }
+      return {result: false, message: 'Question cannot be empty'}
     }
 
-
     if (!expert_model.trim()) {
-      return { result: false, message: 'Expert model must be specified' }
+      return {result: false, message: 'Expert model must be specified'}
     }
 
     if (!chat_session_id.trim()) {
       return {
         result: false,
-        message:
-          'Chat session ID must be specified (use "new" for new session)',
+        message: 'Chat session ID must be specified (use "new" for new session)'
       }
     }
 
     // Check if trying to consult the same model we're currently running
     try {
       const modelManager = getModelManager()
-      
+
       // Get current model based on context
       let currentModel: string
       if (context?.agentId && context?.options?.model) {
@@ -133,11 +117,11 @@ Question: What are the most effective React optimization techniques for handling
         // In main agent context or after model switch
         currentModel = modelManager.getModelName('main') || ''
       }
-      
+
       // Normalize model names for comparison
       const normalizedExpert = expert_model.toLowerCase().replace(/[^a-z0-9]/g, '')
       const normalizedCurrent = currentModel.toLowerCase().replace(/[^a-z0-9]/g, '')
-      
+
       if (normalizedExpert === normalizedCurrent) {
         return {
           result: false,
@@ -146,7 +130,10 @@ Question: What are the most effective React optimization techniques for handling
       }
     } catch (e) {
       // If we can't determine current model, allow the request
-      debugLogger.error('AskExpertModel', { message: 'Could not determine current model', error: e })
+      debugLogger.error('AskExpertModel', {
+        message: 'Could not determine current model',
+        error: e
+      })
     }
 
     // Validate that the model exists and is available
@@ -159,12 +146,12 @@ Question: What are the most effective React optimization techniques for handling
         if (availableModels.length > 0) {
           return {
             result: false,
-            message: `Model '${expert_model}' is not configured. Available models: ${availableModels.join(', ')}. Check if any available model closely matches the user's request (e.g., 'kimi' matches 'kimi-k2-0711-preview'). If there's a strong match, auto retry using the correct model name. If no close match exists, inform the user that '${expert_model}' needs to be configured using /model command.`,
+            message: `Model '${expert_model}' is not configured. Available models: ${availableModels.join(', ')}. Check if any available model closely matches the user's request (e.g., 'kimi' matches 'kimi-k2-0711-preview'). If there's a strong match, auto retry using the correct model name. If no close match exists, inform the user that '${expert_model}' needs to be configured using /model command.`
           }
         } else {
           return {
             result: false,
-            message: `Model '${expert_model}' not found and no models are currently configured in the system. Inform the user that models need to be configured first using the /model command.`,
+            message: `Model '${expert_model}' not found and no models are currently configured in the system. Inform the user that models need to be configured first using the /model command.`
           }
         }
       }
@@ -173,17 +160,14 @@ Question: What are the most effective React optimization techniques for handling
       logError(error)
       return {
         result: false,
-        message: `Failed to validate expert model '${expert_model}'. Please check your model configuration.`,
+        message: `Failed to validate expert model '${expert_model}'. Please check your model configuration.`
       }
     }
 
-    return { result: true }
+    return {result: true}
   },
 
-  renderToolUseMessage(
-    { question, expert_model, chat_session_id },
-    { verbose },
-  ) {
+  renderToolUseMessage({question, expert_model, chat_session_id}, {verbose}) {
     if (!question || !expert_model) return null
     const isNewSession = chat_session_id === 'new'
     const sessionDisplay = isNewSession ? 'new session' : `session ${chat_session_id.substring(0, 5)}...`
@@ -192,20 +176,24 @@ Question: What are the most effective React optimization techniques for handling
     if (verbose) {
       return (
         <Box flexDirection="column">
-          <Text bold color="yellow">{expert_model}</Text>
+          <Text bold color="yellow">
+            {expert_model}
+          </Text>
           <Text color={theme.secondaryText}>{sessionDisplay}</Text>
           <Box marginTop={1}>
-            <Text color={theme.text}>
-              {question.length > 300 ? question.substring(0, 300) + '...' : question}
-            </Text>
+            <Text color={theme.text}>{question.length > 300 ? question.substring(0, 300) + '...' : question}</Text>
           </Box>
         </Box>
       )
     }
     return (
       <Box flexDirection="column">
-        <Text bold color="yellow">{expert_model} </Text>
-        <Text color={theme.secondaryText} dimColor>({sessionDisplay})</Text>
+        <Text bold color="yellow">
+          {expert_model}{' '}
+        </Text>
+        <Text color={theme.secondaryText} dimColor>
+          ({sessionDisplay})
+        </Text>
       </Box>
     )
   },
@@ -227,7 +215,7 @@ Question: What are the most effective React optimization techniques for handling
         )
       }
 
-      const answerText = verbose 
+      const answerText = verbose
         ? expertResult.expertAnswer.trim()
         : expertResult.expertAnswer.length > 500
           ? expertResult.expertAnswer.substring(0, 500) + '...'
@@ -243,11 +231,11 @@ Question: What are the most effective React optimization techniques for handling
 
       return (
         <Box flexDirection="column">
-          <Text bold color={theme.text}>Response from {expertResult.expertModelName}:</Text>
+          <Text bold color={theme.text}>
+            Response from {expertResult.expertModelName}:
+          </Text>
           <Box marginTop={1}>
-            <Text color={theme.text}>
-              {applyMarkdown(answerText)}
-            </Text>
+            <Text color={theme.text}>{applyMarkdown(answerText)}</Text>
           </Box>
           <Box marginTop={1}>
             <Text color={theme.secondaryText} dimColor>
@@ -278,10 +266,7 @@ ${output.expertAnswer}`
     return <FallbackToolUseRejectedMessage />
   },
 
-  async *call(
-    { question, expert_model, chat_session_id },
-    { abortController, readFileTimestamps },
-  ) {
+  async *call({question, expert_model, chat_session_id}, {abortController, readFileTimestamps}) {
     const expertModel = expert_model
 
     let sessionId: string
@@ -338,7 +323,7 @@ ${output.expertAnswer}`
       }
 
       // Load history and prepare messages with error handling
-      let historyMessages: Array<{ role: string; content: string }>
+      let historyMessages: Array<{role: string; content: string}>
       try {
         historyMessages = getSessionMessages(sessionId)
       } catch (error) {
@@ -347,14 +332,12 @@ ${output.expertAnswer}`
         historyMessages = [] // Fallback to empty history
       }
 
-      const messages = [...historyMessages, { role: 'user', content: question }]
+      const messages = [...historyMessages, {role: 'user', content: question}]
 
       let systemMessages
       try {
         systemMessages = messages.map(msg =>
-          msg.role === 'user'
-            ? createUserMessage(msg.content)
-            : createAssistantMessage(msg.content),
+          msg.role === 'user' ? createUserMessage(msg.content) : createAssistantMessage(msg.content)
         )
       } catch (error) {
         console.error('Failed to create system messages:', error)
@@ -370,9 +353,7 @@ ${output.expertAnswer}`
       // Yield progress message to show we're connecting
       yield {
         type: 'progress',
-        content: createAssistantMessage(
-          `Connecting to ${expertModel}... (timeout: 5 minutes)`
-        ),
+        content: createAssistantMessage(`Connecting to ${expertModel}... (timeout: 5 minutes)`)
       }
 
       // Call model with comprehensive error handling and timeout
@@ -389,14 +370,14 @@ ${output.expertAnswer}`
           profileModelName: modelResolution.profile?.modelName,
           provider: modelResolution.profile?.provider,
           isActive: modelResolution.profile?.isActive,
-          error: modelResolution.error,
+          error: modelResolution.error
         })
 
         // Create a timeout promise to prevent hanging
         const timeoutMs = 300000 // 300 seconds (5 minutes) timeout for external models
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => {
-            reject(new Error(`Expert model query timed out after ${timeoutMs/1000}s`))
+            reject(new Error(`Expert model query timed out after ${timeoutMs / 1000}s`))
           }, timeoutMs)
         })
 
@@ -411,8 +392,8 @@ ${output.expertAnswer}`
             {
               safeMode: false,
               model: expertModel,
-              prependCLISysprompt: false, // KEY: avoid injecting CLI context
-            },
+              prependCLISysprompt: false // KEY: avoid injecting CLI context
+            }
           ),
           timeoutPromise
         ])
@@ -421,67 +402,57 @@ ${output.expertAnswer}`
         logError(error)
 
         // Check for specific error types
-        if (
-          error.name === 'AbortError' ||
-          abortController.signal?.aborted ||
-          isInterrupted
-        ) {
+        if (error.name === 'AbortError' || abortController.signal?.aborted || isInterrupted) {
           return yield* this.handleInterrupt()
         }
 
         if (error.message?.includes('timed out')) {
           throw new Error(
             `Expert model '${expertModel}' timed out after 5 minutes.\n\n` +
-            `Suggestions:\n` +
-            `  - The model might be experiencing high load\n` +
-            `  - Try a different model or retry later\n` +
-            `  - Consider breaking down your question into smaller parts`,
+              `Suggestions:\n` +
+              `  - The model might be experiencing high load\n` +
+              `  - Try a different model or retry later\n` +
+              `  - Consider breaking down your question into smaller parts`
           )
         }
 
         if (error.message?.includes('rate limit')) {
           throw new Error(
             `Rate limit exceeded for ${expertModel}.\n\n` +
-            `Please wait a moment and try again, or use a different model.`,
+              `Please wait a moment and try again, or use a different model.`
           )
         }
 
         if (error.message?.includes('invalid api key')) {
           throw new Error(
-            `Invalid API key for ${expertModel}.\n\n` +
-            `Please check your model configuration with /model command.`,
+            `Invalid API key for ${expertModel}.\n\n` + `Please check your model configuration with /model command.`
           )
         }
 
-        if (
-          error.message?.includes('model not found') ||
-          error.message?.includes('Failed to resolve model')
-        ) {
+        if (error.message?.includes('model not found') || error.message?.includes('Failed to resolve model')) {
           // Provide helpful model guidance in runtime errors too
           try {
             const modelManager = getModelManager()
             const availableModels = modelManager.getAllAvailableModelNames()
             if (availableModels.length > 0) {
               throw new Error(
-                `Model '${expertModel}' is not configured. Available models: ${availableModels.join(', ')}. Check if any available model closely matches the user's request (e.g., 'kimi' matches 'kimi-k2-0711-preview'). If there's a strong match, auto retry using the correct model name. If no close match exists, inform the user that '${expertModel}' needs to be configured using /model command.`,
+                `Model '${expertModel}' is not configured. Available models: ${availableModels.join(', ')}. Check if any available model closely matches the user's request (e.g., 'kimi' matches 'kimi-k2-0711-preview'). If there's a strong match, auto retry using the correct model name. If no close match exists, inform the user that '${expertModel}' needs to be configured using /model command.`
               )
             } else {
               throw new Error(
-                `Model '${expertModel}' not found and no models are currently configured in the system. Inform the user that models need to be configured first using the /model command.`,
+                `Model '${expertModel}' not found and no models are currently configured in the system. Inform the user that models need to be configured first using the /model command.`
               )
             }
           } catch (modelError) {
             // If we can't get model list, fall back to simple error
             throw new Error(
-              `Model '${expertModel}' not found. Please check model configuration or inform user about the issue.`,
+              `Model '${expertModel}' not found. Please check model configuration or inform user about the issue.`
             )
           }
         }
 
         // Generic fallback
-        throw new Error(
-          `Expert model query failed: ${error.message || 'Unknown error'}`,
-        )
+        throw new Error(`Expert model query failed: ${error.message || 'Unknown error'}`)
       }
 
       // Extract answer with error handling
@@ -518,21 +489,17 @@ ${output.expertAnswer}`
       const result: Out = {
         chatSessionId: sessionId,
         expertModelName: expertModel,
-        expertAnswer: expertAnswer,
+        expertAnswer: expertAnswer
       }
 
       yield {
         type: 'result',
         data: result,
-        resultForAssistant: this.renderResultForAssistant(result),
+        resultForAssistant: this.renderResultForAssistant(result)
       }
     } catch (error: any) {
       // Check if error is due to cancellation
-      if (
-        error.name === 'AbortError' ||
-        abortController.signal?.aborted ||
-        isInterrupted
-      ) {
+      if (error.name === 'AbortError' || abortController.signal?.aborted || isInterrupted) {
         return yield* this.handleInterrupt()
       }
 
@@ -542,18 +509,17 @@ ${output.expertAnswer}`
       // Ensure we have a valid sessionId for error response
       const errorSessionId = sessionId || 'error-session'
 
-      const errorMessage =
-        error.message || 'Expert consultation failed with unknown error'
+      const errorMessage = error.message || 'Expert consultation failed with unknown error'
       const result: Out = {
         chatSessionId: errorSessionId,
         expertModelName: expertModel,
-        expertAnswer: `❌ ${errorMessage}`,
+        expertAnswer: `❌ ${errorMessage}`
       }
 
       yield {
         type: 'result',
         data: result,
-        resultForAssistant: this.renderResultForAssistant(result),
+        resultForAssistant: this.renderResultForAssistant(result)
       }
     } finally {
       // Clean up event listener
@@ -568,9 +534,9 @@ ${output.expertAnswer}`
       data: {
         chatSessionId: 'interrupted',
         expertModelName: 'cancelled',
-        expertAnswer: INTERRUPT_MESSAGE,
+        expertAnswer: INTERRUPT_MESSAGE
       },
-      resultForAssistant: INTERRUPT_MESSAGE,
+      resultForAssistant: INTERRUPT_MESSAGE
     }
-  },
+  }
 }

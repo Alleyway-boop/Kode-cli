@@ -1,8 +1,8 @@
-import type { Command } from '@commands'
-import { listMCPServers, getClients } from '@services/mcpClient'
-import { PRODUCT_COMMAND } from '@constants/product'
+import type {Command} from '@commands'
+import {listMCPServers, getClients} from '@services/mcpClient'
+import {PRODUCT_COMMAND} from '@constants/product'
 import chalk from 'chalk'
-import { getTheme } from '@utils/theme'
+import {getTheme} from '@utils/theme'
 
 const mcp = {
   type: 'local',
@@ -25,9 +25,7 @@ const mcp = {
       .map(client => {
         const isConnected = client.type === 'connected'
         const status = isConnected ? 'connected' : 'disconnected'
-        const coloredStatus = isConnected
-          ? chalk.hex(theme.success)(status)
-          : chalk.hex(theme.error)(status)
+        const coloredStatus = isConnected ? chalk.hex(theme.success)(status) : chalk.hex(theme.error)(status)
         return `⎿  • ${client.name}: ${coloredStatus}`
       })
 
@@ -35,7 +33,7 @@ const mcp = {
   },
   userFacingName() {
     return 'mcp'
-  },
+  }
 } satisfies Command
 
 export default mcp

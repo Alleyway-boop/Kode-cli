@@ -1,9 +1,9 @@
 // Type definitions for conversation and message functionality
 // Used by debugLogger and other conversation-related utilities
 
-import { UUID } from 'crypto'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import type { Message as APIAssistantMessage } from '@anthropic-ai/sdk/resources/index.mjs'
+import {UUID} from 'crypto'
+import type {MessageParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import type {Message as APIAssistantMessage} from '@anthropic-ai/sdk/resources/index.mjs'
 
 /**
  * Base message interface used throughout the conversation system

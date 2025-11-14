@@ -1,7 +1,7 @@
 import React from 'react'
-import type { Command } from '@commands'
-import { Doctor } from '@screens/Doctor'
-import { PRODUCT_NAME } from '@constants/product'
+import type {Command} from '@commands'
+import {Doctor} from '@screens/Doctor'
+import {PRODUCT_NAME} from '@constants/product'
 
 const doctor: Command = {
   name: 'doctor',
@@ -15,10 +15,10 @@ const doctor: Command = {
   call(onDone) {
     const element = React.createElement(Doctor, {
       onDone,
-      doctorMode: true,
+      doctorMode: true
     })
     return Promise.resolve(element)
-  },
+  }
 }
 
 export default doctor

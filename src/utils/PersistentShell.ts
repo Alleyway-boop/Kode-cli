@@ -1,12 +1,12 @@
 import * as fs from 'fs'
-import { homedir } from 'os'
-import { existsSync } from 'fs'
+import {homedir} from 'os'
+import {existsSync} from 'fs'
 import shellquote from 'shell-quote'
-import { spawn, execSync, execFileSync, type ChildProcess } from 'child_process'
-import { isAbsolute, resolve, join } from 'path'
-import { logError } from './log'
+import {spawn, execSync, execFileSync, type ChildProcess} from 'child_process'
+import {isAbsolute, resolve, join} from 'path'
+import {logError} from './log'
 import * as os from 'os'
-import { PRODUCT_COMMAND } from '@constants/product'
+import {PRODUCT_COMMAND} from '@constants/product'
 
 type ExecResult = {
   stdout: string
@@ -29,11 +29,11 @@ const FILE_SUFFIXES = {
   STATUS: '-status',
   STDOUT: '-stdout',
   STDERR: '-stderr',
-  CWD: '-cwd',
+  CWD: '-cwd'
 }
 const SHELL_CONFIGS: Record<string, string> = {
   '/bin/bash': '.bashrc',
-  '/bin/zsh': '.zshrc',
+  '/bin/zsh': '.zshrc'
 }
 
 type DetectedShell = {
@@ -125,39 +125,36 @@ function detectShell(): DetectedShell {
   const isWin = process.platform === 'win32'
   if (!isWin) {
     const bin = process.env.SHELL || '/bin/bash'
-    return { bin, args: ['-l'], type: 'posix' }
+    return {bin, args: ['-l'], type: 'posix'}
   }
 
   // 1) Respect SHELL if it points to a bash.exe that exists
   if (process.env.SHELL && /bash\.exe$/i.test(process.env.SHELL) && existsSync(process.env.SHELL)) {
-    return { bin: process.env.SHELL, args: [], type: 'msys' }
+    return {bin: process.env.SHELL, args: [], type: 'msys'}
   }
 
   // 1.1) Explicit override
   if (process.env.KODE_BASH && existsSync(process.env.KODE_BASH)) {
-    return { bin: process.env.KODE_BASH, args: [], type: 'msys' }
+    return {bin: process.env.KODE_BASH, args: [], type: 'msys'}
   }
 
   // 2) Common Git Bash/MSYS2 locations
   const programFiles = [
     process.env['ProgramFiles'],
     process.env['ProgramFiles(x86)'],
-    process.env['ProgramW6432'],
+    process.env['ProgramW6432']
   ].filter(Boolean) as string[]
 
   const localAppData = process.env['LocalAppData']
 
   const candidates: string[] = []
   for (const base of programFiles) {
-    candidates.push(
-      join(base, 'Git', 'bin', 'bash.exe'),
-      join(base, 'Git', 'usr', 'bin', 'bash.exe'),
-    )
+    candidates.push(join(base, 'Git', 'bin', 'bash.exe'), join(base, 'Git', 'usr', 'bin', 'bash.exe'))
   }
   if (localAppData) {
     candidates.push(
       join(localAppData, 'Programs', 'Git', 'bin', 'bash.exe'),
-      join(localAppData, 'Programs', 'Git', 'usr', 'bin', 'bash.exe'),
+      join(localAppData, 'Programs', 'Git', 'usr', 'bin', 'bash.exe')
     )
   }
   // MSYS2 default
@@ -165,7 +162,7 @@ function detectShell(): DetectedShell {
 
   for (const c of candidates) {
     if (existsSync(c)) {
-      return { bin: c, args: [], type: 'msys' }
+      return {bin: c, args: [], type: 'msys'}
     }
   }
 
@@ -175,22 +172,25 @@ function detectShell(): DetectedShell {
   for (const p of pathEntries) {
     const candidate = join(p, 'bash.exe')
     if (existsSync(candidate)) {
-      return { bin: candidate, args: [], type: 'msys' }
+      return {bin: candidate, args: [], type: 'msys'}
     }
   }
 
   // 3) WSL
   try {
     // Quick probe to ensure WSL+bash exists
-    execSync('wsl.exe -e bash -lc "echo KODE_OK"', { stdio: 'ignore', timeout: 1500 })
-    return { bin: 'wsl.exe', args: ['-e', 'bash', '-l'], type: 'wsl' }
+    execSync('wsl.exe -e bash -lc "echo KODE_OK"', {
+      stdio: 'ignore',
+      timeout: 1500
+    })
+    return {bin: 'wsl.exe', args: ['-e', 'bash', '-l'], type: 'wsl'}
   } catch {}
 
   // 4) Last resort: meaningful error
   const hint = [
     '无法找到可用的 bash。请安装 Git for Windows 或启用 WSL。',
     '推荐安装 Git: https://git-scm.com/download/win',
-    '或启用 WSL 并安装 Ubuntu: https://learn.microsoft.com/windows/wsl/install',
+    '或启用 WSL 并安装 Ubuntu: https://learn.microsoft.com/windows/wsl/install'
   ].join('\n')
   throw new Error(hint)
 }
@@ -215,7 +215,7 @@ export class PersistentShell {
   private cwdFileBashPath: string
 
   constructor(cwd: string) {
-    const { bin, args, type } = detectShell()
+    const {bin, args, type} = detectShell()
     this.binShell = bin
     this.shellArgs = args
     this.shellType = type
@@ -225,8 +225,8 @@ export class PersistentShell {
       cwd,
       env: {
         ...process.env,
-        GIT_EDITOR: 'true',
-      },
+        GIT_EDITOR: 'true'
+      }
     })
 
     this.cwd = cwd
@@ -236,12 +236,7 @@ export class PersistentShell {
         // TODO: It would be nice to alert the user that shell crashed
         logError(`Shell exited with code ${code} and signal ${signal}`)
       }
-      for (const file of [
-        this.statusFile,
-        this.stdoutFile,
-        this.stderrFile,
-        this.cwdFile,
-      ]) {
+      for (const file of [this.statusFile, this.stdoutFile, this.stderrFile, this.cwdFile]) {
         if (fs.existsSync(file)) {
           fs.unlinkSync(file)
         }
@@ -299,13 +294,7 @@ export class PersistentShell {
   killChildren() {
     const parentPid = this.shell.pid
     try {
-      const childPids = execSync(`pgrep -P ${parentPid}`)
-        .toString()
-        .trim()
-        .split('\n')
-        .filter(Boolean) // Filter out empty strings
-
-      
+      const childPids = execSync(`pgrep -P ${parentPid}`).toString().trim().split('\n').filter(Boolean) // Filter out empty strings
 
       childPids.forEach(pid => {
         try {
@@ -335,8 +324,7 @@ export class PersistentShell {
     if (this.isExecuting || this.commandQueue.length === 0) return
 
     this.isExecuting = true
-    const { command, abortSignal, timeout, resolve, reject } =
-      this.commandQueue.shift()!
+    const {command, abortSignal, timeout, resolve, reject} = this.commandQueue.shift()!
 
     const killChildren = () => this.killChildren()
     if (abortSignal) {
@@ -350,7 +338,6 @@ export class PersistentShell {
 
       resolve(result)
     } catch (error) {
-      
       reject(error as Error)
     } finally {
       this.isExecuting = false
@@ -362,13 +349,9 @@ export class PersistentShell {
     }
   }
 
-  async exec(
-    command: string,
-    abortSignal?: AbortSignal,
-    timeout?: number,
-  ): Promise<ExecResult> {
+  async exec(command: string, abortSignal?: AbortSignal, timeout?: number): Promise<ExecResult> {
     return new Promise((resolve, reject) => {
-      this.commandQueue.push({ command, abortSignal, timeout, resolve, reject })
+      this.commandQueue.push({command, abortSignal, timeout, resolve, reject})
       this.processQueue()
     })
   }
@@ -400,19 +383,19 @@ export class PersistentShell {
         // On Windows WSL, avoid shell string quoting issues by using argv form
         execFileSync('wsl.exe', ['-e', 'bash', '-n', '-c', command], {
           stdio: 'ignore',
-          timeout: 1000,
+          timeout: 1000
         })
       } else if (this.shellType === 'msys') {
         // On Windows Git Bash/MSYS, use execFileSync to bypass cmd.exe parsing
         execFileSync(this.binShell, ['-n', '-c', command], {
           stdio: 'ignore',
-          timeout: 1000,
+          timeout: 1000
         })
       } else {
         // POSIX platforms: keep existing behavior
         execSync(`${this.binShell} -n -c ${quotedCommand}`, {
           stdio: 'ignore',
-          timeout: 1000,
+          timeout: 1000
         })
       }
     } catch (error) {
@@ -420,12 +403,12 @@ export class PersistentShell {
       const execError = error as any
       const actualExitCode = execError?.status ?? execError?.code ?? 2 // Default to 2 (syntax error) if no code available
       const errorStr = execError?.stderr?.toString() || execError?.message || String(error || '')
-      
+
       return Promise.resolve({
         stdout: '',
         stderr: errorStr,
         code: actualExitCode,
-        interrupted: false,
+        interrupted: false
       })
     }
 
@@ -442,7 +425,7 @@ export class PersistentShell {
 
       // 1. Execute the main command with redirections
       commandParts.push(
-        `eval ${quotedCommand} < /dev/null > ${quoteForBash(this.stdoutFileBashPath)} 2> ${quoteForBash(this.stderrFileBashPath)}`,
+        `eval ${quotedCommand} < /dev/null > ${quoteForBash(this.stdoutFileBashPath)} 2> ${quoteForBash(this.stderrFileBashPath)}`
       )
 
       // 2. Capture exit code immediately after command execution to avoid losing it
@@ -470,18 +453,10 @@ export class PersistentShell {
             statusFileSize = fs.statSync(this.statusFile).size
           }
 
-          if (
-            statusFileSize > 0 ||
-            Date.now() - start > commandTimeout ||
-            this.commandInterrupted
-          ) {
+          if (statusFileSize > 0 || Date.now() - start > commandTimeout || this.commandInterrupted) {
             clearInterval(checkCompletion)
-            const stdout = fs.existsSync(this.stdoutFile)
-              ? fs.readFileSync(this.stdoutFile, 'utf8')
-              : ''
-            let stderr = fs.existsSync(this.stderrFile)
-              ? fs.readFileSync(this.stderrFile, 'utf8')
-              : ''
+            const stdout = fs.existsSync(this.stdoutFile) ? fs.readFileSync(this.stdoutFile, 'utf8') : ''
+            let stderr = fs.existsSync(this.stderrFile) ? fs.readFileSync(this.stderrFile, 'utf8') : ''
             let code: number
             if (statusFileSize) {
               code = Number(fs.readFileSync(this.statusFile, 'utf8'))
@@ -490,13 +465,12 @@ export class PersistentShell {
               this.killChildren()
               code = SIGTERM_CODE
               stderr += (stderr ? '\n' : '') + 'Command execution timed out'
-              
             }
             resolve({
               stdout,
               stderr,
               code,
-              interrupted: this.commandInterrupted,
+              interrupted: this.commandInterrupted
             })
           }
         } catch {
@@ -511,12 +485,9 @@ export class PersistentShell {
     try {
       this.shell!.stdin!.write(command + '\n')
     } catch (error) {
-      const errorString =
-        error instanceof Error
-          ? error.message
-          : String(error || 'Unknown error')
+      const errorString = error instanceof Error ? error.message : String(error || 'Unknown error')
       logError(`Error in sendToShell: ${errorString}`)
-      
+
       throw error
     }
   }

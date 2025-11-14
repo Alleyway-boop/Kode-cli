@@ -1,4 +1,4 @@
-import { zipObject } from 'lodash-es'
+import {zipObject} from 'lodash-es'
 import {
   getCurrentProjectConfig,
   McpServerConfig,
@@ -7,20 +7,16 @@ import {
   saveGlobalConfig,
   getMcprcConfig,
   addMcprcServerForTesting,
-  removeMcprcServerForTesting,
+  removeMcprcServerForTesting
 } from '@utils/config'
-import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
-import { getCwd } from '@utils/state'
-import { safeParseJSON } from '@utils/json'
-import {
-  ImageBlockParam,
-  MessageParam,
-  ToolResultBlockParam,
-} from '@anthropic-ai/sdk/resources/index.mjs'
-import { Client } from '@modelcontextprotocol/sdk/client/index.js'
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
+import {existsSync, readFileSync, writeFileSync} from 'fs'
+import {join} from 'path'
+import {getCwd} from '@utils/state'
+import {safeParseJSON} from '@utils/json'
+import {ImageBlockParam, MessageParam, ToolResultBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {Client} from '@modelcontextprotocol/sdk/client/index.js'
+import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js'
+import {SSEClientTransport} from '@modelcontextprotocol/sdk/client/sse.js'
 import {
   CallToolResultSchema,
   ClientRequest,
@@ -29,20 +25,18 @@ import {
   ListToolsResult,
   ListToolsResultSchema,
   Result,
-  ResultSchema,
+  ResultSchema
 } from '@modelcontextprotocol/sdk/types.js'
-import { memoize, pickBy } from 'lodash-es'
-import type { Tool } from '@tool'
-import { MCPTool } from '@tools/MCPTool/MCPTool'
-import { logMCPError } from '@utils/log'
-import { Command } from '@commands'
-import { PRODUCT_COMMAND } from '@constants/product'
+import {memoize, pickBy} from 'lodash-es'
+import type {Tool} from '@tool'
+import {MCPTool} from '@tools/MCPTool/MCPTool'
+import {logMCPError} from '@utils/log'
+import {Command} from '@commands'
+import {PRODUCT_COMMAND} from '@constants/product'
 
 type McpName = string
 
-export function parseEnvVars(
-  rawEnvArgs: string[] | undefined,
-): Record<string, string> {
+export function parseEnvVars(rawEnvArgs: string[] | undefined): Record<string, string> {
   const parsedEnv: Record<string, string> = {}
 
   // Parse individual env vars
@@ -51,7 +45,7 @@ export function parseEnvVars(
       const [key, ...valueParts] = envStr.split('=')
       if (!key || valueParts.length === 0) {
         throw new Error(
-          `Invalid environment variable format: ${envStr}, environment variables should be added as: -e KEY1=value1 -e KEY2=value2`,
+          `Invalid environment variable format: ${envStr}, environment variables should be added as: -e KEY1=value1 -e KEY2=value2`
         )
       }
       parsedEnv[key] = valueParts.join('=')
@@ -67,23 +61,16 @@ const EXTERNAL_SCOPES = ['project', 'global'] as ConfigScope[]
 export function ensureConfigScope(scope?: string): ConfigScope {
   if (!scope) return 'project'
 
-  const scopesToCheck =
-    process.env.USER_TYPE === 'external' ? EXTERNAL_SCOPES : VALID_SCOPES
+  const scopesToCheck = process.env.USER_TYPE === 'external' ? EXTERNAL_SCOPES : VALID_SCOPES
 
   if (!scopesToCheck.includes(scope as ConfigScope)) {
-    throw new Error(
-      `Invalid scope: ${scope}. Must be one of: ${scopesToCheck.join(', ')}`,
-    )
+    throw new Error(`Invalid scope: ${scope}. Must be one of: ${scopesToCheck.join(', ')}`)
   }
 
   return scope as ConfigScope
 }
 
-export function addMcpServer(
-  name: McpName,
-  server: McpServerConfig,
-  scope: ConfigScope = 'project',
-): void {
+export function addMcpServer(name: McpName, server: McpServerConfig, scope: ConfigScope = 'project'): void {
   if (scope === 'mcprc') {
     if (process.env.NODE_ENV === 'test') {
       addMcprcServerForTesting(name, server)
@@ -131,10 +118,7 @@ export function addMcpServer(
   }
 }
 
-export function removeMcpServer(
-  name: McpName,
-  scope: ConfigScope = 'project',
-): void {
+export function removeMcpServer(name: McpName, scope: ConfigScope = 'project'): void {
   if (scope === 'mcprc') {
     if (process.env.NODE_ENV === 'test') {
       removeMcprcServerForTesting(name)
@@ -146,16 +130,9 @@ export function removeMcpServer(
 
       try {
         const mcprcContent = readFileSync(mcprcPath, 'utf-8')
-        const mcprcConfig = safeParseJSON(mcprcContent) as Record<
-          string,
-          McpServerConfig
-        > | null
+        const mcprcConfig = safeParseJSON(mcprcContent) as Record<string, McpServerConfig> | null
 
-        if (
-          !mcprcConfig ||
-          typeof mcprcConfig !== 'object' ||
-          !mcprcConfig[name]
-        ) {
+        if (!mcprcConfig || typeof mcprcConfig !== 'object' || !mcprcConfig[name]) {
           throw new Error(`No MCP server found with name: ${name} in .mcprc`)
         }
 
@@ -192,7 +169,7 @@ export function listMCPServers(): Record<string, McpServerConfig> {
   return {
     ...(globalConfig.mcpServers ?? {}),
     ...(mcprcConfig ?? {}), // mcprc configs override global ones
-    ...(projectConfig.mcpServers ?? {}), // Project configs override mcprc ones
+    ...(projectConfig.mcpServers ?? {}) // Project configs override mcprc ones
   }
 }
 
@@ -207,24 +184,21 @@ export function getMcpServer(name: McpName): ScopedMcpServerConfig | undefined {
 
   // Check each scope in order of precedence
   if (projectConfig.mcpServers?.[name]) {
-    return { ...projectConfig.mcpServers[name], scope: 'project' }
+    return {...projectConfig.mcpServers[name], scope: 'project'}
   }
 
   if (mcprcConfig?.[name]) {
-    return { ...mcprcConfig[name], scope: 'mcprc' }
+    return {...mcprcConfig[name], scope: 'mcprc'}
   }
 
   if (globalConfig.mcpServers?.[name]) {
-    return { ...globalConfig.mcpServers[name], scope: 'global' }
+    return {...globalConfig.mcpServers[name], scope: 'global'}
   }
 
   return undefined
 }
 
-async function connectToServer(
-  name: string,
-  serverRef: McpServerConfig,
-): Promise<Client> {
+async function connectToServer(name: string, serverRef: McpServerConfig): Promise<Client> {
   const transport =
     serverRef.type === 'sse'
       ? new SSEClientTransport(new URL(serverRef.url))
@@ -233,19 +207,19 @@ async function connectToServer(
           args: serverRef.args,
           env: {
             ...process.env,
-            ...serverRef.env,
+            ...serverRef.env
           } as Record<string, string>,
-          stderr: 'pipe', // prevents error output from the MCP server from printing to the UI
+          stderr: 'pipe' // prevents error output from the MCP server from printing to the UI
         })
 
   const client = new Client(
     {
       name: PRODUCT_COMMAND,
-      version: '0.1.0',
+      version: '0.1.0'
     },
     {
-      capabilities: {},
-    },
+      capabilities: {}
+    }
   )
 
   // Add a timeout to connection attempts to prevent tests from hanging indefinitely
@@ -253,17 +227,13 @@ async function connectToServer(
   const connectPromise = client.connect(transport)
   const timeoutPromise = new Promise<never>((_, reject) => {
     const timeoutId = setTimeout(() => {
-      reject(
-        new Error(
-          `Connection to MCP server "${name}" timed out after ${CONNECTION_TIMEOUT_MS}ms`,
-        ),
-      )
+      reject(new Error(`Connection to MCP server "${name}" timed out after ${CONNECTION_TIMEOUT_MS}ms`))
     }, CONNECTION_TIMEOUT_MS)
 
     // Clean up timeout if connect resolves or rejects
     connectPromise.then(
       () => clearTimeout(timeoutId),
-      () => clearTimeout(timeoutId),
+      () => clearTimeout(timeoutId)
     )
   })
 
@@ -291,9 +261,7 @@ type FailedClient = {
 }
 export type WrappedClient = ConnectedClient | FailedClient
 
-export function getMcprcServerStatus(
-  serverName: string,
-): 'approved' | 'rejected' | 'pending' {
+export function getMcprcServerStatus(serverName: string): 'approved' | 'rejected' | 'pending' {
   const config = getCurrentProjectConfig()
   if (config.approvedMcprcServers?.includes(serverName)) {
     return 'approved'
@@ -316,41 +284,32 @@ export const getClients = memoize(async (): Promise<WrappedClient[]> => {
   const projectServers = getCurrentProjectConfig().mcpServers ?? {}
 
   // Filter mcprc servers to only include approved ones
-  const approvedMcprcServers = pickBy(
-    mcprcServers,
-    (_, name) => getMcprcServerStatus(name) === 'approved',
-  )
+  const approvedMcprcServers = pickBy(mcprcServers, (_, name) => getMcprcServerStatus(name) === 'approved')
 
   const allServers = {
     ...globalServers,
     ...approvedMcprcServers, // Approved .mcprc servers override global ones
-    ...projectServers, // Project servers take highest precedence
+    ...projectServers // Project servers take highest precedence
   }
 
   return await Promise.all(
     Object.entries(allServers).map(async ([name, serverRef]) => {
       try {
         const client = await connectToServer(name, serverRef as McpServerConfig)
-        return { name, client, type: 'connected' as const }
+        return {name, client, type: 'connected' as const}
       } catch (error) {
-        logMCPError(
-          name,
-          `Connection failed: ${error instanceof Error ? error.message : String(error)}`,
-        )
-        return { name, type: 'failed' as const }
+        logMCPError(name, `Connection failed: ${error instanceof Error ? error.message : String(error)}`)
+        return {name, type: 'failed' as const}
       }
-    }),
+    })
   )
 })
 
-async function requestAll<
-  ResultT extends Result,
-  ResultSchemaT extends typeof ResultSchema,
->(
+async function requestAll<ResultT extends Result, ResultSchemaT extends typeof ResultSchema>(
   req: ClientRequest,
   resultSchema: ResultSchemaT,
-  requiredCapability: string,
-): Promise<{ client: ConnectedClient; result: ResultT }[]> {
+  requiredCapability: string
+): Promise<{client: ConnectedClient; result: ResultT}[]> {
   const clients = await getClients()
   const results = await Promise.allSettled(
     clients.map(async client => {
@@ -363,49 +322,43 @@ async function requestAll<
         }
         return {
           client,
-          result: (await client.client.request(req, resultSchema)) as ResultT,
+          result: (await client.client.request(req, resultSchema)) as ResultT
         }
       } catch (error) {
         if (client.type === 'connected') {
           logMCPError(
             client.name,
-            `Failed to request '${req.method}': ${error instanceof Error ? error.message : String(error)}`,
+            `Failed to request '${req.method}': ${error instanceof Error ? error.message : String(error)}`
           )
         }
         return null
       }
-    }),
+    })
   )
   return results
     .filter(
       (
-        result,
+        result
       ): result is PromiseFulfilledResult<{
         client: ConnectedClient
         result: ResultT
-      } | null> => result.status === 'fulfilled',
+      } | null> => result.status === 'fulfilled'
     )
     .map(result => result.value)
-    .filter(
-      (result): result is { client: ConnectedClient; result: ResultT } =>
-        result !== null,
-    )
+    .filter((result): result is {client: ConnectedClient; result: ResultT} => result !== null)
 }
 
 export const getMCPTools = memoize(async (): Promise<Tool[]> => {
-  const toolsList = await requestAll<
-    ListToolsResult,
-    typeof ListToolsResultSchema
-  >(
+  const toolsList = await requestAll<ListToolsResult, typeof ListToolsResultSchema>(
     {
-      method: 'tools/list',
+      method: 'tools/list'
     },
     ListToolsResultSchema,
-    'tools',
+    'tools'
   )
 
   // TODO: Add zod schema validation
-  return toolsList.flatMap(({ client, result: { tools } }) =>
+  return toolsList.flatMap(({client, result: {tools}}) =>
     tools.map(
       (tool): Tool => ({
         ...MCPTool,
@@ -419,28 +372,28 @@ export const getMCPTools = memoize(async (): Promise<Tool[]> => {
         inputJSONSchema: tool.inputSchema as Tool['inputJSONSchema'],
         async validateInput(input, context) {
           // MCP tools handle their own validation through their schemas
-          return { result: true }
+          return {result: true}
         },
         async *call(args: Record<string, unknown>, context) {
-          const data = await callMCPTool({ client, tool: tool.name, args })
+          const data = await callMCPTool({client, tool: tool.name, args})
           yield {
             type: 'result' as const,
             data,
-            resultForAssistant: data,
+            resultForAssistant: data
           }
         },
         userFacingName() {
           return `${client.name}:${tool.name} (MCP)`
-        },
-      }),
-    ),
+        }
+      })
+    )
   )
 })
 
 async function callMCPTool({
-  client: { client, name },
+  client: {client, name},
   tool,
-  args,
+  args
 }: {
   client: ConnectedClient
   tool: string
@@ -449,9 +402,9 @@ async function callMCPTool({
   const result = await client.callTool(
     {
       name: tool,
-      arguments: args,
+      arguments: args
     },
-    CallToolResultSchema,
+    CallToolResultSchema
   )
 
   if ('isError' in result && result.isError) {
@@ -474,8 +427,8 @@ async function callMCPTool({
           source: {
             type: 'base64',
             data: String(item.data),
-            media_type: item.mimeType as ImageBlockParam.Source['media_type'],
-          },
+            media_type: item.mimeType as ImageBlockParam.Source['media_type']
+          }
         }
       }
       return item
@@ -486,18 +439,15 @@ async function callMCPTool({
 }
 
 export const getMCPCommands = memoize(async (): Promise<Command[]> => {
-  const results = await requestAll<
-    ListPromptsResult,
-    typeof ListPromptsResultSchema
-  >(
+  const results = await requestAll<ListPromptsResult, typeof ListPromptsResultSchema>(
     {
-      method: 'prompts/list',
+      method: 'prompts/list'
     },
     ListPromptsResultSchema,
-    'prompts',
+    'prompts'
   )
 
-  return results.flatMap(({ client, result }) =>
+  return results.flatMap(({client, result}) =>
     result.prompts?.map(_ => {
       const argNames = Object.values(_.arguments ?? {}).map(k => k.name)
       return {
@@ -513,22 +463,19 @@ export const getMCPCommands = memoize(async (): Promise<Command[]> => {
         argNames,
         async getPromptForCommand(args: string) {
           const argsArray = args.split(' ')
-          return await runCommand(
-            { name: _.name, client },
-            zipObject(argNames, argsArray),
-          )
-        },
+          return await runCommand({name: _.name, client}, zipObject(argNames, argsArray))
+        }
       }
-    }),
+    })
   )
 })
 
 export async function runCommand(
-  { name, client }: { name: string; client: ConnectedClient },
-  args: Record<string, string>,
+  {name, client}: {name: string; client: ConnectedClient},
+  args: Record<string, string>
 ): Promise<MessageParam[]> {
   try {
-    const result = await client.client.getPrompt({ name, arguments: args })
+    const result = await client.client.getPrompt({name, arguments: args})
     // TODO: Support type == resource
     return result.messages.map(
       (message): MessageParam => ({
@@ -537,24 +484,23 @@ export async function runCommand(
           message.content.type === 'text'
             ? {
                 type: 'text',
-                text: message.content.text,
+                text: message.content.text
               }
             : {
                 type: 'image',
                 source: {
                   data: String(message.content.data),
-                  media_type: message.content
-                    .mimeType as ImageBlockParam.Source['media_type'],
-                  type: 'base64',
-                },
-              },
-        ],
-      }),
+                  media_type: message.content.mimeType as ImageBlockParam.Source['media_type'],
+                  type: 'base64'
+                }
+              }
+        ]
+      })
     )
   } catch (error) {
     logMCPError(
       client.name,
-      `Error running command '${name}': ${error instanceof Error ? error.message : String(error)}`,
+      `Error running command '${name}': ${error instanceof Error ? error.message : String(error)}`
     )
     throw error
   }

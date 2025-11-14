@@ -1,9 +1,6 @@
-import { statSync, existsSync, watchFile, unwatchFile } from 'fs'
-import {
-  emitReminderEvent,
-  systemReminderService,
-} from '@services/systemReminder'
-import { getAgentFilePath } from '@utils/agentStorage'
+import {statSync, existsSync, watchFile, unwatchFile} from 'fs'
+import {emitReminderEvent, systemReminderService} from '@services/systemReminder'
+import {getAgentFilePath} from '@utils/agentStorage'
 
 interface FileTimestamp {
   path: string
@@ -25,7 +22,7 @@ class FileFreshnessService {
     readTimestamps: new Map(),
     editConflicts: new Set(),
     sessionFiles: new Set(),
-    watchedTodoFiles: new Map(),
+    watchedTodoFiles: new Map()
   }
 
   constructor() {
@@ -37,15 +34,10 @@ class FileFreshnessService {
    */
   private setupEventListeners(): void {
     // Listen for session startup events through the SystemReminderService
-    systemReminderService.addEventListener(
-      'session:startup',
-      (context: any) => {
-        // Reset session state on startup
-        this.resetSession()
-
-        
-      },
-    )
+    systemReminderService.addEventListener('session:startup', (context: any) => {
+      // Reset session state on startup
+      this.resetSession()
+    })
   }
 
   /**
@@ -62,7 +54,7 @@ class FileFreshnessService {
         path: filePath,
         lastRead: Date.now(),
         lastModified: stats.mtimeMs,
-        size: stats.size,
+        size: stats.size
       }
 
       this.state.readTimestamps.set(filePath, timestamp)
@@ -73,7 +65,7 @@ class FileFreshnessService {
         filePath,
         timestamp: timestamp.lastRead,
         size: timestamp.size,
-        modified: timestamp.lastModified,
+        modified: timestamp.lastModified
       })
     } catch (error) {
       console.error(`Error recording file read for ${filePath}:`, error)
@@ -92,12 +84,12 @@ class FileFreshnessService {
     const recorded = this.state.readTimestamps.get(filePath)
 
     if (!recorded) {
-      return { isFresh: true, conflict: false }
+      return {isFresh: true, conflict: false}
     }
 
     try {
       if (!existsSync(filePath)) {
-        return { isFresh: false, conflict: true }
+        return {isFresh: false, conflict: true}
       }
 
       const currentStats = statSync(filePath)
@@ -113,7 +105,7 @@ class FileFreshnessService {
           lastRead: recorded.lastRead,
           lastModified: recorded.lastModified,
           currentModified: currentStats.mtimeMs,
-          sizeDiff: currentStats.size - recorded.size,
+          sizeDiff: currentStats.size - recorded.size
         })
       }
 
@@ -121,11 +113,11 @@ class FileFreshnessService {
         isFresh,
         lastRead: recorded.lastRead,
         currentModified: currentStats.mtimeMs,
-        conflict,
+        conflict
       }
     } catch (error) {
       console.error(`Error checking freshness for ${filePath}:`, error)
-      return { isFresh: false, conflict: true }
+      return {isFresh: false, conflict: true}
     }
   }
 
@@ -153,7 +145,7 @@ class FileFreshnessService {
             lastRead: now,
             lastModified: stats.mtimeMs,
             size: stats.size,
-            lastAgentEdit: now,
+            lastAgentEdit: now
           }
           this.state.readTimestamps.set(filePath, timestamp)
         }
@@ -167,7 +159,7 @@ class FileFreshnessService {
         filePath,
         timestamp: now,
         contentLength: content?.length || 0,
-        source: 'agent',
+        source: 'agent'
       })
     } catch (error) {
       console.error(`Error recording file edit for ${filePath}:`, error)
@@ -196,10 +188,7 @@ class FileFreshnessService {
       // Check if this was an Agent-initiated change
       // Use small time tolerance to handle filesystem timestamp precision issues
       const TIME_TOLERANCE_MS = 100
-      if (
-        recorded.lastAgentEdit &&
-        recorded.lastAgentEdit >= recorded.lastModified - TIME_TOLERANCE_MS
-      ) {
+      if (recorded.lastAgentEdit && recorded.lastAgentEdit >= recorded.lastModified - TIME_TOLERANCE_MS) {
         // Agent modified this file recently, no reminder needed
         // (context already contains before/after content)
         return null
@@ -235,7 +224,7 @@ class FileFreshnessService {
       readTimestamps: new Map(),
       editConflicts: new Set(),
       sessionFiles: new Set(),
-      watchedTodoFiles: new Map(),
+      watchedTodoFiles: new Map()
     }
   }
 
@@ -259,7 +248,7 @@ class FileFreshnessService {
       }
 
       // Start watching for changes
-      watchFile(filePath, { interval: 1000 }, (curr, prev) => {
+      watchFile(filePath, {interval: 1000}, (curr, prev) => {
         // Check if this was an external modification
         const reminder = this.generateFileModificationReminder(filePath)
         if (reminder) {
@@ -269,16 +258,13 @@ class FileFreshnessService {
             filePath,
             reminder,
             timestamp: Date.now(),
-            currentStats: { mtime: curr.mtime, size: curr.size },
-            previousStats: { mtime: prev.mtime, size: prev.size },
+            currentStats: {mtime: curr.mtime, size: curr.size},
+            previousStats: {mtime: prev.mtime, size: prev.size}
           })
         }
       })
     } catch (error) {
-      console.error(
-        `Error starting todo file watch for agent ${agentId}:`,
-        error,
-      )
+      console.error(`Error starting todo file watch for agent ${agentId}:`, error)
     }
   }
 
@@ -293,10 +279,7 @@ class FileFreshnessService {
         this.state.watchedTodoFiles.delete(agentId)
       }
     } catch (error) {
-      console.error(
-        `Error stopping todo file watch for agent ${agentId}:`,
-        error,
-      )
+      console.error(`Error stopping todo file watch for agent ${agentId}:`, error)
     }
   }
 
@@ -327,7 +310,7 @@ class FileFreshnessService {
       .map(([path, info]) => ({
         path,
         timestamp: info.lastRead,
-        size: info.size,
+        size: info.size
       }))
       .filter(file => this.isValidForRecovery(file.path))
       .sort((a, b) => b.timestamp - a.timestamp) // Newest first
@@ -356,17 +339,12 @@ class FileFreshnessService {
 
 export const fileFreshnessService = new FileFreshnessService()
 
-export const recordFileRead = (filePath: string) =>
-  fileFreshnessService.recordFileRead(filePath)
+export const recordFileRead = (filePath: string) => fileFreshnessService.recordFileRead(filePath)
 export const recordFileEdit = (filePath: string, content?: string) =>
   fileFreshnessService.recordFileEdit(filePath, content)
-export const checkFileFreshness = (filePath: string) =>
-  fileFreshnessService.checkFileFreshness(filePath)
+export const checkFileFreshness = (filePath: string) => fileFreshnessService.checkFileFreshness(filePath)
 export const generateFileModificationReminder = (filePath: string) =>
   fileFreshnessService.generateFileModificationReminder(filePath)
-export const resetFileFreshnessSession = () =>
-  fileFreshnessService.resetSession()
-export const startWatchingTodoFile = (agentId: string) =>
-  fileFreshnessService.startWatchingTodoFile(agentId)
-export const stopWatchingTodoFile = (agentId: string) =>
-  fileFreshnessService.stopWatchingTodoFile(agentId)
+export const resetFileFreshnessSession = () => fileFreshnessService.resetSession()
+export const startWatchingTodoFile = (agentId: string) => fileFreshnessService.startWatchingTodoFile(agentId)
+export const stopWatchingTodoFile = (agentId: string) => fileFreshnessService.stopWatchingTodoFile(agentId)

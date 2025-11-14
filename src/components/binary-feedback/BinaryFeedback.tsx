@@ -1,15 +1,11 @@
-import { default as React, useCallback } from 'react'
-import { useNotifyAfterTimeout } from '@hooks/useNotifyAfterTimeout'
-import { AssistantMessage, BinaryFeedbackResult } from '@query'
-import type { Tool } from '@tool'
-import type { NormalizedMessage } from '@utils/messages'
-import { BinaryFeedbackView } from './BinaryFeedbackView'
-import {
-  type BinaryFeedbackChoose,
-  getBinaryFeedbackResultForChoice,
-  logBinaryFeedbackEvent,
-} from './utils'
-import { PRODUCT_NAME } from '@constants/product'
+import {default as React, useCallback} from 'react'
+import {useNotifyAfterTimeout} from '@hooks/useNotifyAfterTimeout'
+import {AssistantMessage, BinaryFeedbackResult} from '@query'
+import type {Tool} from '@tool'
+import type {NormalizedMessage} from '@utils/messages'
+import {BinaryFeedbackView} from './BinaryFeedbackView'
+import {type BinaryFeedbackChoose, getBinaryFeedbackResultForChoice, logBinaryFeedbackEvent} from './utils'
+import {PRODUCT_NAME} from '@constants/product'
 
 type Props = {
   m1: AssistantMessage
@@ -34,18 +30,16 @@ export function BinaryFeedback({
   normalizedMessages,
   tools,
   unresolvedToolUseIDs,
-  verbose,
+  verbose
 }: Props): React.ReactNode {
   const onChoose = useCallback<BinaryFeedbackChoose>(
     choice => {
       logBinaryFeedbackEvent(m1, m2, choice)
       resolve(getBinaryFeedbackResultForChoice(m1, m2, choice))
     },
-    [m1, m2, resolve],
+    [m1, m2, resolve]
   )
-  useNotifyAfterTimeout(
-    `${PRODUCT_NAME} needs your input on a response comparison`,
-  )
+  useNotifyAfterTimeout(`${PRODUCT_NAME} needs your input on a response comparison`)
   return (
     <BinaryFeedbackView
       debug={debug}

@@ -16,21 +16,17 @@ export interface AbortBarrier {
   cleanup(): void
 }
 
-export function createRequestContext(
-  type: RequestContext['type'] = 'query',
-): RequestContext {
+export function createRequestContext(type: RequestContext['type'] = 'query'): RequestContext {
   return {
     id: crypto.randomUUID(),
     abortController: new AbortController(),
     startTime: Date.now(),
     isActive: true,
-    type,
+    type
   }
 }
 
-export function createAbortBarrier(
-  requestContext: RequestContext,
-): AbortBarrier {
+export function createAbortBarrier(requestContext: RequestContext): AbortBarrier {
   let cleanupCallbacks: (() => void)[] = []
 
   return {
@@ -38,9 +34,7 @@ export function createAbortBarrier(
 
     checkAbort(): boolean {
       // Only respond to aborts for THIS specific request
-      return (
-        requestContext.isActive && requestContext.abortController.signal.aborted
-      )
+      return requestContext.isActive && requestContext.abortController.signal.aborted
     },
 
     onAbort(callback: () => void): void {
@@ -50,15 +44,9 @@ export function createAbortBarrier(
             callback()
           }
         }
-        requestContext.abortController.signal.addEventListener(
-          'abort',
-          abortHandler,
-        )
+        requestContext.abortController.signal.addEventListener('abort', abortHandler)
         cleanupCallbacks.push(() => {
-          requestContext.abortController.signal.removeEventListener(
-            'abort',
-            abortHandler,
-          )
+          requestContext.abortController.signal.removeEventListener('abort', abortHandler)
         })
       }
     },
@@ -67,6 +55,6 @@ export function createAbortBarrier(
       cleanupCallbacks.forEach(cleanup => cleanup())
       cleanupCallbacks = []
       requestContext.isActive = false
-    },
+    }
   }
 }

@@ -12,7 +12,7 @@ export default {
       supports_function_calling: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4o',
@@ -32,7 +32,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4.5-preview',
@@ -52,7 +52,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4.5-preview-2025-02-27',
@@ -72,7 +72,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4o-mini',
@@ -92,7 +92,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4o-mini-2024-07-18',
@@ -112,7 +112,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'o1',
@@ -131,7 +131,7 @@ export default {
       supports_system_messages: true,
       supports_response_schema: true,
       supports_tool_choice: true,
-      supports_reasoning_effort: true,
+      supports_reasoning_effort: true
     },
     {
       model: 'o3-mini',
@@ -149,7 +149,7 @@ export default {
       supports_prompt_caching: true,
       supports_response_schema: true,
       supports_tool_choice: true,
-      supports_reasoning_effort: true,
+      supports_reasoning_effort: true
     },
     {
       model: 'o3-mini-2025-01-31',
@@ -167,7 +167,7 @@ export default {
       supports_prompt_caching: true,
       supports_response_schema: true,
       supports_tool_choice: true,
-      supports_reasoning_effort: true,
+      supports_reasoning_effort: true
     },
     {
       model: 'o1-2024-12-17',
@@ -186,7 +186,7 @@ export default {
       supports_system_messages: true,
       supports_response_schema: true,
       supports_tool_choice: true,
-      supports_reasoning_effort: true,
+      supports_reasoning_effort: true
     },
     {
       model: 'chatgpt-4o-latest',
@@ -202,7 +202,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4o-2024-05-13',
@@ -220,7 +220,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4o-2024-08-06',
@@ -240,7 +240,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4o-2024-11-20',
@@ -260,7 +260,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gpt-4-turbo',
@@ -276,7 +276,7 @@ export default {
       supports_vision: true,
       supports_prompt_caching: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     // GPT-5 Models
     {
@@ -299,7 +299,7 @@ export default {
       supports_responses_api: true,
       supports_custom_tools: true,
       supports_allowed_tools: true,
-      supports_verbosity_control: true,
+      supports_verbosity_control: true
     },
     {
       model: 'gpt-5-mini',
@@ -321,7 +321,7 @@ export default {
       supports_responses_api: true,
       supports_custom_tools: true,
       supports_allowed_tools: true,
-      supports_verbosity_control: true,
+      supports_verbosity_control: true
     },
     {
       model: 'gpt-5-nano',
@@ -343,7 +343,7 @@ export default {
       supports_responses_api: true,
       supports_custom_tools: true,
       supports_allowed_tools: true,
-      supports_verbosity_control: true,
+      supports_verbosity_control: true
     },
     {
       model: 'gpt-5-chat-latest',
@@ -366,8 +366,8 @@ export default {
       supports_custom_tools: false,
       supports_allowed_tools: false,
       supports_verbosity_control: true,
-      requires_chat_completions: true,
-    },
+      requires_chat_completions: true
+    }
   ],
   mistral: [
     {
@@ -381,7 +381,7 @@ export default {
       supports_function_calling: true,
       mode: 'chat',
       supports_assistant_prefill: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'mistral-small-latest',
@@ -394,7 +394,7 @@ export default {
       supports_function_calling: true,
       mode: 'chat',
       supports_assistant_prefill: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'mistral-large-latest',
@@ -407,7 +407,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_assistant_prefill: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'open-mixtral-8x7b',
@@ -420,7 +420,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_assistant_prefill: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'open-mixtral-8x22b',
@@ -433,8 +433,8 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_assistant_prefill: true,
-      supports_tool_choice: true,
-    },
+      supports_tool_choice: true
+    }
   ],
   deepseek: [
     {
@@ -450,7 +450,7 @@ export default {
       supports_function_calling: true,
       supports_assistant_prefill: true,
       supports_tool_choice: true,
-      supports_prompt_caching: true,
+      supports_prompt_caching: true
     },
     {
       model: 'deepseek-chat',
@@ -467,7 +467,7 @@ export default {
       supports_function_calling: true,
       supports_assistant_prefill: true,
       supports_tool_choice: true,
-      supports_prompt_caching: true,
+      supports_prompt_caching: true
     },
     {
       model: 'deepseek-coder',
@@ -482,8 +482,8 @@ export default {
       supports_function_calling: true,
       supports_assistant_prefill: true,
       supports_tool_choice: true,
-      supports_prompt_caching: true,
-    },
+      supports_prompt_caching: true
+    }
   ],
   xai: [
     {
@@ -497,8 +497,8 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_vision: true,
-      supports_tool_choice: true,
-    },
+      supports_tool_choice: true
+    }
   ],
   groq: [
     {
@@ -512,7 +512,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama2-70b-4096',
@@ -525,7 +525,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama3-8b-8192',
@@ -538,7 +538,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.2-1b-preview',
@@ -551,7 +551,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.2-3b-preview',
@@ -564,7 +564,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.2-11b-text-preview',
@@ -577,7 +577,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.2-90b-text-preview',
@@ -590,7 +590,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama3-70b-8192',
@@ -603,7 +603,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.1-8b-instant',
@@ -616,7 +616,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.1-70b-versatile',
@@ -629,7 +629,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama-3.1-405b-reasoning',
@@ -642,7 +642,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'mixtral-8x7b-32768',
@@ -655,7 +655,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gemma-7b-it',
@@ -668,7 +668,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'gemma2-9b-it',
@@ -681,7 +681,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama3-groq-70b-8192-tool-use-preview',
@@ -694,7 +694,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'llama3-groq-8b-8192-tool-use-preview',
@@ -707,8 +707,8 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_response_schema: true,
-      supports_tool_choice: true,
-    },
+      supports_tool_choice: true
+    }
   ],
   anthropic: [
     {
@@ -729,7 +729,7 @@ export default {
       supports_prompt_caching: true,
       supports_response_schema: true,
       deprecation_date: '2025-10-01',
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'claude-3-opus-latest',
@@ -749,7 +749,7 @@ export default {
       supports_prompt_caching: true,
       supports_response_schema: true,
       deprecation_date: '2025-03-01',
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'claude-3-7-sonnet-latest',
@@ -769,8 +769,8 @@ export default {
       supports_prompt_caching: true,
       supports_response_schema: true,
       deprecation_date: '2025-06-01',
-      supports_tool_choice: true,
-    },
+      supports_tool_choice: true
+    }
   ],
   gemini: [
     {
@@ -797,7 +797,7 @@ export default {
       supports_response_schema: true,
       supports_audio_output: true,
       supports_tool_choice: true,
-      source: 'https://ai.google.dev/pricing#2_0flash',
+      source: 'https://ai.google.dev/pricing#2_0flash'
     },
     {
       model: 'gemini-2.0-flash-lite',
@@ -823,8 +823,7 @@ export default {
       supports_response_schema: true,
       supports_audio_output: false,
       supports_tool_choice: true,
-      source:
-        'https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-2.0-flash-lite',
+      source: 'https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-2.0-flash-lite'
     },
     {
       model: 'gemini-2.0-flash-thinking-exp',
@@ -860,10 +859,9 @@ export default {
       supports_audio_output: true,
       tpm: 4000000,
       rpm: 10,
-      source:
-        'https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-2.0-flash',
-      supports_tool_choice: true,
-    },
+      source: 'https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models#gemini-2.0-flash',
+      supports_tool_choice: true
+    }
   ],
   kimi: [
     {
@@ -877,8 +875,8 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
-    },
+      supports_tool_choice: true
+    }
   ],
   bigdream: [
     {
@@ -894,8 +892,8 @@ export default {
       supports_vision: true,
       supports_system_messages: true,
       supports_tool_choice: true,
-      supports_prompt_caching: true,
-    },
+      supports_prompt_caching: true
+    }
   ],
   qwen: [],
   glm: [],
@@ -911,7 +909,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'abab6.5g-chat',
@@ -924,7 +922,7 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
+      supports_tool_choice: true
     },
     {
       model: 'abab5.5s-chat',
@@ -937,94 +935,94 @@ export default {
       mode: 'chat',
       supports_function_calling: true,
       supports_system_messages: true,
-      supports_tool_choice: true,
-    },
+      supports_tool_choice: true
+    }
   ],
   'baidu-qianfan': [],
   siliconflow: [],
   ollama: [],
-  burncloud: [],
+  burncloud: []
 }
 
 export const providers = {
   kimi: {
     name: 'Kimi (Moonshot)',
-    baseURL: 'https://api.moonshot.cn/v1',
+    baseURL: 'https://api.moonshot.cn/v1'
   },
   anthropic: {
     name: 'Claude',
-    baseURL: 'https://api.anthropic.com',
+    baseURL: 'https://api.anthropic.com'
   },
   burncloud: {
     name: 'BurnCloud (All models)',
-    baseURL: 'https://ai.burncloud.com/v1',
+    baseURL: 'https://ai.burncloud.com/v1'
   },
   deepseek: {
     name: 'DeepSeek',
-    baseURL: 'https://api.deepseek.com',
+    baseURL: 'https://api.deepseek.com'
   },
   qwen: {
     name: 'Qwen (Alibaba)',
-    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
   },
   openai: {
     name: 'OpenAI',
-    baseURL: 'https://api.openai.com/v1',
+    baseURL: 'https://api.openai.com/v1'
   },
   ollama: {
     name: 'Ollama',
-    baseURL: 'http://localhost:11434/v1',
+    baseURL: 'http://localhost:11434/v1'
   },
   gemini: {
     name: 'Gemini',
-    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai'
   },
   bigdream: {
     name: 'BigDream',
-    baseURL: 'https://api-key.info',
+    baseURL: 'https://api-key.info'
   },
   opendev: {
     name: 'OpenDev',
-    baseURL: 'https://api.openai-next.com',
+    baseURL: 'https://api.openai-next.com'
   },
   'custom-openai': {
     name: 'Custom OpenAI-Compatible API',
-    baseURL: '', // Will be configured by user
+    baseURL: '' // Will be configured by user
   },
   openrouter: {
     name: 'OpenRouter',
-    baseURL: 'https://openrouter.ai/api/v1',
+    baseURL: 'https://openrouter.ai/api/v1'
   },
   minimax: {
     name: 'MiniMax',
-    baseURL: 'https://api.minimaxi.com/v1',
+    baseURL: 'https://api.minimaxi.com/v1'
   },
   siliconflow: {
     name: 'SiliconFlow',
-    baseURL: 'https://api.siliconflow.cn/v1',
+    baseURL: 'https://api.siliconflow.cn/v1'
   },
   glm: {
     name: 'GLM (Zhipu AI)',
-    baseURL: 'https://open.bigmodel.cn/api/paas/v4',
+    baseURL: 'https://open.bigmodel.cn/api/paas/v4'
   },
   'baidu-qianfan': {
     name: 'Baidu Qianfan',
-    baseURL: 'https://qianfan.baidubce.com/v2',
+    baseURL: 'https://qianfan.baidubce.com/v2'
   },
   mistral: {
     name: 'Mistral',
-    baseURL: 'https://api.mistral.ai/v1',
+    baseURL: 'https://api.mistral.ai/v1'
   },
   xai: {
     name: 'xAI',
-    baseURL: 'https://api.x.ai/v1',
+    baseURL: 'https://api.x.ai/v1'
   },
   groq: {
     name: 'Groq',
-    baseURL: 'https://api.groq.com/openai/v1',
+    baseURL: 'https://api.groq.com/openai/v1'
   },
   azure: {
     name: 'Azure OpenAI',
-    baseURL: '', // Will be dynamically constructed based on resource name
-  },
+    baseURL: '' // Will be dynamically constructed based on resource name
+  }
 }

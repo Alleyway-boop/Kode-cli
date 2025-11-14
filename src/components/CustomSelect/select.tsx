@@ -1,11 +1,11 @@
-import { Box, Text } from 'ink'
-import React, { type ReactNode } from 'react'
-import { SelectOption } from './select-option'
-import { type Theme } from './theme'
-import { useSelectState } from './use-select-state'
-import { useSelect } from './use-select'
-import { Option } from '@inkjs/ui'
-import { getTheme } from '@utils/theme'
+import {Box, Text} from 'ink'
+import React, {type ReactNode} from 'react'
+import {SelectOption} from './select-option'
+import {type Theme} from './theme'
+import {useSelectState} from './use-select-state'
+import {useSelect} from './use-select'
+import {Option} from '@inkjs/ui'
+import {getTheme} from '@utils/theme'
 
 export type OptionSubtree = {
   /**
@@ -25,8 +25,7 @@ export type OptionHeader = {
   readonly optionValues: string[]
 }
 
-export const optionHeaderKey = (optionHeader: OptionHeader): string =>
-  `HEADER-${optionHeader.optionValues.join(',')}`
+export const optionHeaderKey = (optionHeader: OptionHeader): string => `HEADER-${optionHeader.optionValues.join(',')}`
 
 export type SelectProps = {
   /**
@@ -82,7 +81,7 @@ export function Select({
   defaultValue,
   onChange,
   onFocus,
-  focusValue,
+  focusValue
 }: SelectProps) {
   const state = useSelectState({
     visibleOptionCount,
@@ -90,20 +89,20 @@ export function Select({
     defaultValue,
     onChange,
     onFocus,
-    focusValue,
+    focusValue
   })
 
-  useSelect({ isDisabled, state })
+  useSelect({isDisabled, state})
 
   const appTheme = getTheme()
   const styles = {
     container: () => ({
-      flexDirection: 'column' as const,
+      flexDirection: 'column' as const
     }),
     highlightedText: () => ({
       color: appTheme.text,
-      backgroundColor: appTheme.warning,
-    }),
+      backgroundColor: appTheme.warning
+    })
   }
 
   return (
@@ -113,14 +112,10 @@ export function Select({
         const isFocused =
           !isDisabled &&
           state.focusedValue !== undefined &&
-          ('value' in option
-            ? state.focusedValue === option.value
-            : option.optionValues.includes(state.focusedValue))
+          ('value' in option ? state.focusedValue === option.value : option.optionValues.includes(state.focusedValue))
         const isSelected =
           !!state.value &&
-          ('value' in option
-            ? state.value === option.value
-            : option.optionValues.includes(state.value))
+          ('value' in option ? state.value === option.value : option.optionValues.includes(state.value))
         const smallPointer = 'header' in option
         const labelText = 'label' in option ? option.label : option.header
         let label: ReactNode = labelText

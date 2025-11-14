@@ -1,14 +1,10 @@
-import { Message } from '@query'
-import type { UUID } from '@kode-types/common'
-import { countTokens } from './tokens'
+import {Message} from '@query'
+import type {UUID} from '@kode-types/common'
+import {countTokens} from './tokens'
 import crypto from 'crypto'
 
 export interface MessageRetentionStrategy {
-  type:
-    | 'preserve_recent'
-    | 'preserve_important'
-    | 'smart_compression'
-    | 'auto_compact'
+  type: 'preserve_recent' | 'preserve_important' | 'smart_compression' | 'auto_compact'
   maxTokens: number
   preserveCount?: number
   importanceThreshold?: number
@@ -30,10 +26,7 @@ export class MessageContextManager {
   /**
    * Truncate messages intelligently based on strategy and token limit
    */
-  async truncateMessages(
-    messages: Message[],
-    strategy: MessageRetentionStrategy,
-  ): Promise<MessageTruncationResult> {
+  async truncateMessages(messages: Message[], strategy: MessageRetentionStrategy): Promise<MessageTruncationResult> {
     switch (strategy.type) {
       case 'preserve_recent':
         return this.preserveRecentMessages(messages, strategy)
@@ -51,12 +44,8 @@ export class MessageContextManager {
   /**
    * Strategy 1: Preserve most recent messages
    */
-  private preserveRecentMessages(
-    messages: Message[],
-    strategy: MessageRetentionStrategy,
-  ): MessageTruncationResult {
-    const preserveCount =
-      strategy.preserveCount || this.estimateMessageCount(strategy.maxTokens)
+  private preserveRecentMessages(messages: Message[], strategy: MessageRetentionStrategy): MessageTruncationResult {
+    const preserveCount = strategy.preserveCount || this.estimateMessageCount(strategy.maxTokens)
     const truncatedMessages = messages.slice(-preserveCount)
     const removedCount = messages.length - truncatedMessages.length
 
@@ -65,20 +54,14 @@ export class MessageContextManager {
       removedCount,
       preservedTokens: countTokens(truncatedMessages),
       strategy: `Preserved last ${preserveCount} messages`,
-      summary:
-        removedCount > 0
-          ? `Removed ${removedCount} older messages to fit context window`
-          : 'No messages removed',
+      summary: removedCount > 0 ? `Removed ${removedCount} older messages to fit context window` : 'No messages removed'
     }
   }
 
   /**
    * Strategy 2: Preserve important messages (errors, user queries, recent context)
    */
-  private preserveImportantMessages(
-    messages: Message[],
-    strategy: MessageRetentionStrategy,
-  ): MessageTruncationResult {
+  private preserveImportantMessages(messages: Message[], strategy: MessageRetentionStrategy): MessageTruncationResult {
     const importantMessages: Message[] = []
     const recentMessages: Message[] = []
 
@@ -97,9 +80,7 @@ export class MessageContextManager {
     // Combine and deduplicate
     const combinedMessages = [
       ...importantMessages,
-      ...recentMessages.filter(
-        msg => !importantMessages.some(imp => this.messagesEqual(imp, msg)),
-      ),
+      ...recentMessages.filter(msg => !importantMessages.some(imp => this.messagesEqual(imp, msg)))
     ]
 
     // Sort by original order
@@ -116,7 +97,7 @@ export class MessageContextManager {
       removedCount,
       preservedTokens: countTokens(truncatedMessages),
       strategy: `Preserved ${importantMessages.length} important + ${recentMessages.length} recent messages`,
-      summary: `Kept critical errors, user decisions, and recent context (${removedCount} messages archived)`,
+      summary: `Kept critical errors, user decisions, and recent context (${removedCount} messages archived)`
     }
   }
 
@@ -125,7 +106,7 @@ export class MessageContextManager {
    */
   private async smartCompressionStrategy(
     messages: Message[],
-    strategy: MessageRetentionStrategy,
+    strategy: MessageRetentionStrategy
   ): Promise<MessageTruncationResult> {
     const recentCount = Math.min(10, Math.floor(messages.length * 0.3))
     const recentMessages = messages.slice(-recentCount)
@@ -142,9 +123,9 @@ export class MessageContextManager {
         content: [
           {
             type: 'text',
-            text: `[CONVERSATION SUMMARY - ${olderMessages.length} messages compressed]\n\n${summary}\n\n[END SUMMARY - Recent context follows...]`,
-          },
-        ],
+            text: `[CONVERSATION SUMMARY - ${olderMessages.length} messages compressed]\n\n${summary}\n\n[END SUMMARY - Recent context follows...]`
+          }
+        ]
       },
       costUSD: 0,
       durationMs: 0,
@@ -158,7 +139,7 @@ export class MessageContextManager {
       removedCount: olderMessages.length,
       preservedTokens: countTokens(truncatedMessages),
       strategy: `Compressed ${olderMessages.length} messages + preserved ${recentCount} recent`,
-      summary: `Created intelligent summary of conversation history`,
+      summary: `Created intelligent summary of conversation history`
     }
   }
 
@@ -167,7 +148,7 @@ export class MessageContextManager {
    */
   private async autoCompactStrategy(
     messages: Message[],
-    strategy: MessageRetentionStrategy,
+    strategy: MessageRetentionStrategy
   ): Promise<MessageTruncationResult> {
     // This would integrate with the existing autoCompactCore.ts
     // For now, fallback to preserve_recent
@@ -223,14 +204,10 @@ export class MessageContextManager {
    */
   private createMessagesSummary(messages: Message[]): string {
     const userMessages = messages.filter(m => m.type === 'user').length
-    const assistantMessages = messages.filter(
-      m => m.type === 'assistant',
-    ).length
+    const assistantMessages = messages.filter(m => m.type === 'assistant').length
     const toolUses = messages.filter(
       m =>
-        m.type === 'assistant' &&
-        Array.isArray(m.message.content) &&
-        m.message.content.some(c => c.type === 'tool_use'),
+        m.type === 'assistant' && Array.isArray(m.message.content) && m.message.content.some(c => c.type === 'tool_use')
     ).length
 
     const topics: string[] = []
@@ -244,14 +221,10 @@ export class MessageContextManager {
           .join(' ')
 
         // Simple keyword extraction (could be enhanced with NLP)
-        if (text.includes('error') || text.includes('bug'))
-          topics.push('debugging')
-        if (text.includes('implement') || text.includes('create'))
-          topics.push('implementation')
-        if (text.includes('explain') || text.includes('understand'))
-          topics.push('explanation')
-        if (text.includes('fix') || text.includes('solve'))
-          topics.push('problem-solving')
+        if (text.includes('error') || text.includes('bug')) topics.push('debugging')
+        if (text.includes('implement') || text.includes('create')) topics.push('implementation')
+        if (text.includes('explain') || text.includes('understand')) topics.push('explanation')
+        if (text.includes('fix') || text.includes('solve')) topics.push('problem-solving')
       }
     })
 
@@ -267,7 +240,7 @@ export class MessageContextManager {
 export function createRetentionStrategy(
   targetContextLength: number,
   currentTokens: number,
-  userPreference: 'aggressive' | 'balanced' | 'conservative' = 'balanced',
+  userPreference: 'aggressive' | 'balanced' | 'conservative' = 'balanced'
 ): MessageRetentionStrategy {
   const maxTokens = Math.floor(targetContextLength * 0.7) // Leave room for new conversation
 
@@ -276,19 +249,19 @@ export function createRetentionStrategy(
       return {
         type: 'preserve_recent',
         maxTokens,
-        preserveCount: Math.max(3, Math.floor(maxTokens / 200)),
+        preserveCount: Math.max(3, Math.floor(maxTokens / 200))
       }
     case 'conservative':
       return {
         type: 'smart_compression',
-        maxTokens,
+        maxTokens
       }
     case 'balanced':
     default:
       return {
         type: 'preserve_important',
         maxTokens,
-        preserveCount: Math.max(5, Math.floor(maxTokens / 150)),
+        preserveCount: Math.max(5, Math.floor(maxTokens / 150))
       }
   }
 }

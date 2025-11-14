@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
-import { randomUUID } from 'crypto'
+import {existsSync, readFileSync, writeFileSync, mkdirSync} from 'fs'
+import {join} from 'path'
+import {homedir} from 'os'
+import {randomUUID} from 'crypto'
 
 /**
  * Agent Storage Utilities
@@ -36,7 +36,7 @@ export function getAgentFilePath(agentId: string): string {
 
   // Ensure kode config directory exists
   if (!existsSync(configDir)) {
-    mkdirSync(configDir, { recursive: true })
+    mkdirSync(configDir, {recursive: true})
   }
 
   return join(configDir, filename)

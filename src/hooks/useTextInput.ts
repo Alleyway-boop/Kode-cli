@@ -1,11 +1,8 @@
-import { useState } from 'react'
-import { type Key } from 'ink'
-import { useDoublePress } from './useDoublePress'
-import { Cursor } from '@utils/Cursor'
-import {
-  getImageFromClipboard,
-  CLIPBOARD_ERROR_MESSAGE,
-} from '@utils/imagePaste'
+import {useState} from 'react'
+import {type Key} from 'ink'
+import {useDoublePress} from './useDoublePress'
+import {Cursor} from '@utils/Cursor'
+import {getImageFromClipboard, CLIPBOARD_ERROR_MESSAGE} from '@utils/imagePaste'
 
 const IMAGE_PLACEHOLDER = '[Image pasted]'
 
@@ -68,13 +65,12 @@ export function useTextInput({
   onImagePaste,
   disableCursorMovementForUpDownKeys = false,
   externalOffset,
-  onOffsetChange,
+  onOffsetChange
 }: UseTextInputProps): UseTextInputResult {
   const offset = externalOffset
   const setOffset = onOffsetChange
   const cursor = Cursor.fromText(originalValue, columns, offset)
-  const [imagePasteErrorTimeout, setImagePasteErrorTimeout] =
-    useState<NodeJS.Timeout | null>(null)
+  const [imagePasteErrorTimeout, setImagePasteErrorTimeout] = useState<NodeJS.Timeout | null>(null)
 
   function maybeClearImagePasteErrorTimeout() {
     if (!imagePasteErrorTimeout) {
@@ -96,7 +92,7 @@ export function useTextInput({
         onChange('')
         onHistoryReset?.()
       }
-    },
+    }
   )
 
   // Keep Escape for clearing input
@@ -109,7 +105,7 @@ export function useTextInput({
       if (originalValue) {
         onChange('')
       }
-    },
+    }
   )
   function clear() {
     return Cursor.fromText('', columns, 0)
@@ -117,7 +113,7 @@ export function useTextInput({
 
   const handleEmptyCtrlD = useDoublePress(
     show => onExitMessage?.(show, 'Ctrl-D'),
-    () => onExit?.(),
+    () => onExit?.()
   )
 
   function handleCtrlD(): MaybeCursor {
@@ -142,7 +138,7 @@ export function useTextInput({
       setImagePasteErrorTimeout(
         setTimeout(() => {
           onMessage?.(false)
-        }, 4000),
+        }, 4000)
       )
       return cursor
     }
@@ -163,7 +159,7 @@ export function useTextInput({
       () => {
         maybeClearImagePasteErrorTimeout()
         return cursor.backspace()
-      },
+      }
     ],
     ['k', () => cursor.deleteToLineEnd()],
     ['l', () => clear()],
@@ -171,21 +167,17 @@ export function useTextInput({
     ['p', () => upOrHistoryUp()],
     ['u', () => cursor.deleteToLineStart()],
     ['v', tryImagePaste],
-    ['w', () => cursor.deleteWordBefore()],
+    ['w', () => cursor.deleteWordBefore()]
   ])
 
   const handleMeta = mapInput([
     ['b', () => cursor.prevWord()],
     ['f', () => cursor.nextWord()],
-    ['d', () => cursor.deleteWordAfter()],
+    ['d', () => cursor.deleteWordAfter()]
   ])
 
   function handleEnter(key: Key) {
-    if (
-      multiline &&
-      cursor.offset > 0 &&
-      cursor.text[cursor.offset - 1] === '\\'
-    ) {
+    if (multiline && cursor.offset > 0 && cursor.text[cursor.offset - 1] === '\\') {
       return cursor.backspace().insert('\n')
     }
     if (key.meta) {
@@ -222,15 +214,9 @@ export function useTextInput({
     if (key.tab) {
       return // Skip Tab key processing - let completion system handle it
     }
-    
+
     // Direct handling for backspace or delete (which is being detected as delete)
-    if (
-      key.backspace ||
-      key.delete ||
-      input === '\b' ||
-      input === '\x7f' ||
-      input === '\x08'
-    ) {
+    if (key.backspace || key.delete || input === '\b' || input === '\x7f' || input === '\x08') {
       const nextCursor = cursor.backspace()
       if (!cursor.equals(nextCursor)) {
         setOffset(nextCursor.offset)
@@ -312,6 +298,6 @@ export function useTextInput({
     onInput,
     renderedValue: cursor.render(cursorChar, mask, invert),
     offset,
-    setOffset,
+    setOffset
   }
 }

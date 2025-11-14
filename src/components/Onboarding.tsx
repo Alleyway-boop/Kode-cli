@@ -1,21 +1,16 @@
-import React, { useState } from 'react'
-import { PRODUCT_NAME } from '@constants/product'
-import { Box, Newline, Text, useInput } from 'ink'
-import {
-  getGlobalConfig,
-  saveGlobalConfig,
-  DEFAULT_GLOBAL_CONFIG,
-  ProviderType,
-} from '@utils/config'
-import { OrderedList } from '@inkjs/ui'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { MIN_LOGO_WIDTH } from './Logo'
-import { Select } from './CustomSelect/select'
-import { StructuredDiff } from './StructuredDiff'
-import { getTheme, type ThemeNames } from '@utils/theme'
-import { clearTerminal } from '@utils/terminal'
-import { PressEnterToContinue } from './PressEnterToContinue'
-import { ModelSelector } from './ModelSelector'
+import React, {useState} from 'react'
+import {PRODUCT_NAME} from '@constants/product'
+import {Box, Newline, Text, useInput} from 'ink'
+import {getGlobalConfig, saveGlobalConfig, DEFAULT_GLOBAL_CONFIG, ProviderType} from '@utils/config'
+import {OrderedList} from '@inkjs/ui'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {MIN_LOGO_WIDTH} from './Logo'
+import {Select} from './CustomSelect/select'
+import {StructuredDiff} from './StructuredDiff'
+import {getTheme, type ThemeNames} from '@utils/theme'
+import {clearTerminal} from '@utils/terminal'
+import {PressEnterToContinue} from './PressEnterToContinue'
+import {ModelSelector} from './ModelSelector'
 type StepId = 'theme' | 'usage' | 'providers' | 'model'
 
 interface OnboardingStep {
@@ -27,14 +22,12 @@ type Props = {
   onDone(): void
 }
 
-export function Onboarding({ onDone }: Props): React.ReactNode {
+export function Onboarding({onDone}: Props): React.ReactNode {
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [showModelSelector, setShowModelSelector] = useState(false)
   const config = getGlobalConfig()
 
-  const [selectedTheme, setSelectedTheme] = useState(
-    DEFAULT_GLOBAL_CONFIG.theme,
-  )
+  const [selectedTheme, setSelectedTheme] = useState(DEFAULT_GLOBAL_CONFIG.theme)
   const theme = getTheme()
   function goToNextStep() {
     if (currentStepIndex < steps.length - 1) {
@@ -46,7 +39,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
   function handleThemeSelection(newTheme: string) {
     saveGlobalConfig({
       ...config,
-      theme: newTheme as ThemeNames,
+      theme: newTheme as ThemeNames
     })
     goToNextStep()
   }
@@ -69,11 +62,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
 
   useInput(async (_, key) => {
     const currentStep = steps[currentStepIndex]
-    if (
-      key.return &&
-      currentStep &&
-      ['usage', 'providers', 'model'].includes(currentStep.id)
-    ) {
+    if (key.return && currentStep && ['usage', 'providers', 'model'].includes(currentStep.id)) {
       if (currentStep.id === 'model') {
         // Navigate to ModelSelector component
         setShowModelSelector(true)
@@ -97,40 +86,29 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
       </Box>
       <Select
         options={[
-          { label: 'Light text', value: 'dark' },
-          { label: 'Dark text', value: 'light' },
+          {label: 'Light text', value: 'dark'},
+          {label: 'Dark text', value: 'light'},
           {
             label: 'Light text (colorblind-friendly)',
-            value: 'dark-daltonized',
+            value: 'dark-daltonized'
           },
           {
             label: 'Dark text (colorblind-friendly)',
-            value: 'light-daltonized',
-          },
+            value: 'light-daltonized'
+          }
         ]}
         onFocus={handleThemePreview}
         onChange={handleThemeSelection}
       />
       <Box flexDirection="column">
-        <Box
-          paddingLeft={1}
-          marginRight={1}
-          borderStyle="round"
-          borderColor="gray"
-          flexDirection="column"
-        >
+        <Box paddingLeft={1} marginRight={1} borderStyle="round" borderColor="gray" flexDirection="column">
           <StructuredDiff
             patch={{
               oldStart: 1,
               newStart: 1,
               oldLines: 3,
               newLines: 3,
-              lines: [
-                'function greet() {',
-                '-  console.log("Hello, World!");',
-                '+  console.log("Hello, anon!");',
-                '}',
-              ],
+              lines: ['function greet() {', '-  console.log("Hello, World!");', '+  console.log("Hello, anon!");', '}']
             }}
             dim={false}
             width={40}
@@ -144,15 +122,9 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
   const providersStep = (
     <Box flexDirection="column" gap={1} paddingLeft={1}>
       <Box flexDirection="column" width={70}>
-        <Text color={theme.secondaryText}>
-          Next, let's select your preferred AI provider and model.
-        </Text>
+        <Text color={theme.secondaryText}>Next, let's select your preferred AI provider and model.</Text>
       </Box>
-      <ModelSelector
-        onDone={handleProviderSelectionDone}
-        skipModelType={true}
-        isOnboarding={true}
-      />
+      <ModelSelector onDone={handleProviderSelectionDone} skipModelType={true} isOnboarding={true} />
     </Box>
   )
 
@@ -165,9 +137,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
             <Text>
               Start in your project directory
               <Newline />
-              <Text color={theme.secondaryText}>
-                Files are automatically added to context when needed.
-              </Text>
+              <Text color={theme.secondaryText}>Files are automatically added to context when needed.</Text>
               <Newline />
             </Text>
           </OrderedList.Item>
@@ -204,17 +174,13 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
       <Text bold>Configure your models:</Text>
       <Box flexDirection="column" width={70}>
         <Text>
-          You can customize which models {PRODUCT_NAME} uses for different
-          tasks.
+          You can customize which models {PRODUCT_NAME} uses for different tasks.
           <Newline />
-          <Text color={theme.secondaryText}>
-            Let's set up your preferred models for large and small tasks.
-          </Text>
+          <Text color={theme.secondaryText}>Let's set up your preferred models for large and small tasks.</Text>
         </Text>
         <Box marginTop={1}>
           <Text>
-            Press <Text color={theme.suggestion}>Enter</Text> to continue to the
-            model selection screen.
+            Press <Text color={theme.suggestion}>Enter</Text> to continue to the model selection screen.
           </Text>
         </Box>
       </Box>
@@ -223,20 +189,14 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
   )
 
   const steps: OnboardingStep[] = []
-  steps.push({ id: 'theme', component: themeStep })
-  steps.push({ id: 'usage', component: usageStep })
+  steps.push({id: 'theme', component: themeStep})
+  steps.push({id: 'usage', component: usageStep})
 
-  steps.push({ id: 'model', component: modelStep })
+  steps.push({id: 'model', component: modelStep})
 
   // If we're showing the model selector screen, render it directly
   if (showModelSelector) {
-    return (
-      <ModelSelector
-        onDone={handleModelSelectionDone}
-        skipModelType={true}
-        isOnboarding={true}
-      />
-    )
+    return <ModelSelector onDone={handleModelSelectionDone} skipModelType={true} isOnboarding={true} />
   }
 
   return (
@@ -244,10 +204,7 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
       <>
         <Box flexDirection="column" gap={1}>
           <Text bold>
-            {PRODUCT_NAME}{' '}
-            {exitState.pending
-              ? `(press ${exitState.keyName} again to exit)`
-              : ''}
+            {PRODUCT_NAME} {exitState.pending ? `(press ${exitState.keyName} again to exit)` : ''}
           </Text>
           {steps[currentStepIndex]?.component}
         </Box>
@@ -259,15 +216,9 @@ export function Onboarding({ onDone }: Props): React.ReactNode {
 export function WelcomeBox(): React.ReactNode {
   const theme = getTheme()
   return (
-    <Box
-      borderColor={theme.kode}
-      borderStyle="round"
-      paddingX={1}
-      width={MIN_LOGO_WIDTH}
-    >
+    <Box borderColor={theme.kode} borderStyle="round" paddingX={1} width={MIN_LOGO_WIDTH}>
       <Text>
-        <Text color={theme.kode}>✻</Text> Welcome to{' '}
-        <Text bold>{PRODUCT_NAME}</Text> research preview!
+        <Text color={theme.kode}>✻</Text> Welcome to <Text bold>{PRODUCT_NAME}</Text> research preview!
       </Text>
     </Box>
   )

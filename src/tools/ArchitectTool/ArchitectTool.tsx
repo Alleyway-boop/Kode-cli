@@ -1,39 +1,27 @@
-import type { TextBlock } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Box } from 'ink'
+import type {TextBlock} from '@anthropic-ai/sdk/resources/index.mjs'
+import {Box} from 'ink'
 import * as React from 'react'
-import { z } from 'zod'
-import type { Tool } from '@tool'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { HighlightedCode } from '@components/HighlightedCode'
-import { getContext } from '@context'
-import { Message, query } from '@query'
-import { lastX } from '@utils/generators'
-import { createUserMessage } from '@utils/messages'
-import { BashTool } from '@tools/BashTool/BashTool'
-import { FileReadTool } from '@tools/FileReadTool/FileReadTool'
-import { FileWriteTool } from '@tools/FileWriteTool/FileWriteTool'
-import { GlobTool } from '@tools/GlobTool/GlobTool'
-import { GrepTool } from '@tools/GrepTool/GrepTool'
-import { LSTool } from '@tools/lsTool/lsTool'
-import { ARCHITECT_SYSTEM_PROMPT, DESCRIPTION } from './prompt'
+import {z} from 'zod'
+import type {Tool} from '@tool'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {HighlightedCode} from '@components/HighlightedCode'
+import {getContext} from '@context'
+import {Message, query} from '@query'
+import {lastX} from '@utils/generators'
+import {createUserMessage} from '@utils/messages'
+import {BashTool} from '@tools/BashTool/BashTool'
+import {FileReadTool} from '@tools/FileReadTool/FileReadTool'
+import {FileWriteTool} from '@tools/FileWriteTool/FileWriteTool'
+import {GlobTool} from '@tools/GlobTool/GlobTool'
+import {GrepTool} from '@tools/GrepTool/GrepTool'
+import {LSTool} from '@tools/lsTool/lsTool'
+import {ARCHITECT_SYSTEM_PROMPT, DESCRIPTION} from './prompt'
 
-const FS_EXPLORATION_TOOLS: Tool[] = [
-  BashTool,
-  LSTool,
-  FileReadTool,
-  FileWriteTool,
-  GlobTool,
-  GrepTool,
-]
+const FS_EXPLORATION_TOOLS: Tool[] = [BashTool, LSTool, FileReadTool, FileWriteTool, GlobTool, GrepTool]
 
 const inputSchema = z.strictObject({
-  prompt: z
-    .string()
-    .describe('The technical request or coding task to analyze'),
-  context: z
-    .string()
-    .describe('Optional context from previous conversation or system state')
-    .optional(),
+  prompt: z.string().describe('The technical request or coding task to analyze'),
+  context: z.string().describe('Optional context from previous conversation or system state').optional()
 })
 
 export const ArchitectTool = {
@@ -57,10 +45,8 @@ export const ArchitectTool = {
   needsPermissions() {
     return false
   },
-  async *call({ prompt, context }, toolUseContext) {
-    const content = context
-      ? `<context>${context}</context>\n\n${prompt}`
-      : prompt
+  async *call({prompt, context}, toolUseContext) {
+    const content = context ? `<context>${context}</context>\n\n${prompt}` : prompt
 
     const userMessage = createUserMessage(content)
 
@@ -68,33 +54,27 @@ export const ArchitectTool = {
 
     // We only allow the file exploration tools to be used in the architect tool
     const allowedTools = (toolUseContext.options?.tools ?? []).filter(_ =>
-      FS_EXPLORATION_TOOLS.map(_ => _.name).includes(_.name),
+      FS_EXPLORATION_TOOLS.map(_ => _.name).includes(_.name)
     )
 
     // Create a dummy canUseTool function since this tool controls its own tool usage
-    const canUseTool = async () => ({ result: true as const })
+    const canUseTool = async () => ({result: true as const})
 
     const lastResponse = await lastX(
-      query(
-        messages,
-        [ARCHITECT_SYSTEM_PROMPT],
-        await getContext(),
-        canUseTool,
-        {
-          ...toolUseContext,
-          setToolJSX: () => {}, // Dummy function since ArchitectTool doesn't use UI
-          options: { 
-            commands: toolUseContext.options?.commands || [],
-            forkNumber: toolUseContext.options?.forkNumber || 0,
-            messageLogName: toolUseContext.options?.messageLogName || 'default',
-            verbose: toolUseContext.options?.verbose || false,
-            safeMode: toolUseContext.options?.safeMode || false,
-            maxThinkingTokens: toolUseContext.options?.maxThinkingTokens || 0,
-            ...toolUseContext.options, 
-            tools: allowedTools 
-          },
-        },
-      ),
+      query(messages, [ARCHITECT_SYSTEM_PROMPT], await getContext(), canUseTool, {
+        ...toolUseContext,
+        setToolJSX: () => {}, // Dummy function since ArchitectTool doesn't use UI
+        options: {
+          commands: toolUseContext.options?.commands || [],
+          forkNumber: toolUseContext.options?.forkNumber || 0,
+          messageLogName: toolUseContext.options?.messageLogName || 'default',
+          verbose: toolUseContext.options?.verbose || false,
+          safeMode: toolUseContext.options?.safeMode || false,
+          maxThinkingTokens: toolUseContext.options?.maxThinkingTokens || 0,
+          ...toolUseContext.options,
+          tools: allowedTools
+        }
+      })
     )
 
     if (lastResponse.type !== 'assistant') {
@@ -105,7 +85,7 @@ export const ArchitectTool = {
     yield {
       type: 'result',
       data,
-      resultForAssistant: this.renderResultForAssistant(data),
+      resultForAssistant: this.renderResultForAssistant(data)
     }
   },
   async prompt() {
@@ -122,14 +102,11 @@ export const ArchitectTool = {
   renderToolResultMessage(content) {
     return (
       <Box flexDirection="column" gap={1}>
-        <HighlightedCode
-          code={content.map(_ => _.text).join('\n')}
-          language="markdown"
-        />
+        <HighlightedCode code={content.map(_ => _.text).join('\n')} language="markdown" />
       </Box>
     )
   },
   renderToolUseRejectedMessage() {
     return <FallbackToolUseRejectedMessage />
-  },
+  }
 } satisfies Tool<typeof inputSchema, TextBlock[]>

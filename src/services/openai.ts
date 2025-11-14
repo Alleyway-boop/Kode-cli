@@ -1,8 +1,8 @@
-import { OpenAI } from 'openai'
-import { getGlobalConfig, GlobalConfig } from '@utils/config'
-import { ProxyAgent, fetch, Response } from 'undici'
-import { setSessionState, getSessionState } from '@utils/sessionState'
-import { debug as debugLogger, getCurrentRequest, logAPIError } from '@utils/debugLogger'
+import {OpenAI} from 'openai'
+import {getGlobalConfig, GlobalConfig} from '@utils/config'
+import {ProxyAgent, fetch, Response} from 'undici'
+import {setSessionState, getSessionState} from '@utils/sessionState'
+import {debug as debugLogger, getCurrentRequest, logAPIError} from '@utils/debugLogger'
 
 /**
  * Retry configuration constants for API calls
@@ -11,7 +11,7 @@ const RETRY_CONFIG = {
   BASE_DELAY_MS: 1000,
   MAX_DELAY_MS: 32000,
   MAX_SERVER_DELAY_MS: 60000,
-  JITTER_FACTOR: 0.1,
+  JITTER_FACTOR: 0.1
 } as const
 
 /**
@@ -52,7 +52,7 @@ function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
         clearTimeout(timeoutId)
         reject(new Error('Request was aborted'))
       }
-      signal.addEventListener('abort', abortHandler, { once: true })
+      signal.addEventListener('abort', abortHandler, {once: true})
     }
   })
 }
@@ -63,43 +63,26 @@ enum ModelErrorType {
   TemperatureRestriction = 'temperature_restriction',
   StreamOptions = 'stream_options',
   Citations = 'citations',
-  RateLimit = 'rate_limit',
+  RateLimit = 'rate_limit'
 }
 
-function getModelErrorKey(
-  baseURL: string,
-  model: string,
-  type: ModelErrorType,
-): string {
+function getModelErrorKey(baseURL: string, model: string, type: ModelErrorType): string {
   return `${baseURL}:${model}:${type}`
 }
 
-function hasModelError(
-  baseURL: string,
-  model: string,
-  type: ModelErrorType,
-): boolean {
-  return !!getSessionState('modelErrors')[
-    getModelErrorKey(baseURL, model, type)
-  ]
+function hasModelError(baseURL: string, model: string, type: ModelErrorType): boolean {
+  return !!getSessionState('modelErrors')[getModelErrorKey(baseURL, model, type)]
 }
 
-function setModelError(
-  baseURL: string,
-  model: string,
-  type: ModelErrorType,
-  error: string,
-) {
+function setModelError(baseURL: string, model: string, type: ModelErrorType, error: string) {
   setSessionState('modelErrors', {
-    [getModelErrorKey(baseURL, model, type)]: error,
+    [getModelErrorKey(baseURL, model, type)]: error
   })
 }
 
 // More flexible error detection system
 type ErrorDetector = (errMsg: string) => boolean
-type ErrorFixer = (
-  opts: OpenAI.ChatCompletionCreateParams,
-) => Promise<void> | void
+type ErrorFixer = (opts: OpenAI.ChatCompletionCreateParams) => Promise<void> | void
 interface ErrorHandler {
   type: ModelErrorType
   detect: ErrorDetector
@@ -116,12 +99,12 @@ const GPT5_ERROR_HANDLERS: ErrorHandler[] = [
         // Exact OpenAI GPT-5 error message
         (lowerMsg.includes("unsupported parameter: 'max_tokens'") && lowerMsg.includes("'max_completion_tokens'")) ||
         // Generic max_tokens error patterns
-        (lowerMsg.includes("max_tokens") && lowerMsg.includes("max_completion_tokens")) ||
-        (lowerMsg.includes("max_tokens") && lowerMsg.includes("not supported")) ||
-        (lowerMsg.includes("max_tokens") && lowerMsg.includes("use max_completion_tokens")) ||
+        (lowerMsg.includes('max_tokens') && lowerMsg.includes('max_completion_tokens')) ||
+        (lowerMsg.includes('max_tokens') && lowerMsg.includes('not supported')) ||
+        (lowerMsg.includes('max_tokens') && lowerMsg.includes('use max_completion_tokens')) ||
         // Additional patterns for various providers
-        (lowerMsg.includes("invalid parameter") && lowerMsg.includes("max_tokens")) ||
-        (lowerMsg.includes("parameter error") && lowerMsg.includes("max_tokens"))
+        (lowerMsg.includes('invalid parameter') && lowerMsg.includes('max_tokens')) ||
+        (lowerMsg.includes('parameter error') && lowerMsg.includes('max_tokens'))
       )
     },
     fix: async opts => {
@@ -130,22 +113,24 @@ const GPT5_ERROR_HANDLERS: ErrorHandler[] = [
         opts.max_completion_tokens = opts.max_tokens
         delete opts.max_tokens
       }
-    },
+    }
   },
   {
     type: ModelErrorType.TemperatureRestriction,
     detect: errMsg => {
       const lowerMsg = errMsg.toLowerCase()
       return (
-        lowerMsg.includes("temperature") && 
-        (lowerMsg.includes("only supports") || lowerMsg.includes("must be 1") || lowerMsg.includes("invalid temperature"))
+        lowerMsg.includes('temperature') &&
+        (lowerMsg.includes('only supports') ||
+          lowerMsg.includes('must be 1') ||
+          lowerMsg.includes('invalid temperature'))
       )
     },
     fix: async opts => {
       console.log(`🔧 GPT-5 Fix: Adjusting temperature from ${opts.temperature} to 1`)
       opts.temperature = 1
-    },
-  },
+    }
+  }
   // Add more GPT-5 specific handlers as needed
 ]
 
@@ -153,8 +138,7 @@ const GPT5_ERROR_HANDLERS: ErrorHandler[] = [
 const ERROR_HANDLERS: ErrorHandler[] = [
   {
     type: ModelErrorType.MaxLength,
-    detect: errMsg =>
-      errMsg.includes('Expected a string with maximum length 1024'),
+    detect: errMsg => errMsg.includes('Expected a string with maximum length 1024'),
     fix: async opts => {
       const toolDescriptions = {}
       for (const tool of opts.tools || []) {
@@ -168,7 +152,7 @@ const ERROR_HANDLERS: ErrorHandler[] = [
             remainder += line + '\n'
           }
         }
-        
+
         tool.function.description = str
         toolDescriptions[tool.function.name] = remainder
       }
@@ -183,13 +167,13 @@ const ERROR_HANDLERS: ErrorHandler[] = [
           if (opts.messages[i].role === 'system') {
             opts.messages.splice(i + 1, 0, {
               role: 'system',
-              content,
+              content
             })
             break
           }
         }
       }
-    },
+    }
   },
   {
     type: ModelErrorType.MaxCompletionTokens,
@@ -197,20 +181,18 @@ const ERROR_HANDLERS: ErrorHandler[] = [
     fix: async opts => {
       opts.max_completion_tokens = opts.max_tokens
       delete opts.max_tokens
-    },
+    }
   },
   {
     type: ModelErrorType.StreamOptions,
     detect: errMsg => errMsg.includes('stream_options'),
     fix: async opts => {
       delete opts.stream_options
-    },
+    }
   },
   {
     type: ModelErrorType.Citations,
-    detect: errMsg =>
-      errMsg.includes('Extra inputs are not permitted') &&
-      errMsg.includes('citations'),
+    detect: errMsg => errMsg.includes('Extra inputs are not permitted') && errMsg.includes('citations'),
     fix: async opts => {
       if (!opts.messages) return
 
@@ -229,28 +211,21 @@ const ERROR_HANDLERS: ErrorHandler[] = [
           }
         } else if (message.content && typeof message.content === 'object') {
           // Convert to unknown first to safely access properties
-          const contentObj = message.content as unknown as Record<
-            string,
-            unknown
-          >
+          const contentObj = message.content as unknown as Record<string, unknown>
           if ('citations' in contentObj) {
             delete contentObj.citations
           }
         }
       }
-    },
-  },
+    }
+  }
 ]
 
 // Rate limit specific detection
 function isRateLimitError(errMsg: string): boolean {
   if (!errMsg) return false
   const lowerMsg = errMsg.toLowerCase()
-  return (
-    lowerMsg.includes('rate limit') ||
-    lowerMsg.includes('too many requests') ||
-    lowerMsg.includes('429')
-  )
+  return lowerMsg.includes('rate limit') || lowerMsg.includes('too many requests') || lowerMsg.includes('429')
 }
 
 // Model-specific feature flags - can be extended with more properties as needed
@@ -266,48 +241,48 @@ interface ModelFeatures {
 // Map of model identifiers to their specific features
 const MODEL_FEATURES: Record<string, ModelFeatures> = {
   // OpenAI thinking models
-  o1: { usesMaxCompletionTokens: true },
-  'o1-preview': { usesMaxCompletionTokens: true },
-  'o1-mini': { usesMaxCompletionTokens: true },
-  'o1-pro': { usesMaxCompletionTokens: true },
-  'o3-mini': { usesMaxCompletionTokens: true },
+  o1: {usesMaxCompletionTokens: true},
+  'o1-preview': {usesMaxCompletionTokens: true},
+  'o1-mini': {usesMaxCompletionTokens: true},
+  'o1-pro': {usesMaxCompletionTokens: true},
+  'o3-mini': {usesMaxCompletionTokens: true},
   // GPT-5 models
-  'gpt-5': { 
-    usesMaxCompletionTokens: true, 
+  'gpt-5': {
+    usesMaxCompletionTokens: true,
     supportsResponsesAPI: true,
     requiresTemperatureOne: true,
     supportsVerbosityControl: true,
     supportsCustomTools: true,
-    supportsAllowedTools: true,
+    supportsAllowedTools: true
   },
-  'gpt-5-mini': { 
-    usesMaxCompletionTokens: true, 
+  'gpt-5-mini': {
+    usesMaxCompletionTokens: true,
     supportsResponsesAPI: true,
     requiresTemperatureOne: true,
     supportsVerbosityControl: true,
     supportsCustomTools: true,
-    supportsAllowedTools: true,
+    supportsAllowedTools: true
   },
-  'gpt-5-nano': { 
-    usesMaxCompletionTokens: true, 
+  'gpt-5-nano': {
+    usesMaxCompletionTokens: true,
     supportsResponsesAPI: true,
     requiresTemperatureOne: true,
     supportsVerbosityControl: true,
     supportsCustomTools: true,
-    supportsAllowedTools: true,
+    supportsAllowedTools: true
   },
-  'gpt-5-chat-latest': { 
-    usesMaxCompletionTokens: true, 
+  'gpt-5-chat-latest': {
+    usesMaxCompletionTokens: true,
     supportsResponsesAPI: false, // Uses Chat Completions only
     requiresTemperatureOne: true,
-    supportsVerbosityControl: true,
-  },
+    supportsVerbosityControl: true
+  }
 }
 
 // Helper to get model features based on model ID/name
 function getModelFeatures(modelName: string): ModelFeatures {
   if (!modelName || typeof modelName !== 'string') {
-    return { usesMaxCompletionTokens: false }
+    return {usesMaxCompletionTokens: false}
   }
 
   // Check for exact matches first (highest priority)
@@ -323,7 +298,7 @@ function getModelFeatures(modelName: string): ModelFeatures {
       requiresTemperatureOne: true,
       supportsVerbosityControl: true,
       supportsCustomTools: true,
-      supportsAllowedTools: true,
+      supportsAllowedTools: true
     }
   }
 
@@ -335,13 +310,11 @@ function getModelFeatures(modelName: string): ModelFeatures {
   }
 
   // Default features for unknown models
-  return { usesMaxCompletionTokens: false }
+  return {usesMaxCompletionTokens: false}
 }
 
 // Apply model-specific parameter transformations based on model features
-function applyModelSpecificTransformations(
-  opts: OpenAI.ChatCompletionCreateParams,
-): void {
+function applyModelSpecificTransformations(opts: OpenAI.ChatCompletionCreateParams): void {
   if (!opts.model || typeof opts.model !== 'string') {
     return
   }
@@ -357,7 +330,7 @@ function applyModelSpecificTransformations(
       opts.max_completion_tokens = opts.max_tokens
       delete opts.max_tokens
     }
-    
+
     // Force temperature = 1 for GPT-5 models
     if (features.requiresTemperatureOne && 'temperature' in opts) {
       if (opts.temperature !== 1 && opts.temperature !== undefined) {
@@ -367,7 +340,7 @@ function applyModelSpecificTransformations(
         opts.temperature = 1
       }
     }
-    
+
     // Remove unsupported parameters for GPT-5
     if (isGPT5) {
       // Remove parameters that may not be supported by GPT-5
@@ -375,7 +348,7 @@ function applyModelSpecificTransformations(
       delete opts.presence_penalty
       delete opts.logit_bias
       delete opts.user
-      
+
       // Add reasoning_effort if not present and model supports it
       if (!opts.reasoning_effort && features.supportsVerbosityControl) {
         opts.reasoning_effort = 'medium' // Default reasoning effort for coding tasks
@@ -386,11 +359,7 @@ function applyModelSpecificTransformations(
   // Apply transformations for non-GPT-5 models
   else {
     // Standard max_tokens to max_completion_tokens conversion for other reasoning models
-    if (
-      features.usesMaxCompletionTokens &&
-      'max_tokens' in opts &&
-      !('max_completion_tokens' in opts)
-    ) {
+    if (features.usesMaxCompletionTokens && 'max_tokens' in opts && !('max_completion_tokens' in opts)) {
       opts.max_completion_tokens = opts.max_tokens
       delete opts.max_tokens
     }
@@ -399,13 +368,10 @@ function applyModelSpecificTransformations(
   // Add more transformations here as needed
 }
 
-async function applyModelErrorFixes(
-  opts: OpenAI.ChatCompletionCreateParams,
-  baseURL: string,
-) {
+async function applyModelErrorFixes(opts: OpenAI.ChatCompletionCreateParams, baseURL: string) {
   const isGPT5 = opts.model.startsWith('gpt-5')
   const handlers = isGPT5 ? [...GPT5_ERROR_HANDLERS, ...ERROR_HANDLERS] : ERROR_HANDLERS
-  
+
   for (const handler of handlers) {
     if (hasModelError(baseURL, opts.model, handler.type)) {
       await handler.fix(opts)
@@ -421,8 +387,8 @@ async function tryWithEndpointFallback(
   headers: Record<string, string>,
   provider: string,
   proxy: any,
-  signal?: AbortSignal, // 🔧 Add AbortSignal support
-): Promise<{ response: Response; endpoint: string }> {
+  signal?: AbortSignal // 🔧 Add AbortSignal support
+): Promise<{response: Response; endpoint: string}> {
   const endpointsToTry = []
 
   if (provider === 'minimax') {
@@ -438,26 +404,24 @@ async function tryWithEndpointFallback(
       const response = await fetch(`${baseURL}${endpoint}`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(opts.stream ? { ...opts, stream: true } : opts),
+        body: JSON.stringify(opts.stream ? {...opts, stream: true} : opts),
         dispatcher: proxy,
-        signal: signal, // 🔧 Connect AbortSignal to fetch call
+        signal: signal // 🔧 Connect AbortSignal to fetch call
       })
 
       // If successful, return immediately
       if (response.ok) {
-        return { response, endpoint }
+        return {response, endpoint}
       }
 
       // If it's a 404, try the next endpoint
       if (response.status === 404 && endpointsToTry.length > 1) {
-        console.log(
-          `Endpoint ${endpoint} returned 404, trying next endpoint...`,
-        )
+        console.log(`Endpoint ${endpoint} returned 404, trying next endpoint...`)
         continue
       }
 
       // For other error codes, return this response (don't try fallback)
-      return { response, endpoint }
+      return {response, endpoint}
     } catch (error) {
       lastError = error
       // Network errors might be temporary, try next endpoint
@@ -473,14 +437,14 @@ async function tryWithEndpointFallback(
 }
 
 // Export shared utilities for GPT-5 compatibility
-export { getGPT5CompletionWithProfile, getModelFeatures, applyModelSpecificTransformations }
+export {getGPT5CompletionWithProfile, getModelFeatures, applyModelSpecificTransformations}
 
 export async function getCompletionWithProfile(
   modelProfile: any,
   opts: OpenAI.ChatCompletionCreateParams,
   attempt: number = 0,
   maxAttempts: number = 10,
-  signal?: AbortSignal, // 🔧 CRITICAL FIX: Add AbortSignal support
+  signal?: AbortSignal // 🔧 CRITICAL FIX: Add AbortSignal support
 ): Promise<OpenAI.ChatCompletion | AsyncIterable<OpenAI.ChatCompletionChunk>> {
   if (attempt >= maxAttempts) {
     throw new Error('Max attempts reached')
@@ -489,12 +453,10 @@ export async function getCompletionWithProfile(
   const provider = modelProfile?.provider || 'anthropic'
   const baseURL = modelProfile?.baseURL
   const apiKey = modelProfile?.apiKey
-  const proxy = getGlobalConfig().proxy
-    ? new ProxyAgent(getGlobalConfig().proxy)
-    : undefined
+  const proxy = getGlobalConfig().proxy ? new ProxyAgent(getGlobalConfig().proxy) : undefined
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   }
 
   if (apiKey) {
@@ -521,7 +483,7 @@ export async function getCompletionWithProfile(
     streamMode: opts.stream,
     timestamp: new Date().toISOString(),
     modelProfileModelName: modelProfile?.modelName,
-    modelProfileName: modelProfile?.name,
+    modelProfileName: modelProfile?.name
   })
 
   // Make sure all tool messages have string content
@@ -534,15 +496,12 @@ export async function getCompletionWithProfile(
             msg.content
               .map(c => c.text || '')
               .filter(Boolean)
-              .join('\n\n') || '(empty content)',
+              .join('\n\n') || '(empty content)'
         }
       } else if (typeof msg.content !== 'string') {
         return {
           ...msg,
-          content:
-            typeof msg.content === 'undefined'
-              ? '(empty content)'
-              : JSON.stringify(msg.content),
+          content: typeof msg.content === 'undefined' ? '(empty content)' : JSON.stringify(msg.content)
         }
       }
     }
@@ -573,7 +532,7 @@ export async function getCompletionWithProfile(
         'mistral',
         'xai',
         'groq',
-        'custom-openai',
+        'custom-openai'
       ].includes(provider)
 
       let response: Response
@@ -586,7 +545,7 @@ export async function getCompletionWithProfile(
           headers,
           provider,
           proxy,
-          signal, // 🔧 Pass AbortSignal to endpoint fallback
+          signal // 🔧 Pass AbortSignal to endpoint fallback
         )
         response = result.response
         usedEndpoint = result.endpoint
@@ -594,9 +553,9 @@ export async function getCompletionWithProfile(
         response = await fetch(`${baseURL}${endpoint}`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ ...opts, stream: true }),
+          body: JSON.stringify({...opts, stream: true}),
           dispatcher: proxy,
-          signal: signal, // 🔧 CRITICAL FIX: Connect AbortSignal to fetch call
+          signal: signal // 🔧 CRITICAL FIX: Connect AbortSignal to fetch call
         })
         usedEndpoint = endpoint
       }
@@ -606,46 +565,40 @@ export async function getCompletionWithProfile(
         if (signal?.aborted) {
           throw new Error('Request cancelled by user')
         }
-        
+
         // 🔥 NEW: Parse error message to detect and handle specific API errors
         try {
           const errorData = await response.json()
           // Type guard for error data structure
-          const hasError = (data: unknown): data is { error?: { message?: string }; message?: string } => {
+          const hasError = (data: unknown): data is {error?: {message?: string}; message?: string} => {
             return typeof data === 'object' && data !== null
           }
-          const errorMessage = hasError(errorData) 
-            ? (errorData.error?.message || errorData.message || `HTTP ${response.status}`)
+          const errorMessage = hasError(errorData)
+            ? errorData.error?.message || errorData.message || `HTTP ${response.status}`
             : `HTTP ${response.status}`
-          
+
           // Check if this is a parameter error that we can fix
           const isGPT5 = opts.model.startsWith('gpt-5')
           const handlers = isGPT5 ? [...GPT5_ERROR_HANDLERS, ...ERROR_HANDLERS] : ERROR_HANDLERS
-          
+
           for (const handler of handlers) {
             if (handler.detect(errorMessage)) {
               console.log(`🔧 Detected ${handler.type} error for ${opts.model}: ${errorMessage}`)
-              
+
               // Store this error for future requests
               setModelError(baseURL || '', opts.model, handler.type, errorMessage)
-              
+
               // Apply the fix and retry immediately
               await handler.fix(opts)
               console.log(`🔧 Applied fix for ${handler.type}, retrying...`)
-              
-              return getCompletionWithProfile(
-                modelProfile,
-                opts,
-                attempt + 1,
-                maxAttempts,
-                signal,
-              )
+
+              return getCompletionWithProfile(modelProfile, opts, attempt + 1, maxAttempts, signal)
             }
           }
-          
+
           // If no specific handler found, log the error for debugging
           console.log(`⚠️  Unhandled API error (${response.status}): ${errorMessage}`)
-          
+
           // Log API error using unified logger
           logAPIError({
             model: opts.model,
@@ -659,7 +612,7 @@ export async function getCompletionWithProfile(
         } catch (parseError) {
           // If we can't parse the error, fall back to generic retry
           console.log(`⚠️  Could not parse error response (${response.status})`)
-          
+
           // Log parse error
           logAPIError({
             model: opts.model,
@@ -667,14 +620,14 @@ export async function getCompletionWithProfile(
             status: response.status,
             error: `Could not parse error response: ${parseError.message}`,
             request: opts,
-            response: { parseError: parseError.message },
+            response: {parseError: parseError.message},
             provider: provider
           })
         }
-        
+
         const delayMs = getRetryDelay(attempt)
         console.log(
-          `  ⎿  API error (${response.status}), retrying in ${Math.round(delayMs / 1000)}s... (attempt ${attempt + 1}/${maxAttempts})`,
+          `  ⎿  API error (${response.status}), retrying in ${Math.round(delayMs / 1000)}s... (attempt ${attempt + 1}/${maxAttempts})`
         )
         try {
           await abortableDelay(delayMs, signal)
@@ -690,7 +643,7 @@ export async function getCompletionWithProfile(
           opts,
           attempt + 1,
           maxAttempts,
-          signal, // 🔧 Pass AbortSignal to recursive call
+          signal // 🔧 Pass AbortSignal to recursive call
         )
       }
 
@@ -711,7 +664,7 @@ export async function getCompletionWithProfile(
       'mistral',
       'xai',
       'groq',
-      'custom-openai',
+      'custom-openai'
     ].includes(provider)
 
     let response: Response
@@ -724,7 +677,7 @@ export async function getCompletionWithProfile(
         headers,
         provider,
         proxy,
-        signal, // 🔧 Pass AbortSignal to endpoint fallback
+        signal // 🔧 Pass AbortSignal to endpoint fallback
       )
       response = result.response
       usedEndpoint = result.endpoint
@@ -734,7 +687,7 @@ export async function getCompletionWithProfile(
         headers,
         body: JSON.stringify(opts),
         dispatcher: proxy,
-        signal: signal, // 🔧 CRITICAL FIX: Connect AbortSignal to non-streaming fetch call
+        signal: signal // 🔧 CRITICAL FIX: Connect AbortSignal to non-streaming fetch call
       })
       usedEndpoint = endpoint
     }
@@ -744,53 +697,47 @@ export async function getCompletionWithProfile(
       if (signal?.aborted) {
         throw new Error('Request cancelled by user')
       }
-      
+
       // 🔥 NEW: Parse error message to detect and handle specific API errors
       try {
         const errorData = await response.json()
         // Type guard for error data structure
-        const hasError = (data: unknown): data is { error?: { message?: string }; message?: string } => {
+        const hasError = (data: unknown): data is {error?: {message?: string}; message?: string} => {
           return typeof data === 'object' && data !== null
         }
-        const errorMessage = hasError(errorData) 
-          ? (errorData.error?.message || errorData.message || `HTTP ${response.status}`)
+        const errorMessage = hasError(errorData)
+          ? errorData.error?.message || errorData.message || `HTTP ${response.status}`
           : `HTTP ${response.status}`
-        
+
         // Check if this is a parameter error that we can fix
         const isGPT5 = opts.model.startsWith('gpt-5')
         const handlers = isGPT5 ? [...GPT5_ERROR_HANDLERS, ...ERROR_HANDLERS] : ERROR_HANDLERS
-        
+
         for (const handler of handlers) {
           if (handler.detect(errorMessage)) {
             console.log(`🔧 Detected ${handler.type} error for ${opts.model}: ${errorMessage}`)
-            
+
             // Store this error for future requests
             setModelError(baseURL || '', opts.model, handler.type, errorMessage)
-            
+
             // Apply the fix and retry immediately
             await handler.fix(opts)
             console.log(`🔧 Applied fix for ${handler.type}, retrying...`)
-            
-            return getCompletionWithProfile(
-              modelProfile,
-              opts,
-              attempt + 1,
-              maxAttempts,
-              signal,
-            )
+
+            return getCompletionWithProfile(modelProfile, opts, attempt + 1, maxAttempts, signal)
           }
         }
-        
+
         // If no specific handler found, log the error for debugging
         console.log(`⚠️  Unhandled API error (${response.status}): ${errorMessage}`)
       } catch (parseError) {
         // If we can't parse the error, fall back to generic retry
         console.log(`⚠️  Could not parse error response (${response.status})`)
       }
-      
+
       const delayMs = getRetryDelay(attempt)
       console.log(
-        `  ⎿  API error (${response.status}), retrying in ${Math.round(delayMs / 1000)}s... (attempt ${attempt + 1}/${maxAttempts})`,
+        `  ⎿  API error (${response.status}), retrying in ${Math.round(delayMs / 1000)}s... (attempt ${attempt + 1}/${maxAttempts})`
       )
       try {
         await abortableDelay(delayMs, signal)
@@ -806,7 +753,7 @@ export async function getCompletionWithProfile(
         opts,
         attempt + 1,
         maxAttempts,
-        signal, // 🔧 Pass AbortSignal to recursive call
+        signal // 🔧 Pass AbortSignal to recursive call
       )
     }
 
@@ -817,16 +764,16 @@ export async function getCompletionWithProfile(
     if (signal?.aborted) {
       throw new Error('Request cancelled by user')
     }
-    
+
     if (attempt < maxAttempts) {
       // 🔧 Double-check abort status to avoid showing misleading retry message
       if (signal?.aborted) {
         throw new Error('Request cancelled by user')
       }
-      
+
       const delayMs = getRetryDelay(attempt)
       console.log(
-        `  ⎿  Network error, retrying in ${Math.round(delayMs / 1000)}s... (attempt ${attempt + 1}/${maxAttempts})`,
+        `  ⎿  Network error, retrying in ${Math.round(delayMs / 1000)}s... (attempt ${attempt + 1}/${maxAttempts})`
       )
       try {
         await abortableDelay(delayMs, signal)
@@ -842,7 +789,7 @@ export async function getCompletionWithProfile(
         opts,
         attempt + 1,
         maxAttempts,
-        signal, // 🔧 Pass AbortSignal to recursive call
+        signal // 🔧 Pass AbortSignal to recursive call
       )
     }
     throw error
@@ -851,7 +798,7 @@ export async function getCompletionWithProfile(
 
 export function createStreamProcessor(
   stream: any,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): AsyncGenerator<OpenAI.ChatCompletionChunk, void, unknown> {
   if (!stream) {
     throw new Error('Stream is null or undefined')
@@ -881,12 +828,12 @@ export function createStreamProcessor(
           break
         }
 
-        const { done, value } = readResult
+        const {done, value} = readResult
         if (done) {
           break
         }
 
-        const chunk = decoder.decode(value, { stream: true })
+        const chunk = decoder.decode(value, {stream: true})
         buffer += chunk
 
         let lineEnd = buffer.indexOf('\n')
@@ -945,7 +892,7 @@ export function createStreamProcessor(
 
 export function streamCompletion(
   stream: any,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): AsyncGenerator<OpenAI.ChatCompletionChunk, void, unknown> {
   return createStreamProcessor(stream, signal)
 }
@@ -956,23 +903,21 @@ export function streamCompletion(
 export async function callGPT5ResponsesAPI(
   modelProfile: any,
   opts: any, // Using 'any' for Responses API params which differ from ChatCompletionCreateParams
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<any> {
   const baseURL = modelProfile?.baseURL || 'https://api.openai.com/v1'
   const apiKey = modelProfile?.apiKey
-  const proxy = getGlobalConfig().proxy
-    ? new ProxyAgent(getGlobalConfig().proxy)
-    : undefined
+  const proxy = getGlobalConfig().proxy ? new ProxyAgent(getGlobalConfig().proxy) : undefined
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
+    Authorization: `Bearer ${apiKey}`
   }
 
   // 🔥 Enhanced Responses API Parameter Mapping for GPT-5
   const responsesParams: any = {
     model: opts.model,
-    input: opts.messages, // Responses API uses 'input' instead of 'messages'
+    input: opts.messages // Responses API uses 'input' instead of 'messages'
   }
 
   // 🔧 GPT-5 Token Configuration
@@ -994,13 +939,13 @@ export async function callGPT5ResponsesAPI(
   responsesParams.reasoning = {
     effort: reasoningEffort,
     // 🚀 Enable reasoning summaries for transparency in coding tasks
-    generate_summary: true,
+    generate_summary: true
   }
 
   // 🔧 GPT-5 Tools Support
   if (opts.tools && opts.tools.length > 0) {
     responsesParams.tools = opts.tools
-    
+
     // 🚀 GPT-5 Tool Choice Configuration
     if (opts.tool_choice) {
       responsesParams.tool_choice = opts.tool_choice
@@ -1010,7 +955,7 @@ export async function callGPT5ResponsesAPI(
   // 🔧 GPT-5 System Instructions (separate from messages)
   const systemMessages = opts.messages.filter(msg => msg.role === 'system')
   const nonSystemMessages = opts.messages.filter(msg => msg.role !== 'system')
-  
+
   if (systemMessages.length > 0) {
     responsesParams.instructions = systemMessages.map(msg => msg.content).join('\n\n')
     responsesParams.input = nonSystemMessages
@@ -1022,7 +967,7 @@ export async function callGPT5ResponsesAPI(
     // High verbosity for coding tasks to get detailed explanations and structured code
     // Based on GPT-5 best practices for agent-like coding environments
     responsesParams.text = {
-      verbosity: 'high',
+      verbosity: 'high'
     }
   }
 
@@ -1031,7 +976,7 @@ export async function callGPT5ResponsesAPI(
     // Set reasoning effort based on task complexity
     if (!responsesParams.reasoning) {
       responsesParams.reasoning = {
-        effort: 'medium', // Balanced for most coding tasks
+        effort: 'medium' // Balanced for most coding tasks
       }
     }
 
@@ -1052,7 +997,7 @@ export async function callGPT5ResponsesAPI(
       headers,
       body: JSON.stringify(responsesParams),
       dispatcher: proxy,
-      signal: signal,
+      signal: signal
     })
 
     if (!response.ok) {
@@ -1060,7 +1005,7 @@ export async function callGPT5ResponsesAPI(
     }
 
     const responseData = await response.json()
-    
+
     // Convert Responses API response back to Chat Completion format for compatibility
     return convertResponsesAPIToChatCompletion(responseData)
   } catch (error) {
@@ -1079,24 +1024,24 @@ function convertResponsesAPIToChatCompletion(responsesData: any): any {
   // Extract content from Responses API format
   let outputText = responsesData.output_text || ''
   const usage = responsesData.usage || {}
-  
+
   // 🚀 GPT-5 Reasoning Summary Integration
   // If reasoning summary is available, prepend it to the output for transparency
   if (responsesData.output && Array.isArray(responsesData.output)) {
     const reasoningItems = responsesData.output.filter(item => item.type === 'reasoning' && item.summary)
     const messageItems = responsesData.output.filter(item => item.type === 'message')
-    
+
     if (reasoningItems.length > 0 && messageItems.length > 0) {
       const reasoningSummary = reasoningItems
         .map(item => item.summary?.map(s => s.text).join('\n'))
         .filter(Boolean)
         .join('\n\n')
-      
+
       const mainContent = messageItems
         .map(item => item.content?.map(c => c.text).join('\n'))
         .filter(Boolean)
         .join('\n\n')
-      
+
       if (reasoningSummary) {
         outputText = `**🧠 Reasoning Process:**\n${reasoningSummary}\n\n**📝 Response:**\n${mainContent}`
       } else {
@@ -1120,12 +1065,12 @@ function convertResponsesAPIToChatCompletion(responsesData: any): any {
           ...(responsesData.reasoning && {
             reasoning: {
               effort: responsesData.reasoning.effort,
-              summary: responsesData.reasoning.summary,
-            },
-          }),
+              summary: responsesData.reasoning.summary
+            }
+          })
         },
-        finish_reason: responsesData.status === 'completed' ? 'stop' : 'length',
-      },
+        finish_reason: responsesData.status === 'completed' ? 'stop' : 'length'
+      }
     ],
     usage: {
       prompt_tokens: usage.input_tokens || 0,
@@ -1133,12 +1078,12 @@ function convertResponsesAPIToChatCompletion(responsesData: any): any {
       total_tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
       // 🔧 GPT-5 Enhanced Usage Details
       prompt_tokens_details: {
-        cached_tokens: usage.input_tokens_details?.cached_tokens || 0,
+        cached_tokens: usage.input_tokens_details?.cached_tokens || 0
       },
       completion_tokens_details: {
-        reasoning_tokens: usage.output_tokens_details?.reasoning_tokens || 0,
-      },
-    },
+        reasoning_tokens: usage.output_tokens_details?.reasoning_tokens || 0
+      }
+    }
   }
 }
 
@@ -1151,11 +1096,10 @@ async function getGPT5CompletionWithProfile(
   opts: OpenAI.ChatCompletionCreateParams,
   attempt: number = 0,
   maxAttempts: number = 10,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<OpenAI.ChatCompletion | AsyncIterable<OpenAI.ChatCompletionChunk>> {
   const features = getModelFeatures(opts.model)
-  const isOfficialOpenAI = !modelProfile.baseURL || 
-    modelProfile.baseURL.includes('api.openai.com')
+  const isOfficialOpenAI = !modelProfile.baseURL || modelProfile.baseURL.includes('api.openai.com')
 
   // 🚀 Try Responses API for official OpenAI non-streaming requests
   if (features.supportsResponsesAPI && !opts.stream && isOfficialOpenAI) {
@@ -1165,33 +1109,31 @@ async function getGPT5CompletionWithProfile(
         baseURL: modelProfile.baseURL || 'official',
         provider: modelProfile.provider,
         stream: opts.stream,
-        requestId: getCurrentRequest()?.id,
+        requestId: getCurrentRequest()?.id
       })
-      
+
       const result = await callGPT5ResponsesAPI(modelProfile, opts, signal)
-      
+
       debugLogger.api('GPT5_RESPONSES_API_SUCCESS', {
         model: opts.model,
         baseURL: modelProfile.baseURL || 'official',
-        requestId: getCurrentRequest()?.id,
+        requestId: getCurrentRequest()?.id
       })
-      
+
       return result
     } catch (error) {
       debugLogger.api('GPT5_RESPONSES_API_FALLBACK', {
         model: opts.model,
         error: error.message,
         baseURL: modelProfile.baseURL || 'official',
-        requestId: getCurrentRequest()?.id,
+        requestId: getCurrentRequest()?.id
       })
-      
-      console.warn(
-        `🔄 GPT-5 Responses API failed, falling back to Chat Completions: ${error.message}`
-      )
+
+      console.warn(`🔄 GPT-5 Responses API failed, falling back to Chat Completions: ${error.message}`)
       // Fall through to Chat Completions API
     }
-  } 
-  
+  }
+
   // 🌐 Handle third-party GPT-5 providers with enhanced compatibility
   else if (!isOfficialOpenAI) {
     debugLogger.api('GPT5_THIRD_PARTY_PROVIDER', {
@@ -1199,12 +1141,12 @@ async function getGPT5CompletionWithProfile(
       baseURL: modelProfile.baseURL,
       provider: modelProfile.provider,
       supportsResponsesAPI: features.supportsResponsesAPI,
-      requestId: getCurrentRequest()?.id,
+      requestId: getCurrentRequest()?.id
     })
-    
+
     // 🔧 Apply enhanced parameter optimization for third-party providers
     console.log(`🌐 Using GPT-5 via third-party provider: ${modelProfile.provider} (${modelProfile.baseURL})`)
-    
+
     // Some third-party providers may need additional parameter adjustments
     if (modelProfile.provider === 'azure') {
       // Azure OpenAI specific adjustments
@@ -1214,16 +1156,16 @@ async function getGPT5CompletionWithProfile(
       console.log(`🔧 Applying OpenAI-compatible optimizations for custom provider`)
     }
   }
-  
+
   // 📡 Handle streaming requests (Responses API doesn't support streaming yet)
   else if (opts.stream) {
     debugLogger.api('GPT5_STREAMING_MODE', {
       model: opts.model,
       baseURL: modelProfile.baseURL || 'official',
       reason: 'responses_api_no_streaming',
-      requestId: getCurrentRequest()?.id,
+      requestId: getCurrentRequest()?.id
     })
-    
+
     console.log(`🔄 Using Chat Completions for streaming (Responses API streaming not available)`)
   }
 
@@ -1233,66 +1175,47 @@ async function getGPT5CompletionWithProfile(
     baseURL: modelProfile.baseURL || 'official',
     provider: modelProfile.provider,
     reason: isOfficialOpenAI ? 'streaming_or_fallback' : 'third_party_provider',
-    requestId: getCurrentRequest()?.id,
+    requestId: getCurrentRequest()?.id
   })
 
-  return await getCompletionWithProfile(
-    modelProfile,
-    opts,
-    attempt,
-    maxAttempts,
-    signal,
-  )
+  return await getCompletionWithProfile(modelProfile, opts, attempt, maxAttempts, signal)
 }
 
 /**
  * Fetch available models from custom OpenAI-compatible API
  */
-export async function fetchCustomModels(
-  baseURL: string,
-  apiKey: string,
-): Promise<any[]> {
+export async function fetchCustomModels(baseURL: string, apiKey: string): Promise<any[]> {
   try {
     // Check if baseURL already contains version number (e.g., v1, v2, etc.)
     const hasVersionNumber = /\/v\d+/.test(baseURL)
     const cleanBaseURL = baseURL.replace(/\/+$/, '')
-    const modelsURL = hasVersionNumber
-      ? `${cleanBaseURL}/models`
-      : `${cleanBaseURL}/v1/models`
+    const modelsURL = hasVersionNumber ? `${cleanBaseURL}/models` : `${cleanBaseURL}/v1/models`
 
     const response = await fetch(modelsURL, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
+        'Content-Type': 'application/json'
+      }
     })
 
     if (!response.ok) {
       // Provide user-friendly error messages based on status code
       if (response.status === 401) {
-        throw new Error(
-          'Invalid API key. Please check your API key and try again.',
-        )
+        throw new Error('Invalid API key. Please check your API key and try again.')
       } else if (response.status === 403) {
-        throw new Error(
-          'API key does not have permission to access models. Please check your API key permissions.',
-        )
+        throw new Error('API key does not have permission to access models. Please check your API key permissions.')
       } else if (response.status === 404) {
         throw new Error(
-          'API endpoint not found. Please check if the base URL is correct and supports the /models endpoint.',
+          'API endpoint not found. Please check if the base URL is correct and supports the /models endpoint.'
         )
       } else if (response.status === 429) {
-        throw new Error(
-          'Too many requests. Please wait a moment and try again.',
-        )
+        throw new Error('Too many requests. Please wait a moment and try again.')
       } else if (response.status >= 500) {
-        throw new Error(
-          'API service is temporarily unavailable. Please try again later.',
-        )
+        throw new Error('API service is temporarily unavailable. Please try again later.')
       } else {
         throw new Error(
-          `Unable to connect to API (${response.status}). Please check your base URL, API key, and internet connection.`,
+          `Unable to connect to API (${response.status}). Please check your base URL, API key, and internet connection.`
         )
       }
     }
@@ -1300,11 +1223,11 @@ export async function fetchCustomModels(
     const data = await response.json()
 
     // Type guards for different API response formats
-    const hasDataArray = (obj: unknown): obj is { data: unknown[] } => {
+    const hasDataArray = (obj: unknown): obj is {data: unknown[]} => {
       return typeof obj === 'object' && obj !== null && 'data' in obj && Array.isArray((obj as any).data)
     }
-    
-    const hasModelsArray = (obj: unknown): obj is { models: unknown[] } => {
+
+    const hasModelsArray = (obj: unknown): obj is {models: unknown[]} => {
       return typeof obj === 'object' && obj !== null && 'models' in obj && Array.isArray((obj as any).models)
     }
 
@@ -1322,7 +1245,7 @@ export async function fetchCustomModels(
       models = data.models
     } else {
       throw new Error(
-        'API returned unexpected response format. Expected an array of models or an object with a "data" or "models" array.',
+        'API returned unexpected response format. Expected an array of models or an object with a "data" or "models" array.'
       )
     }
 
@@ -1349,13 +1272,9 @@ export async function fetchCustomModels(
 
     // Check if it's a network error
     if (error instanceof Error && error.message.includes('fetch')) {
-      throw new Error(
-        'Unable to connect to the API. Please check the base URL and your internet connection.',
-      )
+      throw new Error('Unable to connect to the API. Please check the base URL and your internet connection.')
     }
 
-    throw new Error(
-      'Failed to fetch models from custom API. Please check your configuration and try again.',
-    )
+    throw new Error('Failed to fetch models from custom API. Please check your configuration and try again.')
   }
 }

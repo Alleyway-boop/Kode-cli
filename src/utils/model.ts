@@ -1,12 +1,7 @@
-import { memoize } from 'lodash-es'
- 
-import { logError } from './log'
-import {
-  getGlobalConfig,
-  ModelProfile,
-  ModelPointerType,
-  saveGlobalConfig,
-} from './config'
+import {memoize} from 'lodash-es'
+
+import {logError} from './log'
+import {getGlobalConfig, ModelProfile, ModelPointerType, saveGlobalConfig} from './config'
 
 export const USE_BEDROCK = !!process.env.CLAUDE_CODE_USE_BEDROCK
 export const USE_VERTEX = !!process.env.CLAUDE_CODE_USE_VERTEX
@@ -20,7 +15,7 @@ export interface ModelConfig {
 const DEFAULT_MODEL_CONFIG: ModelConfig = {
   bedrock: 'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
   vertex: 'claude-3-7-sonnet@20250219',
-  firstParty: 'claude-sonnet-4-20250514',
+  firstParty: 'claude-sonnet-4-20250514'
 }
 
 /**
@@ -49,10 +44,7 @@ export const getSlowAndCapableModel = memoize(async (): Promise<string> => {
 })
 
 export async function isDefaultSlowAndCapableModel(): Promise<boolean> {
-  return (
-    !process.env.ANTHROPIC_MODEL ||
-    process.env.ANTHROPIC_MODEL === (await getSlowAndCapableModel())
-  )
+  return !process.env.ANTHROPIC_MODEL || process.env.ANTHROPIC_MODEL === (await getSlowAndCapableModel())
 }
 
 /**
@@ -60,9 +52,7 @@ export async function isDefaultSlowAndCapableModel(): Promise<boolean> {
  * Checks for hardcoded model-specific environment variables first,
  * then falls back to CLOUD_ML_REGION env var or default region
  */
-export function getVertexRegionForModel(
-  model: string | undefined,
-): string | undefined {
+export function getVertexRegionForModel(model: string | undefined): string | undefined {
   if (model?.startsWith('claude-3-5-haiku')) {
     return process.env.VERTEX_REGION_CLAUDE_3_5_HAIKU
   } else if (model?.startsWith('claude-3-5-sonnet')) {
@@ -163,7 +153,7 @@ export class ModelManager {
         modelName: null,
         previousModelName: null,
         contextOverflow: false,
-        usagePercentage: 0,
+        usagePercentage: 0
       }
     }
 
@@ -174,9 +164,7 @@ export class ModelManager {
     })
 
     const currentMainModelName = this.config.modelPointers?.main
-    const currentModel = currentMainModelName
-      ? this.findModelProfile(currentMainModelName)
-      : null
+    const currentModel = currentMainModelName ? this.findModelProfile(currentMainModelName) : null
     const previousModelName = currentModel?.name || null
 
     if (!currentMainModelName) {
@@ -188,23 +176,18 @@ export class ModelManager {
       this.setPointer('main', firstModel.modelName)
       this.updateLastUsed(firstModel.modelName)
 
-      const analysis = this.analyzeContextCompatibility(
-        firstModel,
-        currentContextTokens,
-      )
+      const analysis = this.analyzeContextCompatibility(firstModel, currentContextTokens)
       return {
         success: true,
         modelName: firstModel.name,
         previousModelName: null,
         contextOverflow: !analysis.compatible,
-        usagePercentage: analysis.usagePercentage,
+        usagePercentage: analysis.usagePercentage
       }
     }
 
     // Find current model index in ALL models
-    const currentIndex = allProfiles.findIndex(
-      p => p.modelName === currentMainModelName,
-    )
+    const currentIndex = allProfiles.findIndex(p => p.modelName === currentMainModelName)
     if (currentIndex === -1) {
       // Current model not found, select first available (activate if needed)
       const firstModel = allProfiles[0]
@@ -214,16 +197,13 @@ export class ModelManager {
       this.setPointer('main', firstModel.modelName)
       this.updateLastUsed(firstModel.modelName)
 
-      const analysis = this.analyzeContextCompatibility(
-        firstModel,
-        currentContextTokens,
-      )
+      const analysis = this.analyzeContextCompatibility(firstModel, currentContextTokens)
       return {
         success: true,
         modelName: firstModel.name,
         previousModelName,
         contextOverflow: !analysis.compatible,
-        usagePercentage: analysis.usagePercentage,
+        usagePercentage: analysis.usagePercentage
       }
     }
 
@@ -234,14 +214,14 @@ export class ModelManager {
         modelName: null,
         previousModelName,
         contextOverflow: false,
-        usagePercentage: 0,
+        usagePercentage: 0
       }
     }
 
     // Get next model in cycle (from ALL models)
     const nextIndex = (currentIndex + 1) % allProfiles.length
     const nextModel = allProfiles[nextIndex]
-    
+
     // Activate the model if it's not already active
     const wasInactive = !nextModel.isActive
     if (!nextModel.isActive) {
@@ -249,15 +229,12 @@ export class ModelManager {
     }
 
     // Analyze context compatibility for next model
-    const analysis = this.analyzeContextCompatibility(
-      nextModel,
-      currentContextTokens,
-    )
+    const analysis = this.analyzeContextCompatibility(nextModel, currentContextTokens)
 
     // Always switch to next model, but return context status
     this.setPointer('main', nextModel.modelName)
     this.updateLastUsed(nextModel.modelName)
-    
+
     // Save configuration if we activated a new model
     if (wasInactive) {
       this.saveConfig()
@@ -268,7 +245,7 @@ export class ModelManager {
       modelName: nextModel.name,
       previousModelName,
       contextOverflow: !analysis.compatible,
-      usagePercentage: analysis.usagePercentage,
+      usagePercentage: analysis.usagePercentage
     }
   }
 
@@ -285,7 +262,7 @@ export class ModelManager {
   } {
     // Use the enhanced context check method for consistency
     const result = this.switchToNextModelWithContextCheck(currentContextTokens)
-    
+
     if (!result.success) {
       const allModels = this.getAllConfiguredModels()
       if (allModels.length === 0) {
@@ -293,24 +270,24 @@ export class ModelManager {
           success: false,
           modelName: null,
           blocked: false,
-          message: '❌ No models configured. Use /model to add models.',
+          message: '❌ No models configured. Use /model to add models.'
         }
       } else if (allModels.length === 1) {
         return {
           success: false,
           modelName: null,
           blocked: false,
-          message: `⚠️ Only one model configured (${allModels[0].modelName}). Use /model to add more models for switching.`,
+          message: `⚠️ Only one model configured (${allModels[0].modelName}). Use /model to add more models for switching.`
         }
       }
     }
-    
+
     // Convert the detailed result to the simple interface
     const currentModel = this.findModelProfile(this.config.modelPointers?.main)
     const allModels = this.getAllConfiguredModels()
     const currentIndex = allModels.findIndex(m => m.modelName === currentModel?.modelName)
     const totalModels = allModels.length
-    
+
     return {
       success: result.success,
       modelName: result.modelName,
@@ -319,7 +296,7 @@ export class ModelManager {
         ? result.contextOverflow
           ? `⚠️ Context usage: ${result.usagePercentage.toFixed(1)}% - ${result.modelName}`
           : `✅ Switched to ${result.modelName} (${currentIndex + 1}/${totalModels})${currentModel?.provider ? ` [${currentModel.provider}]` : ''}`
-        : `❌ Failed to switch models`,
+        : `❌ Failed to switch models`
     }
   }
 
@@ -327,9 +304,7 @@ export class ModelManager {
    * Revert to previous model (used when context overflow requires rollback)
    */
   revertToPreviousModel(previousModelName: string): boolean {
-    const previousModel = this.modelProfiles.find(
-      p => p.name === previousModelName && p.isActive,
-    )
+    const previousModel = this.modelProfiles.find(p => p.name === previousModelName && p.isActive)
     if (!previousModel) {
       return false
     }
@@ -344,7 +319,7 @@ export class ModelManager {
    */
   analyzeContextCompatibility(
     model: ModelProfile,
-    contextTokens: number,
+    contextTokens: number
   ): {
     compatible: boolean
     severity: 'safe' | 'warning' | 'critical'
@@ -359,21 +334,21 @@ export class ModelManager {
         compatible: true,
         severity: 'safe',
         usagePercentage,
-        recommendation: 'Full context preserved',
+        recommendation: 'Full context preserved'
       }
     } else if (usagePercentage <= 90) {
       return {
         compatible: true,
         severity: 'warning',
         usagePercentage,
-        recommendation: 'Context usage high, consider compression',
+        recommendation: 'Context usage high, consider compression'
       }
     } else {
       return {
         compatible: false,
         severity: 'critical',
         usagePercentage,
-        recommendation: 'Auto-compression or message truncation required',
+        recommendation: 'Auto-compression or message truncation required'
       }
     }
   }
@@ -394,7 +369,7 @@ export class ModelManager {
         modelName: null,
         contextAnalysis: null,
         requiresCompression: false,
-        estimatedTokensAfterSwitch: 0,
+        estimatedTokensAfterSwitch: 0
       }
     }
 
@@ -404,20 +379,17 @@ export class ModelManager {
         modelName: result.modelName,
         contextAnalysis: null,
         requiresCompression: false,
-        estimatedTokensAfterSwitch: currentContextTokens,
+        estimatedTokensAfterSwitch: currentContextTokens
       }
     }
 
-    const analysis = this.analyzeContextCompatibility(
-      newModel,
-      currentContextTokens,
-    )
+    const analysis = this.analyzeContextCompatibility(newModel, currentContextTokens)
 
     return {
       modelName: result.modelName,
       contextAnalysis: analysis,
       requiresCompression: analysis.severity === 'critical',
-      estimatedTokensAfterSwitch: currentContextTokens,
+      estimatedTokensAfterSwitch: currentContextTokens
     }
   }
 
@@ -432,22 +404,14 @@ export class ModelManager {
   /**
    * Find the first model that can handle the given context size
    */
-  findModelWithSufficientContext(
-    models: ModelProfile[],
-    contextTokens: number,
-  ): ModelProfile | null {
-    return (
-      models.find(model => this.canModelHandleContext(model, contextTokens)) ||
-      null
-    )
+  findModelWithSufficientContext(models: ModelProfile[], contextTokens: number): ModelProfile | null {
+    return models.find(model => this.canModelHandleContext(model, contextTokens)) || null
   }
 
   /**
    * Unified model getter for different contexts
    */
-  getModelForContext(
-    contextType: 'terminal' | 'main-agent' | 'task-tool',
-  ): string | null {
+  getModelForContext(contextType: 'terminal' | 'main-agent' | 'task-tool'): string | null {
     switch (contextType) {
       case 'terminal':
         return this.getCurrentModel()
@@ -508,27 +472,17 @@ export class ModelManager {
    * Get quick model (with fallback)
    */
   getQuickModel(): string | null {
-    return (
-      this.getModelName('quick') ||
-      this.getModelName('task') ||
-      this.getModelName('main')
-    )
+    return this.getModelName('quick') || this.getModelName('task') || this.getModelName('main')
   }
 
   /**
    * Add a new model profile with duplicate validation
    */
-  async addModel(
-    config: Omit<ModelProfile, 'createdAt' | 'isActive'>,
-  ): Promise<string> {
+  async addModel(config: Omit<ModelProfile, 'createdAt' | 'isActive'>): Promise<string> {
     // Check for duplicate modelName (actual model identifier)
-    const existingByModelName = this.modelProfiles.find(
-      p => p.modelName === config.modelName,
-    )
+    const existingByModelName = this.modelProfiles.find(p => p.modelName === config.modelName)
     if (existingByModelName) {
-      throw new Error(
-        `Model with modelName '${config.modelName}' already exists: ${existingByModelName.name}`,
-      )
+      throw new Error(`Model with modelName '${config.modelName}' already exists: ${existingByModelName.name}`)
     }
 
     // Check for duplicate friendly name
@@ -540,7 +494,7 @@ export class ModelManager {
     const newModel: ModelProfile = {
       ...config,
       createdAt: Date.now(),
-      isActive: true,
+      isActive: true
     }
 
     this.modelProfiles.push(newModel)
@@ -551,7 +505,7 @@ export class ModelManager {
         main: config.modelName,
         task: config.modelName,
         reasoning: config.modelName,
-        quick: config.modelName,
+        quick: config.modelName
       }
       this.config.defaultModelName = config.modelName
     }
@@ -573,7 +527,7 @@ export class ModelManager {
         main: '',
         task: '',
         reasoning: '',
-        quick: '',
+        quick: ''
       }
     }
 
@@ -619,7 +573,7 @@ export class ModelManager {
     currentMainModel: string | null
     availableModels: Array<{
       name: string
-      modelName: string 
+      modelName: string
       provider: string
       isActive: boolean
       lastUsed?: number
@@ -628,7 +582,7 @@ export class ModelManager {
   } {
     const availableModels = this.getAvailableModels()
     const currentMainModelName = this.config.modelPointers?.main
-    
+
     return {
       totalModels: this.modelProfiles.length,
       activeModels: availableModels.length,
@@ -639,9 +593,9 @@ export class ModelManager {
         modelName: p.modelName,
         provider: p.provider,
         isActive: p.isActive,
-        lastUsed: p.lastUsed,
+        lastUsed: p.lastUsed
       })),
-      modelPointers: this.config.modelPointers || {},
+      modelPointers: this.config.modelPointers || {}
     }
   }
 
@@ -649,18 +603,13 @@ export class ModelManager {
    * Remove a model profile
    */
   removeModel(modelName: string): void {
-    this.modelProfiles = this.modelProfiles.filter(
-      p => p.modelName !== modelName,
-    )
+    this.modelProfiles = this.modelProfiles.filter(p => p.modelName !== modelName)
 
     // Clean up pointers that reference deleted model
     if (this.config.modelPointers) {
       Object.keys(this.config.modelPointers).forEach(pointer => {
-        if (
-          this.config.modelPointers[pointer as ModelPointerType] === modelName
-        ) {
-          this.config.modelPointers[pointer as ModelPointerType] =
-            this.config.defaultModelName || ''
+        if (this.config.modelPointers[pointer as ModelPointerType] === modelName) {
+          this.config.modelPointers[pointer as ModelPointerType] = this.config.defaultModelName || ''
         }
       })
     }
@@ -687,7 +636,7 @@ export class ModelManager {
   private saveConfig(): void {
     const updatedConfig = {
       ...this.config,
-      modelProfiles: this.modelProfiles,
+      modelProfiles: this.modelProfiles
     }
     saveGlobalConfig(updatedConfig)
   }
@@ -710,8 +659,7 @@ export class ModelManager {
   resolveModel(modelParam: string | ModelPointerType): ModelProfile | null {
     // 首先检查是否是模型指针
     if (['main', 'task', 'reasoning', 'quick'].includes(modelParam)) {
-      const pointerId =
-        this.config.modelPointers?.[modelParam as ModelPointerType]
+      const pointerId = this.config.modelPointers?.[modelParam as ModelPointerType]
       if (pointerId) {
         // pointerId 可能是内部ID或真实模型名称，尝试两种查找方式
         let profile = this.findModelProfile(pointerId) // 按内部ID查找
@@ -757,18 +705,15 @@ export class ModelManager {
     profile: ModelProfile | null
     error?: string
   } {
-    const isPointer = ['main', 'task', 'reasoning', 'quick'].includes(
-      modelParam,
-    )
+    const isPointer = ['main', 'task', 'reasoning', 'quick'].includes(modelParam)
 
     if (isPointer) {
-      const pointerId =
-        this.config.modelPointers?.[modelParam as ModelPointerType]
+      const pointerId = this.config.modelPointers?.[modelParam as ModelPointerType]
       if (!pointerId) {
         return {
           success: false,
           profile: null,
-          error: `Model pointer '${modelParam}' is not configured. Use /model to set up models.`,
+          error: `Model pointer '${modelParam}' is not configured. Use /model to set up models.`
         }
       }
 
@@ -782,7 +727,7 @@ export class ModelManager {
         return {
           success: false,
           profile: null,
-          error: `Model pointer '${modelParam}' points to invalid model '${pointerId}'. Use /model to reconfigure.`,
+          error: `Model pointer '${modelParam}' points to invalid model '${pointerId}'. Use /model to reconfigure.`
         }
       }
 
@@ -790,13 +735,13 @@ export class ModelManager {
         return {
           success: false,
           profile: null,
-          error: `Model '${profile.name}' (pointed by '${modelParam}') is inactive. Use /model to activate it.`,
+          error: `Model '${profile.name}' (pointed by '${modelParam}') is inactive. Use /model to activate it.`
         }
       }
 
       return {
         success: true,
-        profile,
+        profile
       }
     } else {
       // 直接的 model ID 或模型名称，尝试多种查找方式
@@ -812,7 +757,7 @@ export class ModelManager {
         return {
           success: false,
           profile: null,
-          error: `Model '${modelParam}' not found. Use /model to add models.`,
+          error: `Model '${modelParam}' not found. Use /model to add models.`
         }
       }
 
@@ -820,13 +765,13 @@ export class ModelManager {
         return {
           success: false,
           profile: null,
-          error: `Model '${profile.name}' is inactive. Use /model to activate it.`,
+          error: `Model '${profile.name}' is inactive. Use /model to activate it.`
         }
       }
 
       return {
         success: true,
-        profile,
+        profile
       }
     }
   }
@@ -863,12 +808,10 @@ export const getModelManager = (): ModelManager => {
     if (!globalModelManager) {
       const config = getGlobalConfig()
       if (!config) {
-        console.warn(
-          'No global config available, creating ModelManager with empty config',
-        )
+        console.warn('No global config available, creating ModelManager with empty config')
         globalModelManager = new ModelManager({
           modelProfiles: [],
-          modelPointers: { main: '', task: '', reasoning: '', quick: '' },
+          modelPointers: {main: '', task: '', reasoning: '', quick: ''}
         })
       } else {
         globalModelManager = new ModelManager(config)
@@ -880,7 +823,7 @@ export const getModelManager = (): ModelManager => {
     // Return a fallback ModelManager with empty configuration
     return new ModelManager({
       modelProfiles: [],
-      modelPointers: { main: '', task: '', reasoning: '', quick: '' },
+      modelPointers: {main: '', task: '', reasoning: '', quick: ''}
     })
   }
 }

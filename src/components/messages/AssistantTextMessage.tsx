@@ -1,26 +1,26 @@
-import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
+import {TextBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
 import React from 'react'
-import { AssistantBashOutputMessage } from './AssistantBashOutputMessage'
-import { AssistantLocalCommandOutputMessage } from './AssistantLocalCommandOutputMessage'
-import { getTheme } from '@utils/theme'
-import { Box, Text } from 'ink'
-import { Cost } from '@components/Cost'
+import {AssistantBashOutputMessage} from './AssistantBashOutputMessage'
+import {AssistantLocalCommandOutputMessage} from './AssistantLocalCommandOutputMessage'
+import {getTheme} from '@utils/theme'
+import {Box, Text} from 'ink'
+import {Cost} from '@components/Cost'
 import {
   API_ERROR_MESSAGE_PREFIX,
   CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE,
   INVALID_API_KEY_ERROR_MESSAGE,
-  PROMPT_TOO_LONG_ERROR_MESSAGE,
+  PROMPT_TOO_LONG_ERROR_MESSAGE
 } from '@services/claude'
 import {
   CANCEL_MESSAGE,
   INTERRUPT_MESSAGE,
   INTERRUPT_MESSAGE_FOR_TOOL_USE,
   isEmptyMessageText,
-  NO_RESPONSE_REQUESTED,
+  NO_RESPONSE_REQUESTED
 } from '@utils/messages'
-import { BLACK_CIRCLE } from '@constants/figures'
-import { applyMarkdown } from '@utils/markdown'
-import { useTerminalSize } from '@hooks/useTerminalSize'
+import {BLACK_CIRCLE} from '@constants/figures'
+import {applyMarkdown} from '@utils/markdown'
+import {useTerminalSize} from '@hooks/useTerminalSize'
 
 type Props = {
   param: TextBlockParam
@@ -34,15 +34,15 @@ type Props = {
 }
 
 export function AssistantTextMessage({
-  param: { text },
+  param: {text},
   costUSD,
   durationMs,
   debug,
   addMargin,
   shouldShowDot,
-  verbose,
+  verbose
 }: Props): React.ReactNode {
-  const { columns } = useTerminalSize()
+  const {columns} = useTerminalSize()
   if (isEmptyMessageText(text)) {
     return null
   }
@@ -53,10 +53,7 @@ export function AssistantTextMessage({
   }
 
   // Show command output
-  if (
-    text.startsWith('<local-command-stdout') ||
-    text.startsWith('<local-command-stderr')
-  ) {
+  if (text.startsWith('<local-command-stdout') || text.startsWith('<local-command-stderr')) {
     return <AssistantLocalCommandOutputMessage content={text} />
   }
 
@@ -93,9 +90,7 @@ export function AssistantTextMessage({
       return (
         <Text>
           &nbsp;&nbsp;⎿ &nbsp;
-          <Text color={getTheme().error}>
-            Context low &middot; Run /compact to compact & continue
-          </Text>
+          <Text color={getTheme().error}>Context low &middot; Run /compact to compact & continue</Text>
         </Text>
       )
 
@@ -104,8 +99,7 @@ export function AssistantTextMessage({
         <Text>
           &nbsp;&nbsp;⎿ &nbsp;
           <Text color={getTheme().error}>
-            Credit balance too low &middot; Add funds:
-            https://console.anthropic.com/settings/billing
+            Credit balance too low &middot; Add funds: https://console.anthropic.com/settings/billing
           </Text>
         </Text>
       )

@@ -1,18 +1,18 @@
-import { mkdirSync, writeFileSync } from 'fs'
-import { Box, Text } from 'ink'
-import { dirname, join } from 'path'
+import {mkdirSync, writeFileSync} from 'fs'
+import {Box, Text} from 'ink'
+import {dirname, join} from 'path'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { Tool } from '@tool'
-import { MEMORY_DIR } from '@utils/env'
-import { resolveAgentId } from '@utils/agentStorage'
-import { recordFileEdit } from '@services/fileFreshness'
-import { DESCRIPTION, PROMPT } from './prompt'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {Tool} from '@tool'
+import {MEMORY_DIR} from '@utils/env'
+import {resolveAgentId} from '@utils/agentStorage'
+import {recordFileEdit} from '@services/fileFreshness'
+import {DESCRIPTION, PROMPT} from './prompt'
 
 const inputSchema = z.strictObject({
   file_path: z.string().describe('Path to the memory file to write'),
-  content: z.string().describe('Content to write to the file'),
+  content: z.string().describe('Content to write to the file')
 })
 
 export const MemoryWriteTool = {
@@ -60,20 +60,20 @@ export const MemoryWriteTool = {
       </Box>
     )
   },
-  async validateInput({ file_path }, context) {
+  async validateInput({file_path}, context) {
     const agentId = resolveAgentId(context?.agentId)
     const agentMemoryDir = join(MEMORY_DIR, 'agents', agentId)
     const fullPath = join(agentMemoryDir, file_path)
     if (!fullPath.startsWith(agentMemoryDir)) {
-      return { result: false, message: 'Invalid memory file path' }
+      return {result: false, message: 'Invalid memory file path'}
     }
-    return { result: true }
+    return {result: true}
   },
-  async *call({ file_path, content }, context) {
+  async *call({file_path, content}, context) {
     const agentId = resolveAgentId(context?.agentId)
     const agentMemoryDir = join(MEMORY_DIR, 'agents', agentId)
     const fullPath = join(agentMemoryDir, file_path)
-    mkdirSync(dirname(fullPath), { recursive: true })
+    mkdirSync(dirname(fullPath), {recursive: true})
     writeFileSync(fullPath, content, 'utf-8')
 
     // Record Agent edit operation for file freshness tracking
@@ -82,7 +82,7 @@ export const MemoryWriteTool = {
     yield {
       type: 'result',
       data: 'Saved',
-      resultForAssistant: 'Saved',
+      resultForAssistant: 'Saved'
     }
-  },
+  }
 } satisfies Tool<typeof inputSchema, string>

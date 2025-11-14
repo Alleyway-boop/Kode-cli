@@ -1,7 +1,7 @@
 // Theme type definitions for CustomSelect components
 // Used by select.tsx and select-option.tsx
 
-import type { BoxProps, TextProps } from 'ink'
+import type {BoxProps, TextProps} from 'ink'
 
 /**
  * Theme interface for CustomSelect components
@@ -20,7 +20,7 @@ export interface Theme {
     /**
      * Styles for individual option containers
      */
-    option(props: { isFocused: boolean }): BoxProps
+    option(props: {isFocused: boolean}): BoxProps
 
     /**
      * Styles for the focus indicator (arrow/pointer)
@@ -30,7 +30,7 @@ export interface Theme {
     /**
      * Styles for option labels
      */
-    label(props: { isFocused: boolean; isSelected: boolean }): TextProps
+    label(props: {isFocused: boolean; isSelected: boolean}): TextProps
 
     /**
      * Styles for the selected indicator (checkmark)

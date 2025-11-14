@@ -1,6 +1,6 @@
-import { Box } from 'ink'
+import {Box} from 'ink'
 import * as React from 'react'
-import type { AssistantMessage, Message, UserMessage } from '@query'
+import type {AssistantMessage, Message, UserMessage} from '@query'
 import type {
   ContentBlock,
   DocumentBlockParam,
@@ -8,18 +8,18 @@ import type {
   TextBlockParam,
   ThinkingBlockParam,
   ToolResultBlockParam,
-  ToolUseBlockParam,
+  ToolUseBlockParam
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Tool } from '@tool'
-import { logError } from '@utils/log'
-import { UserToolResultMessage } from './messages/UserToolResultMessage/UserToolResultMessage'
-import { AssistantToolUseMessage } from './messages/AssistantToolUseMessage'
-import { AssistantTextMessage } from './messages/AssistantTextMessage'
-import { UserTextMessage } from './messages/UserTextMessage'
-import { NormalizedMessage } from '@utils/messages'
-import { AssistantThinkingMessage } from './messages/AssistantThinkingMessage'
-import { AssistantRedactedThinkingMessage } from './messages/AssistantRedactedThinkingMessage'
-import { useTerminalSize } from '@hooks/useTerminalSize'
+import {Tool} from '@tool'
+import {logError} from '@utils/log'
+import {UserToolResultMessage} from './messages/UserToolResultMessage/UserToolResultMessage'
+import {AssistantToolUseMessage} from './messages/AssistantToolUseMessage'
+import {AssistantTextMessage} from './messages/AssistantTextMessage'
+import {UserTextMessage} from './messages/UserTextMessage'
+import {NormalizedMessage} from '@utils/messages'
+import {AssistantThinkingMessage} from './messages/AssistantThinkingMessage'
+import {AssistantRedactedThinkingMessage} from './messages/AssistantRedactedThinkingMessage'
+import {useTerminalSize} from '@hooks/useTerminalSize'
 
 type Props = {
   message: UserMessage | AssistantMessage
@@ -49,7 +49,7 @@ export function Message({
   unresolvedToolUseIDs,
   shouldAnimate,
   shouldShowDot,
-  width,
+  width
 }: Props): React.ReactNode {
   // Assistant message
   if (message.type === 'assistant') {
@@ -64,7 +64,7 @@ export function Message({
             addMargin={addMargin}
             tools={tools}
             debug={debug}
-            options={{ verbose }}
+            options={{verbose}}
             erroredToolUseIDs={erroredToolUseIDs}
             inProgressToolUseIDs={inProgressToolUseIDs}
             unresolvedToolUseIDs={unresolvedToolUseIDs}
@@ -81,7 +81,7 @@ export function Message({
   // TODO: normalize upstream
   const content =
     typeof message.message.content === 'string'
-      ? [{ type: 'text', text: message.message.content } as TextBlockParam]
+      ? [{type: 'text', text: message.message.content} as TextBlockParam]
       : message.message.content
   return (
     <Box flexDirection="column" width="100%">
@@ -93,7 +93,7 @@ export function Message({
           addMargin={addMargin}
           tools={tools}
           param={_ as TextBlockParam}
-          options={{ verbose }}
+          options={{verbose}}
         />
       ))}
     </Box>
@@ -106,24 +106,19 @@ function UserMessage({
   addMargin,
   tools,
   param,
-  options: { verbose },
+  options: {verbose}
 }: {
   message: UserMessage
   messages: Message[]
   addMargin: boolean
   tools: Tool[]
-  param:
-    | TextBlockParam
-    | DocumentBlockParam
-    | ImageBlockParam
-    | ToolUseBlockParam
-    | ToolResultBlockParam
+  param: TextBlockParam | DocumentBlockParam | ImageBlockParam | ToolUseBlockParam | ToolResultBlockParam
   options: {
     verbose: boolean
   }
   key?: React.Key
 }): React.ReactNode {
-  const { columns } = useTerminalSize()
+  const {columns} = useTerminalSize()
   switch (param.type) {
     case 'text':
       return <UserTextMessage addMargin={addMargin} param={param} />
@@ -148,21 +143,15 @@ function AssistantMessage({
   addMargin,
   tools,
   debug,
-  options: { verbose },
+  options: {verbose},
   erroredToolUseIDs,
   inProgressToolUseIDs,
   unresolvedToolUseIDs,
   shouldAnimate,
   shouldShowDot,
-  width,
+  width
 }: {
-  param:
-    | ContentBlock
-    | TextBlockParam
-    | ImageBlockParam
-    | ThinkingBlockParam
-    | ToolUseBlockParam
-    | ToolResultBlockParam
+  param: ContentBlock | TextBlockParam | ImageBlockParam | ThinkingBlockParam | ToolUseBlockParam | ToolResultBlockParam
   costUSD: number
   durationMs: number
   addMargin: boolean

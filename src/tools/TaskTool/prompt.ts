@@ -1,34 +1,32 @@
-import { type Tool } from '@tool'
-import { getTools, getReadOnlyTools } from '@tools'
-import { TaskTool } from './TaskTool'
-import { BashTool } from '@tools/BashTool/BashTool'
-import { FileWriteTool } from '@tools/FileWriteTool/FileWriteTool'
-import { FileEditTool } from '@tools/FileEditTool/FileEditTool'
-import { NotebookEditTool } from '@tools/NotebookEditTool/NotebookEditTool'
-import { GlobTool } from '@tools/GlobTool/GlobTool'
-import { FileReadTool } from '@tools/FileReadTool/FileReadTool'
-import { getModelManager } from '@utils/model'
-import { getActiveAgents } from '@utils/agentLoader'
+import {type Tool} from '@tool'
+import {getTools, getReadOnlyTools} from '@tools'
+import {TaskTool} from './TaskTool'
+import {BashTool} from '@tools/BashTool/BashTool'
+import {FileWriteTool} from '@tools/FileWriteTool/FileWriteTool'
+import {FileEditTool} from '@tools/FileEditTool/FileEditTool'
+import {NotebookEditTool} from '@tools/NotebookEditTool/NotebookEditTool'
+import {GlobTool} from '@tools/GlobTool/GlobTool'
+import {FileReadTool} from '@tools/FileReadTool/FileReadTool'
+import {getModelManager} from '@utils/model'
+import {getActiveAgents} from '@utils/agentLoader'
 
 export async function getTaskTools(safeMode: boolean): Promise<Tool[]> {
   // No recursive tasks, yet..
-  return (await (!safeMode ? getTools() : getReadOnlyTools())).filter(
-    _ => _.name !== TaskTool.name,
-  )
+  return (await (!safeMode ? getTools() : getReadOnlyTools())).filter(_ => _.name !== TaskTool.name)
 }
 
 export async function getPrompt(safeMode: boolean): Promise<string> {
   // Maintain compatibility with Claude Code `.claude` agent descriptions
   const agents = await getActiveAgents()
-  
+
   // Format exactly as in original: (Tools: tool1, tool2)
-  const agentDescriptions = agents.map(agent => {
-    const toolsStr = Array.isArray(agent.tools) 
-      ? agent.tools.join(', ')
-      : '*'
-    return `- ${agent.agentType}: ${agent.whenToUse} (Tools: ${toolsStr})`
-  }).join('\n')
-  
+  const agentDescriptions = agents
+    .map(agent => {
+      const toolsStr = Array.isArray(agent.tools) ? agent.tools.join(', ') : '*'
+      return `- ${agent.agentType}: ${agent.whenToUse} (Tools: ${toolsStr})`
+    })
+    .join('\n')
+
   // Keep the wording aligned so shared `.claude` agent packs behave identically
   return `Launch a new agent to handle complex, multi-step tasks autonomously. 
 

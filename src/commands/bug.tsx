@@ -1,7 +1,7 @@
-import { Command } from '@commands'
-import { Bug } from '@components/Bug'
+import {Command} from '@commands'
+import {Bug} from '@components/Bug'
 import * as React from 'react'
-import { PRODUCT_NAME } from '@constants/product'
+import {PRODUCT_NAME} from '@constants/product'
 
 const bug = {
   type: 'local-jsx',
@@ -14,7 +14,7 @@ const bug = {
   },
   userFacingName() {
     return 'bug'
-  },
+  }
 } satisfies Command
 
 export default bug

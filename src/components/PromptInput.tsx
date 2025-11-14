@@ -1,34 +1,31 @@
-import { Box, Text, useInput } from 'ink'
-import { sample } from 'lodash-es'
+import {Box, Text, useInput} from 'ink'
+import {sample} from 'lodash-es'
 import * as React from 'react'
-import { type Message } from '@query'
-import { processUserInput } from '@utils/messages'
-import { useArrowKeyHistory } from '@hooks/useArrowKeyHistory'
-import { useUnifiedCompletion } from '@hooks/useUnifiedCompletion'
-import { addToHistory } from '@history'
+import {type Message} from '@query'
+import {processUserInput} from '@utils/messages'
+import {useArrowKeyHistory} from '@hooks/useArrowKeyHistory'
+import {useUnifiedCompletion} from '@hooks/useUnifiedCompletion'
+import {addToHistory} from '@history'
 import TextInput from './TextInput'
-import { memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { countTokens } from '@utils/tokens'
-import { SentryErrorBoundary } from './SentryErrorBoundary'
-import type { Command } from '@commands'
-import type { SetToolJSXFn, Tool } from '@tool'
-import { TokenWarning, WARNING_THRESHOLD } from './TokenWarning'
-import { useTerminalSize } from '@hooks/useTerminalSize'
-import { getTheme } from '@utils/theme'
-import { getModelManager, reloadModelManager } from '@utils/model'
-import { saveGlobalConfig } from '@utils/config'
-import { setTerminalTitle } from '@utils/terminal'
-import terminalSetup, {
-  isShiftEnterKeyBindingInstalled,
-  handleHashCommand,
-} from '@commands/terminalSetup'
-import { usePermissionContext } from '@context/PermissionContext'
+import {memo, useCallback, useEffect, useMemo, useState} from 'react'
+import {countTokens} from '@utils/tokens'
+import {SentryErrorBoundary} from './SentryErrorBoundary'
+import type {Command} from '@commands'
+import type {SetToolJSXFn, Tool} from '@tool'
+import {TokenWarning, WARNING_THRESHOLD} from './TokenWarning'
+import {useTerminalSize} from '@hooks/useTerminalSize'
+import {getTheme} from '@utils/theme'
+import {getModelManager, reloadModelManager} from '@utils/model'
+import {saveGlobalConfig} from '@utils/config'
+import {setTerminalTitle} from '@utils/terminal'
+import terminalSetup, {isShiftEnterKeyBindingInstalled, handleHashCommand} from '@commands/terminalSetup'
+import {usePermissionContext} from '@context/PermissionContext'
 
 // Async function to interpret the '#' command input using AI
 async function interpretHashCommand(input: string): Promise<string> {
   // Use the AI to interpret the input
   try {
-    const { queryQuick } = await import('@services/claude')
+    const {queryQuick} = await import('@services/claude')
 
     // Create a prompt for the model to interpret the hash command
     const systemPrompt = [
@@ -36,13 +33,13 @@ async function interpretHashCommand(input: string): Promise<string> {
       "Format the user's input into a well-structured note that will be useful for later reference.",
       'Add appropriate markdown formatting, headings, bullet points, or other structural elements as needed.',
       'The goal is to transform the raw note into something that will be more useful when reviewed later.',
-      'You should keep the original meaning but make the structure clear.',
+      'You should keep the original meaning but make the structure clear.'
     ]
 
     // Send the request to the AI
     const result = await queryQuick({
       systemPrompt,
-      userPrompt: `Transform this note for KODING.md: ${input}`,
+      userPrompt: `Transform this note for KODING.md: ${input}`
     })
 
     // Extract the content from the response
@@ -68,10 +65,7 @@ type Props = {
   messageLogName: string
   isDisabled: boolean
   isLoading: boolean
-  onQuery: (
-    newMessages: Message[],
-    abortController?: AbortController,
-  ) => Promise<void>
+  onQuery: (newMessages: Message[], abortController?: AbortController) => Promise<void>
   debug: boolean
   verbose: boolean
   messages: Message[]
@@ -86,10 +80,8 @@ type Props = {
   setIsLoading: (isLoading: boolean) => void
   setAbortController: (abortController: AbortController | null) => void
   onShowMessageSelector: () => void
-  setForkConvoWithMessagesOnTheNextRender: (
-    forkConvoWithMessages: Message[],
-  ) => void
-  readFileTimestamps: { [filename: string]: number }
+  setForkConvoWithMessagesOnTheNextRender: (forkConvoWithMessages: Message[]) => void
+  readFileTimestamps: {[filename: string]: number}
   abortController: AbortController | null
   onModelChange?: () => void
 }
@@ -122,20 +114,20 @@ function PromptInput({
   onShowMessageSelector,
   setForkConvoWithMessagesOnTheNextRender,
   readFileTimestamps,
-  onModelChange,
+  onModelChange
 }: Props): React.ReactNode {
   const [exitMessage, setExitMessage] = useState<{
     show: boolean
     key?: string
-  }>({ show: false })
-  const [message, setMessage] = useState<{ show: boolean; text?: string }>({
-    show: false,
+  }>({show: false})
+  const [message, setMessage] = useState<{show: boolean; text?: string}>({
+    show: false
   })
   const [modelSwitchMessage, setModelSwitchMessage] = useState<{
     show: boolean
     text?: string
   }>({
-    show: false,
+    show: false
   })
   const [pastedImage, setPastedImage] = useState<string | null>(null)
   const [placeholder, setPlaceholder] = useState('')
@@ -143,19 +135,16 @@ function PromptInput({
   const [pastedText, setPastedText] = useState<string | null>(null)
 
   // Permission context for mode management
-  const { cycleMode, currentMode } = usePermissionContext()
+  const {cycleMode, currentMode} = usePermissionContext()
 
   // useEffect(() => {
   //   getExampleCommands().then(commands => {
   //     setPlaceholder(`Try "${sample(commands)}"`)
   //   })
   // }, [])
-  const { columns } = useTerminalSize()
+  const {columns} = useTerminalSize()
 
-  const commandWidth = useMemo(
-    () => Math.max(...commands.map(cmd => cmd.userFacingName().length)) + 5,
-    [commands],
-  )
+  const commandWidth = useMemo(() => Math.max(...commands.map(cmd => cmd.userFacingName().length)) + 5, [commands])
 
   // Unified completion system - one hook to rule them all (now with terminal behavior)
   const {
@@ -166,14 +155,14 @@ function PromptInput({
     visibleSuggestions,
     totalCount,
     windowStart,
-    isCompactMode,
+    isCompactMode
   } = useUnifiedCompletion({
     input,
     cursorOffset,
     onInputChange,
     setCursorOffset,
     commands,
-    onSubmit,
+    onSubmit
   })
 
   // Get theme early for memoized rendering
@@ -192,16 +181,13 @@ function PromptInput({
       // Simple color logic without complex lookups
       const displayColor = isSelected
         ? theme.suggestion
-        : (isAgent && suggestion.metadata?.color)
+        : isAgent && suggestion.metadata?.color
           ? suggestion.metadata.color
           : undefined
 
       return (
         <Box key={`${suggestion.type}-${suggestion.value}-${actualIndex}`} flexDirection="row">
-          <Text
-            color={displayColor}
-            dimColor={!isSelected && !displayColor}
-          >
+          <Text color={displayColor} dimColor={!isSelected && !displayColor}>
             {isSelected ? '◆ ' : '  '}
             {suggestion.displayValue}
           </Text>
@@ -222,7 +208,7 @@ function PromptInput({
       }
       onInputChange(value)
     },
-    [onModeChange, onInputChange],
+    [onModeChange, onInputChange]
   )
 
   // Handle Shift+M model switching with enhanced debugging
@@ -232,7 +218,7 @@ function PromptInput({
 
     // Get debug info for better error reporting
     const debugInfo = modelManager.getModelSwitchingDebugInfo()
-    
+
     const switchResult = modelManager.switchToNextModel(currentTokens)
 
     if (switchResult.success && switchResult.modelName) {
@@ -240,20 +226,20 @@ function PromptInput({
       onSubmitCountChange(prev => prev + 1)
       setModelSwitchMessage({
         show: true,
-        text: switchResult.message || `✅ Switched to ${switchResult.modelName}`,
+        text: switchResult.message || `✅ Switched to ${switchResult.modelName}`
       })
-      setTimeout(() => setModelSwitchMessage({ show: false }), 3000)
+      setTimeout(() => setModelSwitchMessage({show: false}), 3000)
     } else if (switchResult.blocked && switchResult.message) {
       // Context overflow - show detailed message
       setModelSwitchMessage({
         show: true,
-        text: switchResult.message,
+        text: switchResult.message
       })
-      setTimeout(() => setModelSwitchMessage({ show: false }), 5000)
+      setTimeout(() => setModelSwitchMessage({show: false}), 5000)
     } else {
-      // Enhanced error reporting with debug info  
+      // Enhanced error reporting with debug info
       let errorMessage = switchResult.message
-      
+
       if (!errorMessage) {
         if (debugInfo.totalModels === 0) {
           errorMessage = '❌ No models configured. Use /model to add models.'
@@ -261,27 +247,29 @@ function PromptInput({
           errorMessage = `❌ No active models (${debugInfo.totalModels} total, all inactive). Use /model to activate models.`
         } else if (debugInfo.activeModels === 1) {
           // Show ALL models including inactive ones for debugging
-          const allModelNames = debugInfo.availableModels.map(m => `${m.name}${m.isActive ? '' : ' (inactive)'}`).join(', ')
+          const allModelNames = debugInfo.availableModels
+            .map(m => `${m.name}${m.isActive ? '' : ' (inactive)'}`)
+            .join(', ')
           errorMessage = `⚠️ Only 1 active model out of ${debugInfo.totalModels} total models: ${allModelNames}. ALL configured models will be activated for switching.`
         } else {
           errorMessage = `❌ Model switching failed (${debugInfo.activeModels} active, ${debugInfo.totalModels} total models available)`
         }
       }
-      
+
       setModelSwitchMessage({
         show: true,
-        text: errorMessage,
+        text: errorMessage
       })
-      setTimeout(() => setModelSwitchMessage({ show: false }), 6000)
+      setTimeout(() => setModelSwitchMessage({show: false}), 6000)
     }
   }, [onSubmitCountChange, messages])
 
-  const { resetHistory, onHistoryUp, onHistoryDown } = useArrowKeyHistory(
+  const {resetHistory, onHistoryUp, onHistoryDown} = useArrowKeyHistory(
     (value: string, mode: 'bash' | 'prompt' | 'koding') => {
       onChange(value)
       onModeChange(mode)
     },
-    input,
+    input
   )
 
   // Only use history navigation when there are no suggestions
@@ -346,22 +334,22 @@ function PromptInput({
               maxThinkingTokens: 0,
               // Add context flag for koding mode
               isKodingRequest: true,
-              kodingContext,
+              kodingContext
             },
             messageId: undefined,
             abortController: abortController || new AbortController(), // Temporary controller, actual one created in onQuery
             readFileTimestamps,
-            setForkConvoWithMessagesOnTheNextRender,
+            setForkConvoWithMessagesOnTheNextRender
           },
-          pastedImage ?? null,
+          pastedImage ?? null
         )
 
         // Send query and capture response
         if (messages.length) {
           await onQuery(messages)
 
-        // After query completes, the last message should be the assistant's response
-        // We'll set up a one-time listener to capture and save that response
+          // After query completes, the last message should be the assistant's response
+          // We'll set up a one-time listener to capture and save that response
           // This will be handled by the REPL component or message handler
         }
 
@@ -377,9 +365,7 @@ function PromptInput({
       try {
         // Strip the # if we're in koding mode and the user didn't type it (since it's implied)
         const contentToInterpret =
-          mode === 'koding' && !input.startsWith('#')
-            ? input.trim()
-            : input.substring(1).trim()
+          mode === 'koding' && !input.startsWith('#') ? input.trim() : input.substring(1).trim()
 
         const interpreted = await interpretHashCommand(contentToInterpret)
         handleHashCommand(interpreted)
@@ -400,7 +386,7 @@ function PromptInput({
     if (isLoading) {
       return
     }
-    
+
     // Handle Enter key when completions are active
     // If there are suggestions showing, Enter should complete the selection, not send the message
     if (suggestions.length > 0 && completionActive) {
@@ -430,7 +416,7 @@ function PromptInput({
     onSubmitCountChange(_ => _ + 1)
 
     setIsLoading(true)
-    
+
     const newAbortController = new AbortController()
     setAbortController(newAbortController)
 
@@ -445,14 +431,14 @@ function PromptInput({
           messageLogName,
           tools,
           verbose,
-          maxThinkingTokens: 0,
+          maxThinkingTokens: 0
         },
         messageId: undefined,
         abortController: newAbortController,
         readFileTimestamps,
-        setForkConvoWithMessagesOnTheNextRender,
+        setForkConvoWithMessagesOnTheNextRender
       },
-      pastedImage ?? null,
+      pastedImage ?? null
     )
 
     if (messages.length) {
@@ -486,8 +472,7 @@ function PromptInput({
     const pastedPrompt = getPastedTextPrompt(text)
 
     // Update the input with a visual indicator that text has been pasted
-    const newInput =
-      input.slice(0, cursorOffset) + pastedPrompt + input.slice(cursorOffset)
+    const newInput = input.slice(0, cursorOffset) + pastedPrompt + input.slice(cursorOffset)
     onInputChange(newInput)
 
     // Update cursor position to be after the inserted indicator
@@ -507,7 +492,7 @@ function PromptInput({
       }
       return
     }
-    
+
     // For koding mode, only exit when deleting the last character (which would be the '#' character)
     if (mode === 'koding' && (key.backspace || key.delete)) {
       // Check the current input state, not the inputChar parameter
@@ -517,7 +502,7 @@ function PromptInput({
       }
       return
     }
-    
+
     // For other modes, keep the original behavior
     if (inputChar === '' && (key.escape || key.backspace || key.delete)) {
       onModeChange('prompt')
@@ -540,15 +525,18 @@ function PromptInput({
   })
 
   // Handle special key combinations before character input
-  const handleSpecialKey = useCallback((inputChar: string, key: any): boolean => {
-    // Shift+M for model switching - intercept before character input
-    if (key.shift && (inputChar === 'M' || inputChar === 'm')) {
-      handleQuickModelSwitch()
-      return true // Prevent character from being input
-    }
-    
-    return false // Not handled, allow normal processing
-  }, [handleQuickModelSwitch])
+  const handleSpecialKey = useCallback(
+    (inputChar: string, key: any): boolean => {
+      // Shift+M for model switching - intercept before character input
+      if (key.shift && (inputChar === 'M' || inputChar === 'm')) {
+        handleQuickModelSwitch()
+        return true // Prevent character from being input
+      }
+
+      return false // Not handled, allow normal processing
+    },
+    [handleQuickModelSwitch]
+  )
 
   const textInputColumns = useTerminalSize().columns - 6
   const tokenUsage = useMemo(() => countTokens(messages), [messages])
@@ -570,7 +558,7 @@ function PromptInput({
       id: (currentModel as any).id, // 添加模型ID用于调试
       provider: currentModel.provider, // 添加提供商信息
       contextLength: currentModel.contextLength,
-      currentTokens: tokenUsage,
+      currentTokens: tokenUsage
     }
   }, [tokenUsage, modelSwitchMessage.show, submitCount, currentModelId]) // Track model ID to detect config changes
 
@@ -580,8 +568,7 @@ function PromptInput({
       {modelInfo && (
         <Box justifyContent="flex-end" marginBottom={1}>
           <Text dimColor>
-            [{modelInfo.provider}] {modelInfo.name}:{' '}
-            {Math.round(modelInfo.currentTokens / 1000)}k /{' '}
+            [{modelInfo.provider}] {modelInfo.name}: {Math.round(modelInfo.currentTokens / 1000)}k /{' '}
             {Math.round(modelInfo.contextLength / 1000)}k
           </Text>
         </Box>
@@ -590,33 +577,19 @@ function PromptInput({
       <Box
         alignItems="flex-start"
         justifyContent="flex-start"
-        borderColor={
-          mode === 'bash'
-            ? theme.bashBorder
-            : mode === 'koding'
-              ? theme.noting
-              : theme.secondaryBorder
-        }
+        borderColor={mode === 'bash' ? theme.bashBorder : mode === 'koding' ? theme.noting : theme.secondaryBorder}
         borderDimColor
         borderStyle="round"
         marginTop={1}
         width="100%"
       >
-        <Box
-          alignItems="flex-start"
-          alignSelf="flex-start"
-          flexWrap="nowrap"
-          justifyContent="flex-start"
-          width={3}
-        >
+        <Box alignItems="flex-start" alignSelf="flex-start" flexWrap="nowrap" justifyContent="flex-start" width={3}>
           {mode === 'bash' ? (
             <Text color={theme.bashBorder}>&nbsp;!&nbsp;</Text>
           ) : mode === 'koding' ? (
             <Text color={theme.noting}>&nbsp;#&nbsp;</Text>
           ) : (
-            <Text color={isLoading ? theme.secondaryText : undefined}>
-              &nbsp;&gt;&nbsp;
-            </Text>
+            <Text color={isLoading ? theme.secondaryText : undefined}>&nbsp;&gt;&nbsp;</Text>
           )}
         </Box>
         <Box paddingRight={1}>
@@ -630,8 +603,8 @@ function PromptInput({
             onHistoryReset={() => resetHistory()}
             placeholder={submitCount > 0 ? undefined : placeholder}
             onExit={() => process.exit(0)}
-            onExitMessage={(show, key) => setExitMessage({ show, key })}
-            onMessage={(show, text) => setMessage({ show, text })}
+            onExitMessage={(show, key) => setExitMessage({show, key})}
+            onMessage={(show, text) => setMessage({show, text})}
             onImagePaste={onImagePaste}
             columns={textInputColumns}
             isDimmed={isDisabled || isLoading}
@@ -644,12 +617,7 @@ function PromptInput({
         </Box>
       </Box>
       {!completionActive && suggestions.length === 0 && (
-        <Box
-          flexDirection="row"
-          justifyContent="space-between"
-          paddingX={2}
-          paddingY={0}
-        >
+        <Box flexDirection="row" justifyContent="space-between" paddingX={2} paddingY={0}>
           <Box justifyContent="flex-start" gap={1}>
             {exitMessage.show ? (
               <Text dimColor>Press {exitMessage.key} again to exit</Text>
@@ -659,48 +627,35 @@ function PromptInput({
               <Text color={theme.success}>{modelSwitchMessage.text}</Text>
             ) : (
               <>
-                <Text
-                  color={mode === 'bash' ? theme.bashBorder : undefined}
-                  dimColor={mode !== 'bash'}
-                >
+                <Text color={mode === 'bash' ? theme.bashBorder : undefined} dimColor={mode !== 'bash'}>
                   ! for bash mode
                 </Text>
-                <Text
-                  color={mode === 'koding' ? theme.noting : undefined}
-                  dimColor={mode !== 'koding'}
-                >
+                <Text color={mode === 'koding' ? theme.noting : undefined} dimColor={mode !== 'koding'}>
                   · # for AGENTS.md
                 </Text>
-                <Text dimColor>
-                  · / for commands · shift+m to switch model · esc to undo
-                </Text>
+                <Text dimColor>· / for commands · shift+m to switch model · esc to undo</Text>
               </>
             )}
           </Box>
-          <SentryErrorBoundary children={
-            <Box justifyContent="flex-end" gap={1}>
-              {!debug &&
-                tokenUsage < WARNING_THRESHOLD && (
+          <SentryErrorBoundary
+            children={
+              <Box justifyContent="flex-end" gap={1}>
+                {!debug && tokenUsage < WARNING_THRESHOLD && (
                   <Text dimColor>
-                    {terminalSetup.isEnabled &&
-                    isShiftEnterKeyBindingInstalled()
+                    {terminalSetup.isEnabled && isShiftEnterKeyBindingInstalled()
                       ? 'shift + ⏎ for newline'
                       : '\\⏎ for newline'}
                   </Text>
                 )}
-              <TokenWarning tokenUsage={tokenUsage} />
-            </Box>
-          } />
+                <TokenWarning tokenUsage={tokenUsage} />
+              </Box>
+            }
+          />
         </Box>
       )}
       {/* Unified completion suggestions - optimized rendering */}
       {suggestions.length > 0 && (
-        <Box
-          flexDirection="row"
-          justifyContent="space-between"
-          paddingX={2}
-          paddingY={0}
-        >
+        <Box flexDirection="row" justifyContent="space-between" paddingX={2} paddingY={0}>
           <Box flexDirection="column">
             {renderedSuggestions}
 
@@ -710,8 +665,7 @@ function PromptInput({
                 <Text color={theme.secondaryText} dimColor>
                   {isCompactMode
                     ? `${windowStart + 1}-${Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)}/${totalCount}`
-                    : `${visibleSuggestions.hasLess && '▲ '}${windowStart + 1}-${Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)} of ${totalCount}${visibleSuggestions.hasMore && ' ▼'}`
-                  }
+                    : `${visibleSuggestions.hasLess && '▲ '}${windowStart + 1}-${Math.min(windowStart + visibleSuggestions.suggestions.length, totalCount)} of ${totalCount}${visibleSuggestions.hasMore && ' ▼'}`}
                 </Text>
               </Box>
             )}
@@ -719,40 +673,44 @@ function PromptInput({
             {/* 响应式操作提示框 */}
             {!isCompactMode ? (
               <Box marginTop={1} paddingX={3} borderStyle="round" borderColor="gray">
-                <Text dimColor={!emptyDirMessage} color={emptyDirMessage ? "yellow" : undefined}>
-                  {emptyDirMessage || (() => {
-                    const selected = suggestions[selectedIndex]
-                    if (!selected) {
-                      return totalCount > visibleSuggestions.suggestions.length
-                        ? '↑↓ scroll through list • → accept • Tab cycle • Esc close'
-                        : '↑↓ navigate • → accept • Tab cycle • Esc close'
-                    }
-                    if (selected?.value.endsWith('/')) {
-                      return '→ enter directory • ↑↓ navigate • Tab cycle • Esc close'
-                    } else if (selected?.type === 'agent') {
-                      return '→ select agent • ↑↓ navigate • Tab cycle • Esc close'
-                    } else {
-                      return '→ insert reference • ↑↓ navigate • Tab cycle • Esc close'
-                    }
-                  })()}
+                <Text dimColor={!emptyDirMessage} color={emptyDirMessage ? 'yellow' : undefined}>
+                  {emptyDirMessage ||
+                    (() => {
+                      const selected = suggestions[selectedIndex]
+                      if (!selected) {
+                        return totalCount > visibleSuggestions.suggestions.length
+                          ? '↑↓ scroll through list • → accept • Tab cycle • Esc close'
+                          : '↑↓ navigate • → accept • Tab cycle • Esc close'
+                      }
+                      if (selected?.value.endsWith('/')) {
+                        return '→ enter directory • ↑↓ navigate • Tab cycle • Esc close'
+                      } else if (selected?.type === 'agent') {
+                        return '→ select agent • ↑↓ navigate • Tab cycle • Esc close'
+                      } else {
+                        return '→ insert reference • ↑↓ navigate • Tab cycle • Esc close'
+                      }
+                    })()}
                 </Text>
               </Box>
             ) : (
               // 紧凑模式：简化提示
               <Box marginTop={0} justifyContent="center">
                 <Text color={theme.secondaryText} dimColor>
-                  {emptyDirMessage || (totalCount > visibleSuggestions.suggestions.length
-                    ? '↑↓ scroll • → accept • Esc'
-                    : '↑↓ navigate • → accept • Esc')}
+                  {emptyDirMessage ||
+                    (totalCount > visibleSuggestions.suggestions.length
+                      ? '↑↓ scroll • → accept • Esc'
+                      : '↑↓ navigate • → accept • Esc')}
                 </Text>
               </Box>
             )}
           </Box>
-          <SentryErrorBoundary children={
-            <Box justifyContent="flex-end" gap={1}>
-              <TokenWarning tokenUsage={countTokens(messages)} />
-            </Box>
-          } />
+          <SentryErrorBoundary
+            children={
+              <Box justifyContent="flex-end" gap={1}>
+                <TokenWarning tokenUsage={countTokens(messages)} />
+              </Box>
+            }
+          />
         </Box>
       )}
     </Box>

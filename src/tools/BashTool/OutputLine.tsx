@@ -1,7 +1,7 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import * as React from 'react'
-import { getTheme } from '@utils/theme'
-import { MAX_RENDERED_LINES } from './prompt'
+import {getTheme} from '@utils/theme'
+import {MAX_RENDERED_LINES} from './prompt'
 import chalk from 'chalk'
 
 function renderTruncatedContent(content: string, totalLines: number): string {
@@ -12,19 +12,14 @@ function renderTruncatedContent(content: string, totalLines: number): string {
 
   // Show last 5 lines of output by default (matching reference implementation)
   const lastLines = allLines.slice(-MAX_RENDERED_LINES)
-  return [
-    chalk.grey(
-      `Showing last ${MAX_RENDERED_LINES} lines of ${totalLines} total lines`,
-    ),
-    ...lastLines,
-  ].join('\n')
+  return [chalk.grey(`Showing last ${MAX_RENDERED_LINES} lines of ${totalLines} total lines`), ...lastLines].join('\n')
 }
 
 export function OutputLine({
   content,
   lines,
   verbose,
-  isError,
+  isError
 }: {
   content: string
   lines: number
@@ -38,9 +33,7 @@ export function OutputLine({
         <Text>&nbsp;&nbsp;⎿ &nbsp;</Text>
         <Box flexDirection="column">
           <Text color={isError ? getTheme().error : undefined}>
-            {verbose
-              ? content.trim()
-              : renderTruncatedContent(content.trim(), lines)}
+            {verbose ? content.trim() : renderTruncatedContent(content.trim(), lines)}
           </Text>
         </Box>
       </Box>

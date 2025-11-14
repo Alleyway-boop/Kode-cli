@@ -1,6 +1,6 @@
-import { MACRO } from '@constants/macros'
-import type { Command } from '@commands'
-import { RELEASE_NOTES } from '@constants/releaseNotes'
+import {MACRO} from '@constants/macros'
+import type {Command} from '@commands'
+import {RELEASE_NOTES} from '@constants/releaseNotes'
 
 const releaseNotes: Command = {
   description: 'Show release notes for the current or specified version',
@@ -28,7 +28,7 @@ const releaseNotes: Command = {
     const formattedNotes = notes.map(note => `• ${note}`).join('\n')
 
     return `${header}\n\n${formattedNotes}`
-  },
+  }
 }
 
 export default releaseNotes

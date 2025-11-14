@@ -1,23 +1,21 @@
-import React, { useEffect, useState } from 'react'
-import { CACHE_PATHS } from '@utils/log'
-import { LogSelector } from '@components/LogSelector'
-import type { LogOption, LogListProps } from '@kode-types/logs'
-import { loadLogList } from '@utils/log'
-import { logError } from '@utils/log'
+import React, {useEffect, useState} from 'react'
+import {CACHE_PATHS} from '@utils/log'
+import {LogSelector} from '@components/LogSelector'
+import type {LogOption, LogListProps} from '@kode-types/logs'
+import {loadLogList} from '@utils/log'
+import {logError} from '@utils/log'
 
 type Props = LogListProps & {
   type: 'messages' | 'errors'
   logNumber?: number
 }
 
-export function LogList({ context, type, logNumber }: Props): React.ReactNode {
+export function LogList({context, type, logNumber}: Props): React.ReactNode {
   const [logs, setLogs] = useState<LogOption[]>([])
   const [didSelectLog, setDidSelectLog] = useState(false)
 
   useEffect(() => {
-    loadLogList(
-      type === 'messages' ? CACHE_PATHS.messages() : CACHE_PATHS.errors(),
-    )
+    loadLogList(type === 'messages' ? CACHE_PATHS.messages() : CACHE_PATHS.errors())
       .then(logs => {
         // If logNumber is provided, immediately display that log
         if (logNumber !== undefined) {

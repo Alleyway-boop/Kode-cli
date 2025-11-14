@@ -1,4 +1,4 @@
-import { getGlobalConfig } from './config'
+import {getGlobalConfig} from './config'
 
 export interface Theme {
   bashBorder: string
@@ -40,8 +40,8 @@ const lightTheme: Theme = {
     added: '#69db7c',
     removed: '#ffa8b4',
     addedDimmed: '#c7e1cb',
-    removedDimmed: '#fdd2d8',
-  },
+    removedDimmed: '#fdd2d8'
+  }
 }
 
 const lightDaltonizedTheme: Theme = {
@@ -62,8 +62,8 @@ const lightDaltonizedTheme: Theme = {
     added: '#99ccff',
     removed: '#ffcccc',
     addedDimmed: '#d1e7fd',
-    removedDimmed: '#ffe9e9',
-  },
+    removedDimmed: '#ffe9e9'
+  }
 }
 
 const darkTheme: Theme = {
@@ -84,8 +84,8 @@ const darkTheme: Theme = {
     added: '#225c2b',
     removed: '#7a2936',
     addedDimmed: '#47584a',
-    removedDimmed: '#69484d',
-  },
+    removedDimmed: '#69484d'
+  }
 }
 
 const darkDaltonizedTheme: Theme = {
@@ -106,8 +106,8 @@ const darkDaltonizedTheme: Theme = {
     added: '#004466',
     removed: '#660000',
     addedDimmed: '#3e515b',
-    removedDimmed: '#3e2c2c',
-  },
+    removedDimmed: '#3e2c2c'
+  }
 }
 
 export type ThemeNames = 'dark' | 'light' | 'light-daltonized' | 'dark-daltonized'

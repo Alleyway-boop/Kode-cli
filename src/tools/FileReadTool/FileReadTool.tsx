@@ -1,43 +1,28 @@
-import { ImageBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { statSync } from 'node:fs'
-import { Box, Text } from 'ink'
+import {ImageBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {statSync} from 'node:fs'
+import {Box, Text} from 'ink'
 import * as path from 'node:path'
-import { extname, relative } from 'node:path'
+import {extname, relative} from 'node:path'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { HighlightedCode } from '@components/HighlightedCode'
-import type { Tool } from '@tool'
-import { getCwd } from '@utils/state'
-import {
-  addLineNumbers,
-  findSimilarFile,
-  normalizeFilePath,
-  readTextContent,
-} from '@utils/file'
-import { logError } from '@utils/log'
-import { getTheme } from '@utils/theme'
-import { emitReminderEvent } from '@services/systemReminder'
-import {
-  recordFileRead,
-  generateFileModificationReminder,
-} from '@services/fileFreshness'
-import { DESCRIPTION, PROMPT } from './prompt'
-import { hasReadPermission } from '@utils/permissions/filesystem'
-import { secureFileService } from '@utils/secureFile'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {HighlightedCode} from '@components/HighlightedCode'
+import type {Tool} from '@tool'
+import {getCwd} from '@utils/state'
+import {addLineNumbers, findSimilarFile, normalizeFilePath, readTextContent} from '@utils/file'
+import {logError} from '@utils/log'
+import {getTheme} from '@utils/theme'
+import {emitReminderEvent} from '@services/systemReminder'
+import {recordFileRead, generateFileModificationReminder} from '@services/fileFreshness'
+import {DESCRIPTION, PROMPT} from './prompt'
+import {hasReadPermission} from '@utils/permissions/filesystem'
+import {secureFileService} from '@utils/secureFile'
 
 const MAX_LINES_TO_RENDER = 5
 const MAX_OUTPUT_SIZE = 0.25 * 1024 * 1024 // 0.25MB in bytes
 
 // Common image extensions
-const IMAGE_EXTENSIONS = new Set([
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.bmp',
-  '.webp',
-])
+const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp'])
 
 // Maximum dimensions for images
 const MAX_WIDTH = 2000
@@ -49,15 +34,11 @@ const inputSchema = z.strictObject({
   offset: z
     .number()
     .optional()
-    .describe(
-      'The line number to start reading from. Only provide if the file is too large to read at once',
-    ),
+    .describe('The line number to start reading from. Only provide if the file is too large to read at once'),
   limit: z
     .number()
     .optional()
-    .describe(
-      'The number of lines to read. Only provide if the file is too large to read at once.',
-    ),
+    .describe('The number of lines to read. Only provide if the file is too large to read at once.')
 })
 
 export const FileReadTool = {
@@ -81,18 +62,13 @@ export const FileReadTool = {
   async isEnabled() {
     return true
   },
-  needsPermissions({ file_path }) {
+  needsPermissions({file_path}) {
     return !hasReadPermission(file_path || getCwd())
   },
-  renderToolUseMessage(input, { verbose }) {
-    const { file_path, ...rest } = input
-    const entries = [
-      ['file_path', verbose ? file_path : relative(getCwd(), file_path)],
-      ...Object.entries(rest),
-    ]
-    return entries
-      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-      .join(', ')
+  renderToolUseMessage(input, {verbose}) {
+    const {file_path, ...rest} = input
+    const entries = [['file_path', verbose ? file_path : relative(getCwd(), file_path)], ...Object.entries(rest)]
+    return entries.map(([key, value]) => `${key}: ${JSON.stringify(value)}`).join(', ')
   },
   renderToolResultMessage(output) {
     const verbose = false // Set default value for verbose
@@ -108,7 +84,7 @@ export const FileReadTool = {
           </Box>
         )
       case 'text': {
-        const { filePath, content, numLines } = output.file
+        const {filePath, content, numLines} = output.file
         const contentWithFallback = content || '(No content)'
         return (
           <Box justifyContent="space-between" overflowX="hidden" width="100%">
@@ -128,9 +104,7 @@ export const FileReadTool = {
                   language={extname(filePath).slice(1)}
                 />
                 {!verbose && numLines > MAX_LINES_TO_RENDER && (
-                  <Text color={getTheme().secondaryText}>
-                    ... (+{numLines - MAX_LINES_TO_RENDER} lines)
-                  </Text>
+                  <Text color={getTheme().secondaryText}>... (+{numLines - MAX_LINES_TO_RENDER} lines)</Text>
                 )}
               </Box>
             </Box>
@@ -142,7 +116,7 @@ export const FileReadTool = {
   renderToolUseRejectedMessage() {
     return <FallbackToolUseRejectedMessage />
   },
-  async validateInput({ file_path, offset, limit }) {
+  async validateInput({file_path, offset, limit}) {
     const fullFilePath = normalizeFilePath(file_path)
 
     // Use secure file service to check if file exists and get file info
@@ -159,7 +133,7 @@ export const FileReadTool = {
 
       return {
         result: false,
-        message,
+        message
       }
     }
 
@@ -174,17 +148,14 @@ export const FileReadTool = {
         return {
           result: false,
           message: formatFileSizeError(fileSize),
-          meta: { fileSize },
+          meta: {fileSize}
         }
       }
     }
 
-    return { result: true }
+    return {result: true}
   },
-  async *call(
-    { file_path, offset = 1, limit = undefined },
-    { readFileTimestamps },
-  ) {
+  async *call({file_path, offset = 1, limit = undefined}, {readFileTimestamps}) {
     const ext = path.extname(file_path).toLowerCase()
     const fullFilePath = normalizeFilePath(file_path)
 
@@ -195,7 +166,7 @@ export const FileReadTool = {
     emitReminderEvent('file:read', {
       filePath: fullFilePath,
       extension: ext,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     })
 
     // Update read timestamp, to invalidate stale writes
@@ -207,7 +178,7 @@ export const FileReadTool = {
       emitReminderEvent('file:modified', {
         filePath: fullFilePath,
         reminder: modificationReminder,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       })
     }
 
@@ -217,18 +188,14 @@ export const FileReadTool = {
       yield {
         type: 'result',
         data,
-        resultForAssistant: this.renderResultForAssistant(data),
+        resultForAssistant: this.renderResultForAssistant(data)
       }
       return
     }
 
     // Handle offset properly - if offset is 0, don't subtract 1
     const lineOffset = offset === 0 ? 0 : offset - 1
-    const { content, lineCount, totalLines } = readTextContent(
-      fullFilePath,
-      lineOffset,
-      limit,
-    )
+    const {content, lineCount, totalLines} = readTextContent(fullFilePath, lineOffset, limit)
 
     // Add size validation after reading for non-image files
     if (!IMAGE_EXTENSIONS.has(ext) && content.length > MAX_OUTPUT_SIZE) {
@@ -242,14 +209,14 @@ export const FileReadTool = {
         content: content,
         numLines: lineCount,
         startLine: offset,
-        totalLines,
-      },
+        totalLines
+      }
     }
 
     yield {
       type: 'result',
       data,
-      resultForAssistant: this.renderResultForAssistant(data),
+      resultForAssistant: this.renderResultForAssistant(data)
     }
   },
   renderResultForAssistant(data) {
@@ -261,14 +228,14 @@ export const FileReadTool = {
             source: {
               type: 'base64',
               data: data.file.base64,
-              media_type: data.file.type,
-            },
-          },
+              media_type: data.file.type
+            }
+          }
         ]
       case 'text':
         return addLineNumbers(data.file)
     }
-  },
+  }
 } satisfies Tool<
   typeof inputSchema,
   | {
@@ -283,7 +250,7 @@ export const FileReadTool = {
     }
   | {
       type: 'image'
-      file: { base64: string; type: ImageBlockParam.Source['media_type'] }
+      file: {base64: string; type: ImageBlockParam.Source['media_type']}
     }
 >
 
@@ -292,49 +259,47 @@ const formatFileSizeError = (sizeInBytes: number) =>
 
 function createImageResponse(
   buffer: Buffer,
-  ext: string,
+  ext: string
 ): {
   type: 'image'
-  file: { base64: string; type: ImageBlockParam.Source['media_type'] }
+  file: {base64: string; type: ImageBlockParam.Source['media_type']}
 } {
   return {
     type: 'image',
     file: {
       base64: buffer.toString('base64'),
-      type: `image/${ext.slice(1)}` as ImageBlockParam.Source['media_type'],
-    },
+      type: `image/${ext.slice(1)}` as ImageBlockParam.Source['media_type']
+    }
   }
 }
 
 async function readImage(
   filePath: string,
-  ext: string,
+  ext: string
 ): Promise<{
   type: 'image'
-  file: { base64: string; type: ImageBlockParam.Source['media_type'] }
+  file: {base64: string; type: ImageBlockParam.Source['media_type']}
 }> {
   try {
     const stats = statSync(filePath)
-    const sharp = (
-      (await import('sharp')) as unknown as { default: typeof import('sharp') }
-    ).default
-    
+    const sharp = ((await import('sharp')) as unknown as {default: typeof import('sharp')}).default
+
     // Use secure file service to read the file
     const fileReadResult = secureFileService.safeReadFile(filePath, {
       encoding: 'buffer' as BufferEncoding,
       maxFileSize: MAX_IMAGE_SIZE
     })
-    
+
     if (!fileReadResult.success) {
       throw new Error(`Failed to read image file: ${fileReadResult.error}`)
     }
-    
+
     const image = sharp(fileReadResult.content as Buffer)
     const metadata = await image.metadata()
 
     if (!metadata.width || !metadata.height) {
       if (stats.size > MAX_IMAGE_SIZE) {
-        const compressedBuffer = await image.jpeg({ quality: 80 }).toBuffer()
+        const compressedBuffer = await image.jpeg({quality: 80}).toBuffer()
         return createImageResponse(compressedBuffer, 'jpeg')
       }
     }
@@ -344,21 +309,17 @@ async function readImage(
     let height = metadata.height || 0
 
     // Check if the original file just works
-    if (
-      stats.size <= MAX_IMAGE_SIZE &&
-      width <= MAX_WIDTH &&
-      height <= MAX_HEIGHT
-    ) {
+    if (stats.size <= MAX_IMAGE_SIZE && width <= MAX_WIDTH && height <= MAX_HEIGHT) {
       // Use secure file service to read the file
       const fileReadResult = secureFileService.safeReadFile(filePath, {
         encoding: 'buffer' as BufferEncoding,
         maxFileSize: MAX_IMAGE_SIZE
       })
-      
+
       if (!fileReadResult.success) {
         throw new Error(`Failed to read image file: ${fileReadResult.error}`)
       }
-      
+
       return createImageResponse(fileReadResult.content as Buffer, ext)
     }
 
@@ -376,13 +337,13 @@ async function readImage(
     const resizedImageBuffer = await image
       .resize(width, height, {
         fit: 'inside',
-        withoutEnlargement: true,
+        withoutEnlargement: true
       })
       .toBuffer()
 
     // If still too large after resize, compress quality
     if (resizedImageBuffer.length > MAX_IMAGE_SIZE) {
-      const compressedBuffer = await image.jpeg({ quality: 80 }).toBuffer()
+      const compressedBuffer = await image.jpeg({quality: 80}).toBuffer()
       return createImageResponse(compressedBuffer, 'jpeg')
     }
 
@@ -394,11 +355,11 @@ async function readImage(
       encoding: 'buffer' as BufferEncoding,
       maxFileSize: MAX_IMAGE_SIZE
     })
-    
+
     if (!fileReadResult.success) {
       throw new Error(`Failed to read image file: ${fileReadResult.error}`)
     }
-    
+
     return createImageResponse(fileReadResult.content as Buffer, ext)
   }
 }

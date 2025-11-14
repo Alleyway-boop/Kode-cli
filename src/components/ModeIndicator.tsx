@@ -1,17 +1,14 @@
 import React from 'react'
-import { Box, Text } from 'ink'
-import { usePermissionContext } from '@context/PermissionContext'
-import { getTheme } from '@utils/theme'
+import {Box, Text} from 'ink'
+import {usePermissionContext} from '@context/PermissionContext'
+import {getTheme} from '@utils/theme'
 
 interface ModeIndicatorProps {
   showTransitionCount?: boolean
 }
 
-export function ModeIndicator({
-  showTransitionCount = false,
-}: ModeIndicatorProps) {
-  const { currentMode, permissionContext, getModeConfig } =
-    usePermissionContext()
+export function ModeIndicator({showTransitionCount = false}: ModeIndicatorProps) {
+  const {currentMode, permissionContext, getModeConfig} = usePermissionContext()
   const theme = getTheme()
   const modeConfig = getModeConfig()
 
@@ -64,7 +61,7 @@ function getThemeColor(colorName: string, theme: any): string {
     blue: theme.primary || 'blue',
     green: theme.success || 'green',
     yellow: theme.warning || 'yellow',
-    red: theme.error || 'red',
+    red: theme.error || 'red'
   }
 
   return colorMap[colorName] || colorName
@@ -72,7 +69,7 @@ function getThemeColor(colorName: string, theme: any): string {
 
 // Compact mode indicator for status bar
 export function CompactModeIndicator() {
-  const { currentMode, getModeConfig } = usePermissionContext()
+  const {currentMode, getModeConfig} = usePermissionContext()
   const modeConfig = getModeConfig()
   const theme = getTheme()
 

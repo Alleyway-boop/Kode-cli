@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { Box, Text } from 'ink'
-import { getTheme } from '@utils/theme'
+import {Box, Text} from 'ink'
+import {getTheme} from '@utils/theme'
 
 export type RiskScoreCategory = 'low' | 'moderate' | 'high'
 
@@ -17,17 +17,17 @@ function colorSchemeForRiskScoreCategory(category: RiskScoreCategory): {
     case 'low':
       return {
         highlightColor: theme.success,
-        textColor: theme.permission,
+        textColor: theme.permission
       }
     case 'moderate':
       return {
         highlightColor: theme.warning,
-        textColor: theme.warning,
+        textColor: theme.warning
       }
     case 'high':
       return {
         highlightColor: theme.error,
-        textColor: theme.error,
+        textColor: theme.error
       }
   }
 }
@@ -40,11 +40,7 @@ export function textColorForRiskScore(riskScore: number | null): string {
   return colorSchemeForRiskScoreCategory(category).textColor
 }
 
-export function PermissionRiskScore({
-  riskScore,
-}: {
-  riskScore: number
-}): React.ReactNode {
+export function PermissionRiskScore({riskScore}: {riskScore: number}): React.ReactNode {
   const category = categoryForRiskScore(riskScore)
   return <Text color={textColorForRiskScore(riskScore)}>Risk: {category}</Text>
 }
@@ -54,10 +50,7 @@ type Props = {
   riskScore: number | null
 }
 
-export function PermissionRequestTitle({
-  title,
-  riskScore,
-}: Props): React.ReactNode {
+export function PermissionRequestTitle({title, riskScore}: Props): React.ReactNode {
   return (
     <Box flexDirection="column">
       <Text bold color={getTheme().permission}>

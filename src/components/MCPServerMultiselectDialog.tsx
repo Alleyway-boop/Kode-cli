@@ -1,24 +1,18 @@
 import React from 'react'
-import { Box, Text, useInput } from 'ink'
-import { getTheme } from '@utils/theme'
-import { MultiSelect } from '@inkjs/ui'
-import {
-  saveCurrentProjectConfig,
-  getCurrentProjectConfig,
-} from '@utils/config'
-import { partition } from 'lodash-es'
-import { MCPServerDialogCopy } from './MCPServerDialogCopy'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
+import {Box, Text, useInput} from 'ink'
+import {getTheme} from '@utils/theme'
+import {MultiSelect} from '@inkjs/ui'
+import {saveCurrentProjectConfig, getCurrentProjectConfig} from '@utils/config'
+import {partition} from 'lodash-es'
+import {MCPServerDialogCopy} from './MCPServerDialogCopy'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
 
 type Props = {
   serverNames: string[]
   onDone(): void
 }
 
-export function MCPServerMultiselectDialog({
-  serverNames,
-  onDone,
-}: Props): React.ReactNode {
+export function MCPServerMultiselectDialog({serverNames, onDone}: Props): React.ReactNode {
   const theme = getTheme()
   function onSubmit(selectedServers: string[]) {
     const config = getCurrentProjectConfig()
@@ -32,9 +26,7 @@ export function MCPServerMultiselectDialog({
     }
 
     // Use partition to separate approved and rejected servers
-    const [approvedServers, rejectedServers] = partition(serverNames, server =>
-      selectedServers.includes(server),
-    )
+    const [approvedServers, rejectedServers] = partition(serverNames, server => selectedServers.includes(server))
 
     // Add new servers directly to the respective lists
     config.approvedMcprcServers.push(...approvedServers)
@@ -68,19 +60,12 @@ export function MCPServerMultiselectDialog({
 
   return (
     <>
-      <Box
-        flexDirection="column"
-        gap={1}
-        padding={1}
-        borderStyle="round"
-        borderColor={theme.warning}
-      >
+      <Box flexDirection="column" gap={1} padding={1} borderStyle="round" borderColor={theme.warning}>
         <Text bold color={theme.warning}>
           New MCP Servers Detected
         </Text>
         <Text>
-          This project contains a .mcprc file with {serverNames.length} MCP
-          servers that require your approval.
+          This project contains a .mcprc file with {serverNames.length} MCP servers that require your approval.
         </Text>
         <MCPServerDialogCopy />
 
@@ -89,7 +74,7 @@ export function MCPServerMultiselectDialog({
         <MultiSelect
           options={serverNames.map(server => ({
             label: server,
-            value: server,
+            value: server
           }))}
           defaultValue={serverNames}
           onSubmit={onSubmit}

@@ -1,11 +1,11 @@
-import type { Command } from '@commands'
-import type { Tool } from '@tool'
+import type {Command} from '@commands'
+import type {Tool} from '@tool'
 import Table from 'cli-table3'
-import { getSystemPrompt } from '@constants/prompts'
-import { getContext } from '@context'
-import { zodToJsonSchema } from 'zod-to-json-schema'
-import { getMessagesGetter } from '@messages'
-import { PROJECT_FILE } from '@constants/product'
+import {getSystemPrompt} from '@constants/prompts'
+import {getContext} from '@context'
+import {zodToJsonSchema} from 'zod-to-json-schema'
+import {getMessagesGetter} from '@messages'
+import {PROJECT_FILE} from '@constants/product'
 // Quick and dirty estimate of bytes per token for rough token counts
 const BYTES_PER_TOKEN = 4
 
@@ -31,7 +31,7 @@ function getContextSections(text: string): Section[] {
     if (coreSysprompt) {
       sections.push({
         title: 'Core Sysprompt',
-        content: coreSysprompt,
+        content: coreSysprompt
       })
     }
   }
@@ -51,7 +51,7 @@ function getContextSections(text: string): Section[] {
     const [, name = 'Unnamed Section', content = ''] = match
     sections.push({
       title: name === 'codeStyle' ? `CodeStyle + ${PROJECT_FILE}'s` : name,
-      content: content.trim(),
+      content: content.trim()
     })
 
     currentPos = match.index + match[0].length
@@ -67,7 +67,7 @@ function getContextSections(text: string): Section[] {
   if (trimmedNonContext) {
     sections.push({
       title: 'Non-contextualized Content',
-      content: trimmedNonContext,
+      content: trimmedNonContext
     })
   }
 
@@ -89,17 +89,17 @@ function createSummaryTable(
   systemText: string,
   systemSections: Section[],
   tools: ToolSummary[],
-  messages: unknown,
+  messages: unknown
 ): string {
   const table = new Table({
     head: ['Component', 'Tokens', 'Size', '% Used'],
-    style: { head: ['bold'] },
+    style: {head: ['bold']},
     chars: {
       mid: '─',
       'left-mid': '├',
       'mid-mid': '┼',
-      'right-mid': '┤',
-    },
+      'right-mid': '┤'
+    }
   })
 
   const messagesStr = JSON.stringify(messages)
@@ -114,14 +114,14 @@ function createSummaryTable(
     'System prompt',
     formatTokenCount(systemText.length),
     formatByteCount(systemText.length),
-    getPercentage(systemText.length),
+    getPercentage(systemText.length)
   ])
   for (const section of systemSections) {
     table.push([
       `  ${section.title}`,
       formatTokenCount(section.content.length),
       formatByteCount(section.content.length),
-      getPercentage(section.content.length),
+      getPercentage(section.content.length)
     ])
   }
 
@@ -130,14 +130,14 @@ function createSummaryTable(
     'Tool definitions',
     formatTokenCount(toolsStr.length),
     formatByteCount(toolsStr.length),
-    getPercentage(toolsStr.length),
+    getPercentage(toolsStr.length)
   ])
   for (const tool of tools) {
     table.push([
       `  ${tool.name}`,
       formatTokenCount(tool.description.length),
       formatByteCount(tool.description.length),
-      getPercentage(tool.description.length),
+      getPercentage(tool.description.length)
     ])
   }
 
@@ -147,9 +147,9 @@ function createSummaryTable(
       'Messages',
       formatTokenCount(messagesStr.length),
       formatByteCount(messagesStr.length),
-      getPercentage(messagesStr.length),
+      getPercentage(messagesStr.length)
     ],
-    ['Total', formatTokenCount(total), formatByteCount(total), '100%'],
+    ['Total', formatTokenCount(total), formatByteCount(total), '100%']
   )
 
   return table.toString()
@@ -157,8 +157,7 @@ function createSummaryTable(
 
 const command: Command = {
   name: 'ctx-viz',
-  description:
-    'Show token usage breakdown for the current conversation context',
+  description: 'Show token usage breakdown for the current conversation context',
   isEnabled: true,
   isHidden: false,
   type: 'local',
@@ -167,12 +166,9 @@ const command: Command = {
     return this.name
   },
 
-  async call(_args: string, cmdContext: { options: { tools: Tool[] } }) {
+  async call(_args: string, cmdContext: {options: {tools: Tool[]}}) {
     // Get tools and system prompt with injected context
-    const [systemPromptRaw, sysContext] = await Promise.all([
-      getSystemPrompt(),
-      getContext(),
-    ])
+    const [systemPromptRaw, sysContext] = await Promise.all([getSystemPrompt(), getContext()])
 
     const rawTools = cmdContext.options.tools
 
@@ -185,16 +181,14 @@ const command: Command = {
     // Get full tool definitions including prompts and schemas
     const tools = rawTools.map(t => {
       // Get full prompt and schema
-      const fullPrompt = t.prompt({ safeMode: false })
+      const fullPrompt = t.prompt({safeMode: false})
       const schema = JSON.stringify(
-        'inputJSONSchema' in t && t.inputJSONSchema
-          ? t.inputJSONSchema
-          : zodToJsonSchema(t.inputSchema),
+        'inputJSONSchema' in t && t.inputJSONSchema ? t.inputJSONSchema : zodToJsonSchema(t.inputSchema)
       )
 
       return {
         name: t.name,
-        description: `${fullPrompt}\n\nSchema:\n${schema}`,
+        description: `${fullPrompt}\n\nSchema:\n${schema}`
       }
     })
 
@@ -203,7 +197,7 @@ const command: Command = {
 
     const sections = getContextSections(systemPrompt)
     return createSummaryTable(systemPrompt, sections, tools, messages)
-  },
+  }
 }
 
 export default command

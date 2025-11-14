@@ -1,4 +1,4 @@
-import { type Hunk, structuredPatch } from 'diff'
+import {type Hunk, structuredPatch} from 'diff'
 
 const CONTEXT_LINES = 3
 
@@ -12,7 +12,7 @@ export function getPatch({
   filePath,
   fileContents,
   oldStr,
-  newStr,
+  newStr
 }: {
   filePath: string
   fileContents: string
@@ -28,15 +28,13 @@ export function getPatch({
       .replaceAll('$', DOLLAR_TOKEN)
       .replace(
         oldStr.replaceAll('&', AMPERSAND_TOKEN).replaceAll('$', DOLLAR_TOKEN),
-        newStr.replaceAll('&', AMPERSAND_TOKEN).replaceAll('$', DOLLAR_TOKEN),
+        newStr.replaceAll('&', AMPERSAND_TOKEN).replaceAll('$', DOLLAR_TOKEN)
       ),
     undefined,
     undefined,
-    { context: CONTEXT_LINES },
+    {context: CONTEXT_LINES}
   ).hunks.map(_ => ({
     ..._,
-    lines: _.lines.map(_ =>
-      _.replaceAll(AMPERSAND_TOKEN, '&').replaceAll(DOLLAR_TOKEN, '$'),
-    ),
+    lines: _.lines.map(_ => _.replaceAll(AMPERSAND_TOKEN, '&').replaceAll(DOLLAR_TOKEN, '$'))
   }))
 }

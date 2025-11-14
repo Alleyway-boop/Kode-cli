@@ -196,7 +196,7 @@ export const largeAnimatedAray = [
                                                   
                                                   
                                                   
-`,
+`
 ]
 
 export const smallAnimatedArray = [
@@ -234,5 +234,5 @@ export const smallAnimatedArray = [
 -  -  -
   ---  
 -  -  -
-   -`,
+   -`
 ]

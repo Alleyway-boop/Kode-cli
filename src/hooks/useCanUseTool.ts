@@ -1,26 +1,24 @@
-import React, { useCallback } from 'react'
-import { hasPermissionsToUseTool } from '@permissions'
-import { BashTool, inputSchema } from '@tools/BashTool/BashTool'
-import { getCommandSubcommandPrefix } from '@utils/commands'
-import { REJECT_MESSAGE } from '@utils/messages'
-import type { Tool as ToolType, ToolUseContext } from '@tool'
-import { AssistantMessage } from '@query'
-import { ToolUseConfirm } from '@components/permissions/PermissionRequest'
-import { AbortError } from '@utils/errors'
-import { logError } from '@utils/log'
+import React, {useCallback} from 'react'
+import {hasPermissionsToUseTool} from '@permissions'
+import {BashTool, inputSchema} from '@tools/BashTool/BashTool'
+import {getCommandSubcommandPrefix} from '@utils/commands'
+import {REJECT_MESSAGE} from '@utils/messages'
+import type {Tool as ToolType, ToolUseContext} from '@tool'
+import {AssistantMessage} from '@query'
+import {ToolUseConfirm} from '@components/permissions/PermissionRequest'
+import {AbortError} from '@utils/errors'
+import {logError} from '@utils/log'
 
 type SetState<T> = React.Dispatch<React.SetStateAction<T>>
 
 export type CanUseToolFn = (
   tool: ToolType,
-  input: { [key: string]: unknown },
+  input: {[key: string]: unknown},
   toolUseContext: ToolUseContext,
-  assistantMessage: AssistantMessage,
-) => Promise<{ result: true } | { result: false; message: string }>
+  assistantMessage: AssistantMessage
+) => Promise<{result: true} | {result: false; message: string}>
 
-function useCanUseTool(
-  setToolUseConfirm: SetState<ToolUseConfirm | null>,
-): CanUseToolFn {
+function useCanUseTool(setToolUseConfirm: SetState<ToolUseConfirm | null>): CanUseToolFn {
   return useCallback<CanUseToolFn>(
     async (tool, input, toolUseContext, assistantMessage) => {
       return new Promise(resolve => {
@@ -29,7 +27,7 @@ function useCanUseTool(
         function resolveWithCancelledAndAbortAllToolCalls() {
           resolve({
             result: false,
-            message: REJECT_MESSAGE,
+            message: REJECT_MESSAGE
           })
           // Trigger a synthetic assistant message in query(), to cancel
           // any other pending tool uses and stop further requests to the
@@ -43,17 +41,11 @@ function useCanUseTool(
           return
         }
 
-        return hasPermissionsToUseTool(
-          tool,
-          input,
-          toolUseContext,
-          assistantMessage,
-        )
+        return hasPermissionsToUseTool(tool, input, toolUseContext, assistantMessage)
           .then(async result => {
             // Has permissions to use tool, granted in config
             if (result.result) {
-              
-              resolve({ result: true })
+              resolve({result: true})
               return
             }
 
@@ -62,9 +54,9 @@ function useCanUseTool(
               tool === BashTool
                 ? getCommandSubcommandPrefix(
                     inputSchema.parse(input).command, // already validated upstream, so ok to parse (as opposed to safeParse)
-                    toolUseContext.abortController.signal,
+                    toolUseContext.abortController.signal
                   )
-                : Promise.resolve(null),
+                : Promise.resolve(null)
             ])
 
             if (toolUseContext.abortController.signal.aborted) {
@@ -89,11 +81,11 @@ function useCanUseTool(
                 if (type === 'permanent') {
                 } else {
                 }
-                resolve({ result: true })
+                resolve({result: true})
               },
               onReject() {
                 resolveWithCancelledAndAbortAllToolCalls()
-              },
+              }
             })
           })
           .catch(error => {
@@ -106,7 +98,7 @@ function useCanUseTool(
           })
       })
     },
-    [setToolUseConfirm],
+    [setToolUseConfirm]
   )
 }
 

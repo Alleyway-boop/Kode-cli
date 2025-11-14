@@ -1,18 +1,15 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import * as React from 'react'
-import { getTheme } from '@utils/theme'
-import { extractTag } from '@utils/messages'
-import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
+import {getTheme} from '@utils/theme'
+import {extractTag} from '@utils/messages'
+import {TextBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
 
 type Props = {
   addMargin: boolean
   param: TextBlockParam
 }
 
-export function UserCommandMessage({
-  addMargin,
-  param: { text },
-}: Props): React.ReactNode {
+export function UserCommandMessage({addMargin, param: {text}}: Props): React.ReactNode {
   const commandMessage = extractTag(text, 'command-message')
   const args = extractTag(text, 'command-args')
   if (!commandMessage) {

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import {useEffect, useState} from 'react'
 
 // Global state to share across all hook instances
 let globalSize = {
   columns: process.stdout.columns || 80,
-  rows: process.stdout.rows || 24,
+  rows: process.stdout.rows || 24
 }
 
 const listeners = new Set<() => void>()
@@ -12,7 +12,7 @@ let isListenerAttached = false
 function updateAllListeners() {
   globalSize = {
     columns: process.stdout.columns || 80,
-    rows: process.stdout.rows || 24,
+    rows: process.stdout.rows || 24
   }
   listeners.forEach(listener => listener())
 }
@@ -22,7 +22,7 @@ export function useTerminalSize() {
 
   useEffect(() => {
     // Add this component's listener to the set
-    const updateSize = () => setSize({ ...globalSize })
+    const updateSize = () => setSize({...globalSize})
     listeners.add(updateSize)
 
     // Only attach the global resize listener once

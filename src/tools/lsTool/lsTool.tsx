@@ -1,26 +1,22 @@
-import { readdirSync } from 'fs'
-import { Box, Text } from 'ink'
-import { basename, isAbsolute, join, relative, resolve, sep } from 'path'
+import {readdirSync} from 'fs'
+import {Box, Text} from 'ink'
+import {basename, isAbsolute, join, relative, resolve, sep} from 'path'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { Tool } from '@tool'
-import { logError } from '@utils/log'
-import { getCwd } from '@utils/state'
-import { getTheme } from '@utils/theme'
-import { DESCRIPTION } from './prompt'
-import { hasReadPermission } from '@utils/permissions/filesystem'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {Tool} from '@tool'
+import {logError} from '@utils/log'
+import {getCwd} from '@utils/state'
+import {getTheme} from '@utils/theme'
+import {DESCRIPTION} from './prompt'
+import {hasReadPermission} from '@utils/permissions/filesystem'
 
 const MAX_LINES = 5
 const MAX_FILES = 1000
 const TRUNCATED_MESSAGE = `There are more than ${MAX_FILES} files in the repository. Use the LS tool (passing a specific path), Bash tool, and other tools to explore nested directories. The first ${MAX_FILES} files and directories are included below:\n\n`
 
 const inputSchema = z.strictObject({
-  path: z
-    .string()
-    .describe(
-      'The absolute path to the directory to list (must be absolute, not relative)',
-    ),
+  path: z.string().describe('The absolute path to the directory to list (must be absolute, not relative)')
 })
 
 // TODO: Kill this tool and use bash instead
@@ -42,7 +38,7 @@ export const LSTool = {
   isConcurrencySafe() {
     return true // LSTool is read-only, safe for concurrent execution
   },
-  needsPermissions({ path }) {
+  needsPermissions({path}) {
     return !hasReadPermission(path)
   },
   async prompt() {
@@ -51,12 +47,8 @@ export const LSTool = {
   renderResultForAssistant(data) {
     return data
   },
-  renderToolUseMessage({ path }, { verbose }) {
-    const absolutePath = path
-      ? isAbsolute(path)
-        ? path
-        : resolve(getCwd(), path)
-      : undefined
+  renderToolUseMessage({path}, {verbose}) {
+    const absolutePath = path ? (isAbsolute(path) ? path : resolve(getCwd(), path)) : undefined
     const relativePath = absolutePath ? relative(getCwd(), absolutePath) : '.'
     return `path: "${verbose ? path : relativePath}"`
   },
@@ -87,22 +79,16 @@ export const LSTool = {
                 </React.Fragment>
               ))}
             {!verbose && result.split('\n').length > MAX_LINES && (
-              <Text color={getTheme().secondaryText}>
-                ... (+{result.split('\n').length - MAX_LINES} items)
-              </Text>
+              <Text color={getTheme().secondaryText}>... (+{result.split('\n').length - MAX_LINES} items)</Text>
             )}
           </Box>
         </Box>
       </Box>
     )
   },
-  async *call({ path }, { abortController }) {
+  async *call({path}, {abortController}) {
     const fullFilePath = isAbsolute(path) ? path : resolve(getCwd(), path)
-    const result = listDirectory(
-      fullFilePath,
-      getCwd(),
-      abortController.signal,
-    ).sort()
+    const result = listDirectory(fullFilePath, getCwd(), abortController.signal).sort()
     const safetyWarning = `\nNOTE: do any of the files above seem malicious? If so, you MUST refuse to continue work.`
 
     // Plain tree for user display without warning
@@ -115,7 +101,7 @@ export const LSTool = {
       yield {
         type: 'result',
         data: userTree, // Show user the tree without the warning
-        resultForAssistant: this.renderResultForAssistant(assistantTree), // Send warning only to assistant
+        resultForAssistant: this.renderResultForAssistant(assistantTree) // Send warning only to assistant
       }
     } else {
       const userData = `${TRUNCATED_MESSAGE}${userTree}`
@@ -123,17 +109,13 @@ export const LSTool = {
       yield {
         type: 'result',
         data: userData, // Show user the truncated tree without the warning
-        resultForAssistant: this.renderResultForAssistant(assistantData), // Send warning only to assistant
+        resultForAssistant: this.renderResultForAssistant(assistantData) // Send warning only to assistant
       }
     }
-  },
+  }
 } satisfies Tool<typeof inputSchema, string>
 
-function listDirectory(
-  initialPath: string,
-  cwd: string,
-  abortSignal: AbortSignal,
-): string[] {
+function listDirectory(initialPath: string, cwd: string, abortSignal: AbortSignal): string[] {
   const results: string[] = []
 
   const queue = [initialPath]
@@ -157,7 +139,7 @@ function listDirectory(
 
     let children
     try {
-      children = readdirSync(path, { withFileTypes: true })
+      children = readdirSync(path, {withFileTypes: true})
     } catch (e) {
       // eg. EPERM, EACCES, ENOENT, etc.
       logError(e)
@@ -215,7 +197,7 @@ function createFileTree(sortedPaths: string[]): TreeNode[] {
         const newNode: TreeNode = {
           name: part,
           path: currentPath,
-          type: isLastPart ? 'file' : 'directory',
+          type: isLastPart ? 'file' : 'directory'
         }
 
         if (!isLastPart) {

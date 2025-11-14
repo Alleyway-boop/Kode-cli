@@ -1,15 +1,9 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  ReactNode,
-} from 'react'
+import React, {createContext, useContext, useState, useCallback, ReactNode} from 'react'
 import {
   PermissionMode,
   PermissionContext as IPermissionContext,
   getNextPermissionMode,
-  MODE_CONFIGS,
+  MODE_CONFIGS
 } from '@kode-types/PermissionMode'
 
 interface PermissionContextValue {
@@ -21,40 +15,31 @@ interface PermissionContextValue {
   getModeConfig: () => (typeof MODE_CONFIGS)[PermissionMode]
 }
 
-const PermissionContext = createContext<PermissionContextValue | undefined>(
-  undefined,
-)
+const PermissionContext = createContext<PermissionContextValue | undefined>(undefined)
 
 interface PermissionProviderProps {
   children: ReactNode
   isBypassPermissionsModeAvailable?: boolean
 }
 
-export function PermissionProvider({
-  children,
-  isBypassPermissionsModeAvailable = false,
-}: PermissionProviderProps) {
-  const [permissionContext, setPermissionContext] =
-    useState<IPermissionContext>({
-      mode: 'default',
-      allowedTools: ['*'],
-      allowedPaths: [process.cwd()],
-      restrictions: {
-        readOnly: false,
-        requireConfirmation: true,
-        bypassValidation: false,
-      },
-      metadata: {
-        transitionCount: 0,
-      },
-    })
+export function PermissionProvider({children, isBypassPermissionsModeAvailable = false}: PermissionProviderProps) {
+  const [permissionContext, setPermissionContext] = useState<IPermissionContext>({
+    mode: 'default',
+    allowedTools: ['*'],
+    allowedPaths: [process.cwd()],
+    restrictions: {
+      readOnly: false,
+      requireConfirmation: true,
+      bypassValidation: false
+    },
+    metadata: {
+      transitionCount: 0
+    }
+  })
 
   const cycleMode = useCallback(() => {
     setPermissionContext(prev => {
-      const nextMode = getNextPermissionMode(
-        prev.mode,
-        isBypassPermissionsModeAvailable,
-      )
+      const nextMode = getNextPermissionMode(prev.mode, isBypassPermissionsModeAvailable)
       const modeConfig = MODE_CONFIGS[nextMode]
 
       console.log(`🔄 Mode cycle: ${prev.mode} → ${nextMode}`)
@@ -68,8 +53,8 @@ export function PermissionProvider({
           ...prev.metadata,
           previousMode: prev.mode,
           activatedAt: new Date().toISOString(),
-          transitionCount: prev.metadata.transitionCount + 1,
-        },
+          transitionCount: prev.metadata.transitionCount + 1
+        }
       }
     })
   }, [isBypassPermissionsModeAvailable])
@@ -87,15 +72,15 @@ export function PermissionProvider({
           ...prev.metadata,
           previousMode: prev.mode,
           activatedAt: new Date().toISOString(),
-          transitionCount: prev.metadata.transitionCount + 1,
-        },
+          transitionCount: prev.metadata.transitionCount + 1
+        }
       }
     })
   }, [])
 
   const isToolAllowed = useCallback(
     (toolName: string) => {
-      const { allowedTools } = permissionContext
+      const {allowedTools} = permissionContext
 
       // If '*' is in allowed tools, all tools are allowed
       if (allowedTools.includes('*')) {
@@ -105,7 +90,7 @@ export function PermissionProvider({
       // Check if specific tool is in allowed list
       return allowedTools.includes(toolName)
     },
-    [permissionContext],
+    [permissionContext]
   )
 
   const getModeConfig = useCallback(() => {
@@ -118,32 +103,22 @@ export function PermissionProvider({
     cycleMode,
     setMode,
     isToolAllowed,
-    getModeConfig,
+    getModeConfig
   }
 
-  return (
-    <PermissionContext.Provider value={value}>
-      {children}
-    </PermissionContext.Provider>
-  )
+  return <PermissionContext.Provider value={value}>{children}</PermissionContext.Provider>
 }
 
 export function usePermissionContext(): PermissionContextValue {
   const context = useContext(PermissionContext)
   if (context === undefined) {
-    throw new Error(
-      'usePermissionContext must be used within a PermissionProvider',
-    )
+    throw new Error('usePermissionContext must be used within a PermissionProvider')
   }
   return context
 }
 
 // Hook for components that need to respond to permission mode changes
-export function usePermissionMode(): [
-  PermissionMode,
-  (mode: PermissionMode) => void,
-  () => void,
-] {
-  const { currentMode, setMode, cycleMode } = usePermissionContext()
+export function usePermissionMode(): [PermissionMode, (mode: PermissionMode) => void, () => void] {
+  const {currentMode, setMode, cycleMode} = usePermissionContext()
   return [currentMode, setMode, cycleMode]
 }

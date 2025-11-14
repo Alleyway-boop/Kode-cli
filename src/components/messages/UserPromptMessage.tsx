@@ -1,20 +1,17 @@
 import React from 'react'
-import { TextBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Box, Text } from 'ink'
-import { getTheme } from '@utils/theme'
-import { logError } from '@utils/log'
-import { useTerminalSize } from '@hooks/useTerminalSize'
+import {TextBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {Box, Text} from 'ink'
+import {getTheme} from '@utils/theme'
+import {logError} from '@utils/log'
+import {useTerminalSize} from '@hooks/useTerminalSize'
 
 type Props = {
   addMargin: boolean
   param: TextBlockParam
 }
 
-export function UserPromptMessage({
-  addMargin,
-  param: { text },
-}: Props): React.ReactNode {
-  const { columns } = useTerminalSize()
+export function UserPromptMessage({addMargin, param: {text}}: Props): React.ReactNode {
+  const {columns} = useTerminalSize()
   if (!text) {
     logError('No content found in user prompt message')
     return null

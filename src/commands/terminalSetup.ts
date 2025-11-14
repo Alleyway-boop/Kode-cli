@@ -1,15 +1,15 @@
-import { Command } from '@commands'
-import { EOL, platform, homedir } from 'os'
-import { execFileNoThrow } from '@utils/execFileNoThrow'
+import {Command} from '@commands'
+import {EOL, platform, homedir} from 'os'
+import {execFileNoThrow} from '@utils/execFileNoThrow'
 import chalk from 'chalk'
-import { getTheme } from '@utils/theme'
-import { env } from '@utils/env'
-import { getGlobalConfig, saveGlobalConfig } from '@utils/config'
-import { markProjectOnboardingComplete } from '@components/ProjectOnboarding'
-import { readFileSync, writeFileSync } from 'fs'
-import { join } from 'path'
-import { safeParseJSON } from '@utils/json'
-import { logError } from '@utils/log'
+import {getTheme} from '@utils/theme'
+import {env} from '@utils/env'
+import {getGlobalConfig, saveGlobalConfig} from '@utils/config'
+import {markProjectOnboardingComplete} from '@components/ProjectOnboarding'
+import {readFileSync, writeFileSync} from 'fs'
+import {join} from 'path'
+import {safeParseJSON} from '@utils/json'
+import {logError} from '@utils/log'
 
 const terminalSetup: Command = {
   type: 'local',
@@ -17,11 +17,8 @@ const terminalSetup: Command = {
   userFacingName() {
     return 'terminal-setup'
   },
-  description:
-    'Install Shift+Enter key binding for newlines (iTerm2 and VSCode only)',
-  isEnabled:
-    (platform() === 'darwin' && env.terminal === 'iTerm.app') ||
-    env.terminal === 'vscode',
+  description: 'Install Shift+Enter key binding for newlines (iTerm2 and VSCode only)',
+  isEnabled: (platform() === 'darwin' && env.terminal === 'iTerm.app') || env.terminal === 'vscode',
   isHidden: false,
   async call() {
     let result = ''
@@ -44,7 +41,7 @@ const terminalSetup: Command = {
     markProjectOnboardingComplete()
 
     return result
-  },
+  }
 }
 
 export function isShiftEnterKeyBindingInstalled(): boolean {
@@ -62,12 +59,12 @@ export function handleHashCommand(interpreted: string): void {
     const filesToUpdate = []
 
     // Always try to update AGENTS.md (create if not exists)
-    filesToUpdate.push({ path: codeContextPath, name: 'AGENTS.md' })
+    filesToUpdate.push({path: codeContextPath, name: 'AGENTS.md'})
 
     // Update CLAUDE.md only if it exists
     try {
       readFileSync(claudePath, 'utf-8')
-      filesToUpdate.push({ path: claudePath, name: 'CLAUDE.md' })
+      filesToUpdate.push({path: claudePath, name: 'CLAUDE.md'})
     } catch {
       // CLAUDE.md doesn't exist, skip it
     }
@@ -76,10 +73,7 @@ export function handleHashCommand(interpreted: string): void {
     const timezoneMatch = now.toString().match(/\(([A-Z]+)\)/)
     const timezone = timezoneMatch
       ? timezoneMatch[1]
-      : now
-          .toLocaleTimeString('en-us', { timeZoneName: 'short' })
-          .split(' ')
-          .pop()
+      : now.toLocaleTimeString('en-us', {timeZoneName: 'short'}).split(' ').pop()
 
     const timestamp = interpreted.includes(now.getFullYear().toString())
       ? ''
@@ -106,33 +100,23 @@ export function handleHashCommand(interpreted: string): void {
         updatedFiles.push(file.name)
       } catch (error) {
         logError(error)
-        console.error(
-          chalk.hex(getTheme().error)(
-            `Failed to update ${file.name}: ${error.message}`,
-          ),
-        )
+        console.error(chalk.hex(getTheme().error)(`Failed to update ${file.name}: ${error.message}`))
       }
     }
 
     if (updatedFiles.length > 0) {
-      console.log(
-        chalk.hex(getTheme().success)(
-          `Added note to ${updatedFiles.join(' and ')}`,
-        ),
-      )
+      console.log(chalk.hex(getTheme().success)(`Added note to ${updatedFiles.join(' and ')}`))
     }
   } catch (e) {
     logError(e)
-    console.error(
-      chalk.hex(getTheme().error)(`Failed to add note: ${e.message}`),
-    )
+    console.error(chalk.hex(getTheme().error)(`Failed to add note: ${e.message}`))
   }
 }
 
 export default terminalSetup
 
 async function installBindingsForITerm2(): Promise<string> {
-  const { code } = await execFileNoThrow('defaults', [
+  const {code} = await execFileNoThrow('defaults', [
     'write',
     'com.googlecode.iterm2',
     'GlobalKeyMap',
@@ -149,7 +133,7 @@ async function installBindingsForITerm2(): Promise<string> {
       <integer>13</integer>
       <key>Modifiers</key>
       <integer>131072</integer>
-    </dict>`,
+    </dict>`
   ])
 
   if (code !== 0) {
@@ -157,14 +141,14 @@ async function installBindingsForITerm2(): Promise<string> {
   }
 
   return `${chalk.hex(getTheme().success)(
-    'Installed iTerm2 Shift+Enter key binding',
+    'Installed iTerm2 Shift+Enter key binding'
   )}${EOL}${chalk.dim('See iTerm2 → Preferences → Keys')}${EOL}`
 }
 
 type VSCodeKeybinding = {
   key: string
   command: string
-  args: { text: string }
+  args: {text: string}
   when: string
 }
 
@@ -176,24 +160,23 @@ function installBindingsForVSCodeTerminal(): string {
       : platform() === 'darwin'
         ? join('Library', 'Application Support', 'Code', 'User')
         : join('.config', 'Code', 'User'),
-    'keybindings.json',
+    'keybindings.json'
   )
 
   try {
     const content = readFileSync(vscodeKeybindingsPath, 'utf-8')
-    const keybindings: VSCodeKeybinding[] =
-      (safeParseJSON(content) as VSCodeKeybinding[]) ?? []
+    const keybindings: VSCodeKeybinding[] = (safeParseJSON(content) as VSCodeKeybinding[]) ?? []
 
     // Check if keybinding already exists
     const existingBinding = keybindings.find(
       binding =>
         binding.key === 'shift+enter' &&
         binding.command === 'workbench.action.terminal.sendSequence' &&
-        binding.when === 'terminalFocus',
+        binding.when === 'terminalFocus'
     )
     if (existingBinding) {
       return `${chalk.hex(getTheme().warning)(
-        'Found existing VSCode terminal Shift+Enter key binding. Remove it to continue.',
+        'Found existing VSCode terminal Shift+Enter key binding. Remove it to continue.'
       )}${EOL}${chalk.dim(`See ${vscodeKeybindingsPath}`)}${EOL}`
     }
 
@@ -201,18 +184,14 @@ function installBindingsForVSCodeTerminal(): string {
     keybindings.push({
       key: 'shift+enter',
       command: 'workbench.action.terminal.sendSequence',
-      args: { text: '\\\r\n' },
-      when: 'terminalFocus',
+      args: {text: '\\\r\n'},
+      when: 'terminalFocus'
     })
 
-    writeFileSync(
-      vscodeKeybindingsPath,
-      JSON.stringify(keybindings, null, 4),
-      'utf-8',
-    )
+    writeFileSync(vscodeKeybindingsPath, JSON.stringify(keybindings, null, 4), 'utf-8')
 
     return `${chalk.hex(getTheme().success)(
-      'Installed VSCode terminal Shift+Enter key binding',
+      'Installed VSCode terminal Shift+Enter key binding'
     )}${EOL}${chalk.dim(`See ${vscodeKeybindingsPath}`)}${EOL}`
   } catch (e) {
     logError(e)

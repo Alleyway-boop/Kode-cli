@@ -1,6 +1,6 @@
-import { Command } from '@commands'
-import { reloadCustomCommands } from '@services/customCommands'
-import { getCommands } from '@commands'
+import {Command} from '@commands'
+import {reloadCustomCommands} from '@services/customCommands'
+import {getCommands} from '@commands'
 
 /**
  * Refresh Commands - Reload custom commands from filesystem
@@ -29,9 +29,7 @@ const refreshCommands = {
 
       // Reload commands to get updated count and validate the refresh
       const commands = await getCommands()
-      const customCommands = commands.filter(
-        cmd => cmd.name.startsWith('project:') || cmd.name.startsWith('user:'),
-      )
+      const customCommands = commands.filter(cmd => cmd.name.startsWith('project:') || cmd.name.startsWith('user:'))
 
       // Provide detailed feedback about the refresh operation
       return `✅ Commands refreshed successfully!
@@ -48,7 +46,7 @@ Use /help to see updated command list.`
   },
   userFacingName() {
     return 'refresh-commands'
-  },
+  }
 } satisfies Command
 
 export default refreshCommands

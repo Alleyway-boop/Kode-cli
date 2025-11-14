@@ -1,21 +1,18 @@
 import React from 'react'
-import { Box, Text } from 'ink'
-import { Select } from './CustomSelect/select'
-import type { LogOption } from '@kode-types/logs'
-import { getTheme } from '@utils/theme'
-import { useTerminalSize } from '@hooks/useTerminalSize'
-import { formatDate } from '@utils/log'
+import {Box, Text} from 'ink'
+import {Select} from './CustomSelect/select'
+import type {LogOption} from '@kode-types/logs'
+import {getTheme} from '@utils/theme'
+import {useTerminalSize} from '@hooks/useTerminalSize'
+import {formatDate} from '@utils/log'
 
 type LogSelectorProps = {
   logs: LogOption[]
   onSelect: (logValue: number) => void
 }
 
-export function LogSelector({
-  logs,
-  onSelect,
-}: LogSelectorProps): React.ReactNode {
-  const { rows, columns } = useTerminalSize()
+export function LogSelector({logs, onSelect}: LogSelectorProps): React.ReactNode {
+  const {rows, columns} = useTerminalSize()
   if (logs.length === 0) {
     return null
   }
@@ -38,8 +35,7 @@ export function LogSelector({
     const prompt = log.firstPrompt
     let branchInfo = ''
     if (log.forkNumber) branchInfo += ` (fork #${log.forkNumber})`
-    if (log.sidechainNumber)
-      branchInfo += ` (sidechain #${log.sidechainNumber})`
+    if (log.sidechainNumber) branchInfo += ` (sidechain #${log.sidechainNumber})`
 
     const labelTxt = `${index}${modified}${created}${msgCount} ${prompt}${branchInfo}`
     const truncated =
@@ -48,7 +44,7 @@ export function LogSelector({
         : labelTxt
     return {
       label: truncated,
-      value: log.value.toString(),
+      value: log.value.toString()
     }
   })
 
@@ -71,11 +67,7 @@ export function LogSelector({
           First message
         </Text>
       </Box>
-      <Select
-        options={options}
-        onChange={index => onSelect(parseInt(index, 10))}
-        visibleOptionCount={visibleCount}
-      />
+      <Select options={options} onChange={index => onSelect(parseInt(index, 10))} visibleOptionCount={visibleCount} />
       {hiddenCount > 0 && (
         <Box paddingLeft={2}>
           <Text color={getTheme().secondaryText}>and {hiddenCount} more…</Text>

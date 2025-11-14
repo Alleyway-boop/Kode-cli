@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 
 type Props = {
   costUSD: number
@@ -7,7 +7,7 @@ type Props = {
   debug: boolean
 }
 
-export function Cost({ costUSD, durationMs, debug }: Props): React.ReactNode {
+export function Cost({costUSD, durationMs, debug}: Props): React.ReactNode {
   if (!debug) {
     return null
   }

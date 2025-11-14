@@ -1,14 +1,14 @@
-import { z } from 'zod'
+import {z} from 'zod'
 import React from 'react'
-import { Text } from 'ink'
-import { Tool } from '@tool'
-import { DESCRIPTION, PROMPT } from './prompt'
-import { getTheme } from '@utils/theme'
-import { MessageResponse } from '@components/MessageResponse'
-import { USE_BEDROCK, USE_VERTEX } from '@utils/model'
+import {Text} from 'ink'
+import {Tool} from '@tool'
+import {DESCRIPTION, PROMPT} from './prompt'
+import {getTheme} from '@utils/theme'
+import {MessageResponse} from '@components/MessageResponse'
+import {USE_BEDROCK, USE_VERTEX} from '@utils/model'
 
 const thinkToolSchema = z.object({
-  thought: z.string().describe('Your thoughts.'),
+  thought: z.string().describe('Your thoughts.')
 })
 
 export const ThinkTool = {
@@ -22,13 +22,11 @@ export const ThinkTool = {
   needsPermissions: () => false,
   prompt: async () => PROMPT,
 
-  async *call(input, { messageId }) {
-    
-
+  async *call(input, {messageId}) {
     yield {
       type: 'result',
       resultForAssistant: 'Your thought has been logged.',
-      data: { thought: input.thought },
+      data: {thought: input.thought}
     }
   },
 
@@ -38,10 +36,8 @@ export const ThinkTool = {
   },
 
   renderToolUseRejectedMessage() {
-    return (
-      <MessageResponse children={<Text color={getTheme().error}>Thought cancelled</Text>} />
-    )
+    return <MessageResponse children={<Text color={getTheme().error}>Thought cancelled</Text>} />
   },
 
-  renderResultForAssistant: () => 'Your thought has been logged.',
+  renderResultForAssistant: () => 'Your thought has been logged.'
 } satisfies Tool<typeof thinkToolSchema>

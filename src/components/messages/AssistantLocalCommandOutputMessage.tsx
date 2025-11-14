@@ -1,23 +1,16 @@
 import * as React from 'react'
-import { extractTag } from '@utils/messages'
-import { getTheme } from '@utils/theme'
-import { Box, Text } from 'ink'
+import {extractTag} from '@utils/messages'
+import {getTheme} from '@utils/theme'
+import {Box, Text} from 'ink'
 
-export function AssistantLocalCommandOutputMessage({
-  content,
-}: {
-  content: string
-}): React.ReactNode[] {
+export function AssistantLocalCommandOutputMessage({content}: {content: string}): React.ReactNode[] {
   const stdout = extractTag(content, 'local-command-stdout')
   const stderr = extractTag(content, 'local-command-stderr')
   if (!stdout && !stderr) {
     return []
   }
   const theme = getTheme()
-  let insides = [
-    format(stdout?.trim(), theme.text),
-    format(stderr?.trim(), theme.error),
-  ].filter(Boolean)
+  let insides = [format(stdout?.trim(), theme.text), format(stderr?.trim(), theme.error)].filter(Boolean)
 
   if (insides.length === 0) {
     insides = [
@@ -37,7 +30,7 @@ export function AssistantLocalCommandOutputMessage({
           {_}
         </Box>
       ))}
-    </Box>,
+    </Box>
   ]
 }
 

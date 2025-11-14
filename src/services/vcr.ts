@@ -1,17 +1,17 @@
-import { createHash, type UUID } from 'crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { dirname } from 'path'
-import type { AssistantMessage, UserMessage } from '@query'
-import { existsSync } from 'fs'
-import { env } from '@utils/env'
-import { getCwd } from '@utils/state'
+import {createHash, type UUID} from 'crypto'
+import {mkdirSync, readFileSync, writeFileSync} from 'fs'
+import {dirname} from 'path'
+import type {AssistantMessage, UserMessage} from '@query'
+import {existsSync} from 'fs'
+import {env} from '@utils/env'
+import {getCwd} from '@utils/state'
 import * as path from 'path'
-import { mapValues } from 'lodash-es'
-import type { ContentBlock } from '@anthropic-ai/sdk/resources/index.mjs'
+import {mapValues} from 'lodash-es'
+import type {ContentBlock} from '@anthropic-ai/sdk/resources/index.mjs'
 
 export async function withVCR(
   messages: (UserMessage | AssistantMessage)[],
-  f: () => Promise<AssistantMessage>,
+  f: () => Promise<AssistantMessage>
 ): Promise<AssistantMessage> {
   if (process.env.NODE_ENV !== 'test') {
     return await f()
@@ -19,7 +19,7 @@ export async function withVCR(
 
   const dehydratedInput = mapMessages(
     messages.map(_ => _.message.content),
-    dehydrateValue,
+    dehydrateValue
   )
   const filename = `./fixtures/${dehydratedInput.map(_ => createHash('sha1').update(JSON.stringify(_)).digest('hex').slice(0, 6)).join('-')}.json`
 
@@ -31,7 +31,7 @@ export async function withVCR(
 
   if (env.isCI) {
     console.warn(
-      `Anthropic API fixture missing. Re-run npm test locally, then commit the result. ${JSON.stringify({ input: dehydratedInput }, null, 2)}`,
+      `Anthropic API fixture missing. Re-run npm test locally, then commit the result. ${JSON.stringify({input: dehydratedInput}, null, 2)}`
     )
   }
 
@@ -42,25 +42,25 @@ export async function withVCR(
   }
 
   if (!existsSync(dirname(filename))) {
-    mkdirSync(dirname(filename), { recursive: true })
+    mkdirSync(dirname(filename), {recursive: true})
   }
   writeFileSync(
     filename,
     JSON.stringify(
       {
         input: dehydratedInput,
-        output: mapAssistantMessage(result, dehydrateValue),
+        output: mapAssistantMessage(result, dehydrateValue)
       },
       null,
-      2,
-    ),
+      2
+    )
   )
   return result
 }
 
 function mapMessages(
   messages: (UserMessage | AssistantMessage)['message']['content'][],
-  f: (s: unknown) => unknown,
+  f: (s: unknown) => unknown
 ): (UserMessage | AssistantMessage)['message']['content'][] {
   return messages.map(_ => {
     if (typeof _ === 'string') {
@@ -70,7 +70,7 @@ function mapMessages(
       switch (_.type) {
         case 'tool_result':
           if (typeof _.content === 'string') {
-            return { ..._, content: f(_.content) }
+            return {..._, content: f(_.content)}
           }
           if (Array.isArray(_.content)) {
             return {
@@ -78,20 +78,20 @@ function mapMessages(
               content: _.content.map(_ => {
                 switch (_.type) {
                   case 'text':
-                    return { ..._, text: f(_.text) }
+                    return {..._, text: f(_.text)}
                   case 'image':
                     return _
                 }
-              }),
+              })
             }
           }
           return _
         case 'text':
-          return { ..._, text: f(_.text) }
+          return {..._, text: f(_.text)}
         case 'tool_use':
           return {
             ..._,
-            input: mapValues(_.input as Record<string, unknown>, f),
+            input: mapValues(_.input as Record<string, unknown>, f)
           }
         case 'image':
           return _
@@ -100,10 +100,7 @@ function mapMessages(
   }) as (UserMessage | AssistantMessage)['message']['content'][]
 }
 
-function mapAssistantMessage(
-  message: AssistantMessage,
-  f: (s: unknown) => unknown,
-): AssistantMessage {
+function mapAssistantMessage(message: AssistantMessage, f: (s: unknown) => unknown): AssistantMessage {
   return {
     durationMs: 'DURATION' as unknown as number,
     costUSD: 'COST' as unknown as number,
@@ -117,20 +114,20 @@ function mapAssistantMessage(
               return {
                 ..._,
                 text: f(_.text) as string,
-                citations: _.citations || [],
+                citations: _.citations || []
               } // Ensure citations
             case 'tool_use':
               return {
                 ..._,
-                input: mapValues(_.input as Record<string, unknown>, f),
+                input: mapValues(_.input as Record<string, unknown>, f)
               }
             default:
               return _ // Handle other block types unchanged
           }
         })
-        .filter(Boolean) as ContentBlock[],
+        .filter(Boolean) as ContentBlock[]
     },
-    type: 'assistant',
+    type: 'assistant'
   }
 }
 
@@ -154,8 +151,5 @@ function hydrateValue(s: unknown): unknown {
   if (typeof s !== 'string') {
     return s
   }
-  return s
-    .replaceAll('[NUM]', '1')
-    .replaceAll('[DURATION]', '100')
-    .replaceAll('[CWD]', getCwd())
+  return s.replaceAll('[NUM]', '1').replaceAll('[DURATION]', '100').replaceAll('[CWD]', getCwd())
 }

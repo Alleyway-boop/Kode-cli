@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { captureException } from '@services/sentry'
+import {captureException} from '@services/sentry'
 
 interface Props {
   children: React.ReactNode
@@ -12,18 +12,20 @@ interface State {
 export class SentryErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props)
-    ;(this as any).state = { hasError: false }
+    ;(this as any).state = {hasError: false}
   }
 
   static getDerivedStateFromError(): State {
-    return { hasError: true }
+    return {hasError: true}
   }
 
   componentDidCatch(error: Error): void {
     // Don't report user-initiated cancellations to Sentry
-    if (error.name === 'AbortError' || 
-        error.message?.includes('abort') ||
-        error.message?.includes('The operation was aborted')) {
+    if (
+      error.name === 'AbortError' ||
+      error.message?.includes('abort') ||
+      error.message?.includes('The operation was aborted')
+    ) {
       return
     }
     captureException(error)

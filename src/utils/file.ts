@@ -1,13 +1,5 @@
-import {
-  readFileSync,
-  writeFileSync,
-  openSync,
-  readSync,
-  closeSync,
-  existsSync,
-  readdirSync,
-} from 'fs'
-import { logError } from './log'
+import {readFileSync, writeFileSync, openSync, readSync, closeSync, existsSync, readdirSync} from 'fs'
+import {logError} from './log'
 import {
   isAbsolute,
   normalize,
@@ -18,13 +10,13 @@ import {
   basename,
   dirname,
   extname,
-  join,
+  join
 } from 'path'
-import { glob as globLib } from 'glob'
-import { cwd } from 'process'
-import { listAllContentFiles } from './ripgrep'
-import { LRUCache } from 'lru-cache'
-import { getCwd } from './state'
+import {glob as globLib} from 'glob'
+import {cwd} from 'process'
+import {listAllContentFiles} from './ripgrep'
+import {LRUCache} from 'lru-cache'
+import {getCwd} from './state'
 
 export type File = {
   filename: string
@@ -36,9 +28,9 @@ export type LineEndingType = 'CRLF' | 'LF'
 export async function glob(
   filePattern: string,
   cwd: string,
-  { limit, offset }: { limit: number; offset: number },
-  abortSignal: AbortSignal,
-): Promise<{ files: string[]; truncated: boolean }> {
+  {limit, offset}: {limit: number; offset: number},
+  abortSignal: AbortSignal
+): Promise<{files: string[]; truncated: boolean}> {
   // TODO: Use worker threads
   const paths = await globLib([filePattern], {
     cwd,
@@ -46,15 +38,13 @@ export async function glob(
     nodir: true,
     signal: abortSignal,
     stat: true,
-    withFileTypes: true,
+    withFileTypes: true
   })
   const sortedPaths = paths.sort((a, b) => (a.mtimeMs ?? 0) - (b.mtimeMs ?? 0))
   const truncated = sortedPaths.length > offset + limit
   return {
-    files: sortedPaths
-      .slice(offset, offset + limit)
-      .map(path => path.fullpath()),
-    truncated,
+    files: sortedPaths.slice(offset, offset + limit).map(path => path.fullpath()),
+    truncated
   }
 }
 
@@ -67,10 +57,7 @@ export function readFileSafe(filepath: string): string | null {
   }
 }
 
-export function isInDirectory(
-  relativePath: string,
-  relativeCwd: string,
-): boolean {
+export function isInDirectory(relativePath: string, relativeCwd: string): boolean {
   if (relativePath === '.') {
     return true
   }
@@ -90,12 +77,8 @@ export function isInDirectory(
   let normalizedPath = normalize(relativePath)
   let normalizedCwd = normalize(relativeCwd)
 
-  normalizedPath = normalizedPath.endsWith(sep)
-    ? normalizedPath
-    : normalizedPath + sep
-  normalizedCwd = normalizedCwd.endsWith(sep)
-    ? normalizedCwd
-    : normalizedCwd + sep
+  normalizedPath = normalizedPath.endsWith(sep) ? normalizedPath : normalizedPath + sep
+  normalizedCwd = normalizedCwd.endsWith(sep) ? normalizedCwd : normalizedCwd + sep
 
   // Join with a base directory to make them absolute-like for comparison
   const fullPath = resolvePath(cwd(), normalizedCwd, normalizedPath)
@@ -112,8 +95,8 @@ export function isInDirectory(
 export function readTextContent(
   filePath: string,
   offset = 0,
-  maxLines?: number,
-): { content: string; lineCount: number; totalLines: number } {
+  maxLines?: number
+): {content: string; lineCount: number; totalLines: number} {
   const enc = detectFileEncoding(filePath)
   const content = readFileSync(filePath, enc)
   const lines = content.split(/\r?\n/)
@@ -127,7 +110,7 @@ export function readTextContent(
   return {
     content: toReturn.join('\n'), // TODO: This probably won't work for Windows
     lineCount: toReturn.length,
-    totalLines: lines.length,
+    totalLines: lines.length
   }
 }
 
@@ -135,32 +118,28 @@ export function writeTextContent(
   filePath: string,
   content: string,
   encoding: BufferEncoding,
-  endings: LineEndingType,
+  endings: LineEndingType
 ): void {
   let toWrite = content
   if (endings === 'CRLF') {
     toWrite = content.split('\n').join('\r\n')
   }
 
-  writeFileSync(filePath, toWrite, { encoding, flush: true })
+  writeFileSync(filePath, toWrite, {encoding, flush: true})
 }
 
 const repoEndingCache = new LRUCache<string, LineEndingType>({
   fetchMethod: path => detectRepoLineEndingsDirect(path),
   ttl: 5 * 60 * 1000,
   ttlAutopurge: false,
-  max: 1000,
+  max: 1000
 })
 
-export async function detectRepoLineEndings(
-  filePath: string,
-): Promise<LineEndingType | undefined> {
+export async function detectRepoLineEndings(filePath: string): Promise<LineEndingType | undefined> {
   return repoEndingCache.fetch(resolve(filePath))
 }
 
-export async function detectRepoLineEndingsDirect(
-  cwd: string,
-): Promise<LineEndingType> {
+export async function detectRepoLineEndingsDirect(cwd: string): Promise<LineEndingType> {
   const abortController = new AbortController()
   setTimeout(() => {
     abortController.abort()
@@ -179,11 +158,7 @@ export async function detectRepoLineEndingsDirect(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-function fetch<K extends {}, V extends {}>(
-  cache: LRUCache<K, V>,
-  key: K,
-  value: () => V,
-): V {
+function fetch<K extends {}, V extends {}>(cache: LRUCache<K, V>, key: K, value: () => V): V {
   if (cache.has(key)) {
     return cache.get(key)!
   }
@@ -197,7 +172,7 @@ const fileEncodingCache = new LRUCache<string, BufferEncoding>({
   fetchMethod: path => detectFileEncodingDirect(path),
   ttl: 5 * 60 * 1000,
   ttlAutopurge: false,
-  max: 1000,
+  max: 1000
 })
 
 export function detectFileEncoding(filePath: string): BufferEncoding {
@@ -218,12 +193,7 @@ export function detectFileEncodingDirect(filePath: string): BufferEncoding {
       if (buffer[0] === 0xff && buffer[1] === 0xfe) return 'utf16le'
     }
 
-    if (
-      bytesRead >= 3 &&
-      buffer[0] === 0xef &&
-      buffer[1] === 0xbb &&
-      buffer[2] === 0xbf
-    ) {
+    if (bytesRead >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
       return 'utf8'
     }
 
@@ -241,7 +211,7 @@ const lineEndingCache = new LRUCache<string, LineEndingType>({
   fetchMethod: path => detectLineEndingsDirect(path),
   ttl: 5 * 60 * 1000,
   ttlAutopurge: false,
-  max: 1000,
+  max: 1000
 })
 
 export function detectLineEndings(filePath: string): LineEndingType {
@@ -249,10 +219,7 @@ export function detectLineEndings(filePath: string): LineEndingType {
   return fetch(lineEndingCache, k, () => detectLineEndingsDirect(k))
 }
 
-export function detectLineEndingsDirect(
-  filePath: string,
-  encoding: BufferEncoding = 'utf8',
-): LineEndingType {
+export function detectLineEndingsDirect(filePath: string, encoding: BufferEncoding = 'utf8'): LineEndingType {
   try {
     const buffer = Buffer.alloc(4096)
     const fd = openSync(filePath, 'r')
@@ -281,24 +248,16 @@ export function detectLineEndingsDirect(
 }
 
 export function normalizeFilePath(filePath: string): string {
-  const absoluteFilePath = isAbsolute(filePath)
-    ? filePath
-    : resolve(getCwd(), filePath)
+  const absoluteFilePath = isAbsolute(filePath) ? filePath : resolve(getCwd(), filePath)
 
   // One weird trick for half-width space characters in MacOS screenshot filenames
   if (absoluteFilePath.endsWith(' AM.png')) {
-    return absoluteFilePath.replace(
-      ' AM.png',
-      `${String.fromCharCode(8239)}AM.png`,
-    )
+    return absoluteFilePath.replace(' AM.png', `${String.fromCharCode(8239)}AM.png`)
   }
 
   // One weird trick for half-width space characters in MacOS screenshot filenames
   if (absoluteFilePath.endsWith(' PM.png')) {
-    return absoluteFilePath.replace(
-      ' PM.png',
-      `${String.fromCharCode(8239)}PM.png`,
-    )
+    return absoluteFilePath.replace(' PM.png', `${String.fromCharCode(8239)}PM.png`)
   }
 
   return absoluteFilePath
@@ -313,10 +272,8 @@ export function getAbsoluteAndRelativePaths(path: string | undefined): {
   relativePath: string | undefined
 } {
   const absolutePath = getAbsolutePath(path)
-  const relativePath = absolutePath
-    ? relative(getCwd(), absolutePath)
-    : undefined
-  return { absolutePath, relativePath }
+  const relativePath = absolutePath ? relative(getCwd(), absolutePath) : undefined
+  return {absolutePath, relativePath}
 }
 
 /**
@@ -340,9 +297,7 @@ export function findSimilarFile(filePath: string): string | undefined {
 
     // Find files with the same base name but different extension
     const similarFiles = files.filter(
-      file =>
-        basename(file, extname(file)) === fileBaseName &&
-        join(dir, file) !== filePath,
+      file => basename(file, extname(file)) === fileBaseName && join(dir, file) !== filePath
     )
 
     // Return just the filename of the first match if found
@@ -364,7 +319,7 @@ export function findSimilarFile(filePath: string): string | undefined {
 export function addLineNumbers({
   content,
   // 1-indexed
-  startLine,
+  startLine
 }: {
   content: string
   startLine: number

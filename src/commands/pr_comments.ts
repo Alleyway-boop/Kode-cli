@@ -1,4 +1,4 @@
-import { Command } from '@commands'
+import {Command} from '@commands'
 
 export default {
   type: 'prompt',
@@ -50,10 +50,10 @@ Remember:
 5. Use jq to parse the JSON responses from the GitHub API
 
 ${args ? 'Additional user input: ' + args : ''}
-`,
-          },
-        ],
-      },
+`
+          }
+        ]
+      }
     ]
-  },
+  }
 } satisfies Command

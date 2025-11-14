@@ -1,19 +1,13 @@
-import {
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-  readFileSync,
-  promises as fsPromises,
-} from 'fs'
-import { dirname, join } from 'path'
-import { captureException } from '@services/sentry'
-import { randomUUID } from 'crypto'
+import {existsSync, mkdirSync, writeFileSync, readFileSync, promises as fsPromises} from 'fs'
+import {dirname, join} from 'path'
+import {captureException} from '@services/sentry'
+import {randomUUID} from 'crypto'
 import envPaths from 'env-paths'
-import type { LogOption, SerializedMessage } from '@kode-types/logs'
-import { MACRO } from '@constants/macros'
-import { PRODUCT_COMMAND } from '@constants/product'
+import type {LogOption, SerializedMessage} from '@kode-types/logs'
+import {MACRO} from '@constants/macros'
+import {PRODUCT_COMMAND} from '@constants/product'
 
-const IN_MEMORY_ERROR_LOG: Array<{ error: string; timestamp: string }> = []
+const IN_MEMORY_ERROR_LOG: Array<{error: string; timestamp: string}> = []
 const MAX_IN_MEMORY_ERRORS = 100 // Limit to prevent memory issues
 
 const PERMISSION_ERROR_CODES = new Set(['EACCES', 'EPERM', 'EROFS'])
@@ -30,7 +24,7 @@ function isPermissionError(error: unknown): error is NodeJS.ErrnoException {
 function safeMkdir(dir: string): boolean {
   if (existsSync(dir)) return true
   try {
-    mkdirSync(dir, { recursive: true })
+    mkdirSync(dir, {recursive: true})
     return true
   } catch (error) {
     if (isPermissionError(error)) {
@@ -63,8 +57,7 @@ function getProjectDir(cwd: string): string {
 export const CACHE_PATHS = {
   errors: () => join(paths.cache, getProjectDir(process.cwd()), 'errors'),
   messages: () => join(paths.cache, getProjectDir(process.cwd()), 'messages'),
-  mcpLogs: (serverName: string) =>
-    join(paths.cache, getProjectDir(process.cwd()), `mcp-logs-${serverName}`),
+  mcpLogs: (serverName: string) => join(paths.cache, getProjectDir(process.cwd()), `mcp-logs-${serverName}`)
 }
 
 export function dateToFilename(date: Date): string {
@@ -77,16 +70,12 @@ function getErrorsPath(): string {
   return join(CACHE_PATHS.errors(), DATE + '.txt')
 }
 
-export function getMessagesPath(
-  messageLogName: string,
-  forkNumber: number,
-  sidechainNumber: number,
-): string {
+export function getMessagesPath(messageLogName: string, forkNumber: number, sidechainNumber: number): string {
   return join(
     CACHE_PATHS.messages(),
     `${messageLogName}${forkNumber > 0 ? `-${forkNumber}` : ''}${
       sidechainNumber > 0 ? `-sidechain-${sidechainNumber}` : ''
-    }.json`,
+    }.json`
   )
 }
 
@@ -96,12 +85,11 @@ export function logError(error: unknown): void {
       console.error(error)
     }
 
-    const errorStr =
-      error instanceof Error ? error.stack || error.message : String(error)
+    const errorStr = error instanceof Error ? error.stack || error.message : String(error)
 
     const errorInfo = {
       error: errorStr,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date().toISOString()
     }
 
     if (IN_MEMORY_ERROR_LOG.length >= MAX_IN_MEMORY_ERRORS) {
@@ -110,7 +98,7 @@ export function logError(error: unknown): void {
     IN_MEMORY_ERROR_LOG.push(errorInfo)
 
     appendToLog(getErrorsPath(), {
-      error: errorStr,
+      error: errorStr
     })
   } catch {
     // pass
@@ -160,7 +148,7 @@ function appendToLog(path: string, message: object): void {
     userType: process.env.USER_TYPE,
     sessionId: SESSION_ID,
     timestamp: new Date().toISOString(),
-    version: MACRO.VERSION,
+    version: MACRO.VERSION
   }
   messages.push(messageWithTimestamp)
 
@@ -187,15 +175,13 @@ export function overwriteLog(path: string, messages: object[]): void {
     userType: process.env.USER_TYPE,
     sessionId: SESSION_ID,
     timestamp: new Date().toISOString(),
-    version: MACRO.VERSION,
+    version: MACRO.VERSION
   }))
 
   safeWriteFile(path, JSON.stringify(messagesWithMetadata, null, 2))
 }
 
-export async function loadLogList(
-  path = CACHE_PATHS.messages(),
-): Promise<LogOption[]> {
+export async function loadLogList(path = CACHE_PATHS.messages()): Promise<LogOption[]> {
   if (!existsSync(path)) {
     logError(`No logs found at ${path}`)
     return []
@@ -210,12 +196,11 @@ export async function loadLogList(
       const firstMessage = messages[0]
       const lastMessage = messages[messages.length - 1]
       const firstPrompt =
-        firstMessage?.type === 'user' &&
-        typeof firstMessage?.message?.content === 'string'
+        firstMessage?.type === 'user' && typeof firstMessage?.message?.content === 'string'
           ? firstMessage?.message?.content
           : 'No prompt'
 
-      const { date, forkNumber, sidechainNumber } = parseLogFilename(file)
+      const {date, forkNumber, sidechainNumber} = parseLogFilename(file)
       return {
         date,
         forkNumber,
@@ -223,21 +208,17 @@ export async function loadLogList(
         messages,
         value: i, // hack: overwritten after sorting, right below this
         created: parseISOString(firstMessage?.timestamp || date),
-        modified: lastMessage?.timestamp
-          ? parseISOString(lastMessage.timestamp)
-          : parseISOString(date),
-        firstPrompt:
-          firstPrompt.split('\n')[0]?.slice(0, 50) +
-            (firstPrompt.length > 50 ? '…' : '') || 'No prompt',
+        modified: lastMessage?.timestamp ? parseISOString(lastMessage.timestamp) : parseISOString(date),
+        firstPrompt: firstPrompt.split('\n')[0]?.slice(0, 50) + (firstPrompt.length > 50 ? '…' : '') || 'No prompt',
         messageCount: messages.length,
-        sidechainNumber,
+        sidechainNumber
       }
-    }),
+    })
   )
 
   return sortLogs(logData.filter(_ => _.messages.length)).map((_, i) => ({
     ..._,
-    value: i,
+    value: i
   }))
 }
 
@@ -275,14 +256,14 @@ export function parseLogFilename(filename: string): {
     date = base
   }
 
-  return { date, forkNumber, sidechainNumber }
+  return {date, forkNumber, sidechainNumber}
 }
 
 export function getNextAvailableLogForkNumber(
   date: string,
   forkNumber: number,
   // Main chain has sidechainNumber 0
-  sidechainNumber: number,
+  sidechainNumber: number
 ): number {
   while (existsSync(getMessagesPath(date, forkNumber, sidechainNumber))) {
     forkNumber++
@@ -290,10 +271,7 @@ export function getNextAvailableLogForkNumber(
   return forkNumber
 }
 
-export function getNextAvailableLogSidechainNumber(
-  date: string,
-  forkNumber: number,
-): number {
+export function getNextAvailableLogSidechainNumber(date: string, forkNumber: number): number {
   let sidechainNumber = 1
   while (existsSync(getMessagesPath(date, forkNumber, sidechainNumber))) {
     sidechainNumber++
@@ -301,9 +279,7 @@ export function getNextAvailableLogSidechainNumber(
   return sidechainNumber
 }
 
-export function getForkNumberFromFilename(
-  filename: string,
-): number | undefined {
+export function getForkNumberFromFilename(filename: string): number | undefined {
   const base = filename.split('.')[0]!
   const segments = base.split('-')
   const hasSidechain = base.includes('-sidechain-')
@@ -354,7 +330,7 @@ export function formatDate(date: Date): string {
     .toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
+      hour12: true
     })
     .toLowerCase()
 
@@ -366,7 +342,7 @@ export function formatDate(date: Date): string {
     return (
       date.toLocaleDateString('en-US', {
         month: 'short',
-        day: 'numeric',
+        day: 'numeric'
       }) + ` at ${timeStr}`
     )
   }
@@ -382,22 +358,21 @@ export function parseISOString(s: string): Date {
       parseInt(b[3]!, 10),
       parseInt(b[4]!, 10),
       parseInt(b[5]!, 10),
-      parseInt(b[6]!, 10),
-    ),
+      parseInt(b[6]!, 10)
+    )
   )
 }
 
 export function logMCPError(serverName: string, error: unknown): void {
   try {
     const logDir = CACHE_PATHS.mcpLogs(serverName)
-    const errorStr =
-      error instanceof Error ? error.stack || error.message : String(error)
+    const errorStr = error instanceof Error ? error.stack || error.message : String(error)
     const timestamp = new Date().toISOString()
 
     const logFile = join(logDir, DATE + '.txt')
 
     if (!existsSync(logDir)) {
-      mkdirSync(logDir, { recursive: true })
+      mkdirSync(logDir, {recursive: true})
     }
 
     if (!existsSync(logFile)) {
@@ -408,7 +383,7 @@ export function logMCPError(serverName: string, error: unknown): void {
       error: errorStr,
       timestamp,
       sessionId: SESSION_ID,
-      cwd: process.cwd(),
+      cwd: process.cwd()
     }
 
     const messages = readLog(logFile)

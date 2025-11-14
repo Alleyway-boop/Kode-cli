@@ -1,30 +1,14 @@
-import {
-  Message as APIAssistantMessage,
-  MessageParam,
-  ToolUseBlock,
-} from '@anthropic-ai/sdk/resources/index.mjs'
-import type { UUID } from './types/common'
-import type { Tool, ToolUseContext } from './Tool'
-import {
-  messagePairValidForBinaryFeedback,
-  shouldUseBinaryFeedback,
-} from '@components/binary-feedback/utils'
-import { CanUseToolFn } from './hooks/useCanUseTool'
-import {
-  formatSystemPromptWithContext,
-  queryLLM,
-  queryModel,
-} from '@services/claude'
-import { emitReminderEvent } from '@services/systemReminder'
-import { all } from '@utils/generators'
-import { logError } from '@utils/log'
-import {
-  debug as debugLogger,
-  markPhase,
-  getCurrentRequest,
-  logUserFriendly,
-} from './utils/debugLogger'
-import { getModelManager } from '@utils/model'
+import {Message as APIAssistantMessage, MessageParam, ToolUseBlock} from '@anthropic-ai/sdk/resources/index.mjs'
+import type {UUID} from './types/common'
+import type {Tool, ToolUseContext} from './Tool'
+import {messagePairValidForBinaryFeedback, shouldUseBinaryFeedback} from '@components/binary-feedback/utils'
+import {CanUseToolFn} from './hooks/useCanUseTool'
+import {formatSystemPromptWithContext, queryLLM, queryModel} from '@services/claude'
+import {emitReminderEvent} from '@services/systemReminder'
+import {all} from '@utils/generators'
+import {logError} from '@utils/log'
+import {debug as debugLogger, markPhase, getCurrentRequest, logUserFriendly} from './utils/debugLogger'
+import {getModelManager} from '@utils/model'
 import {
   createAssistantMessage,
   createProgressMessage,
@@ -34,12 +18,12 @@ import {
   INTERRUPT_MESSAGE,
   INTERRUPT_MESSAGE_FOR_TOOL_USE,
   NormalizedMessage,
-  normalizeMessagesForAPI,
+  normalizeMessagesForAPI
 } from '@utils/messages'
-import { createToolExecutionController } from '@utils/toolExecutionController'
-import { BashTool } from '@tools/BashTool/BashTool'
-import { getCwd } from './utils/state'
-import { checkAutoCompact } from './utils/autoCompactCore'
+import {createToolExecutionController} from '@utils/toolExecutionController'
+import {BashTool} from '@tools/BashTool/BashTool'
+import {getCwd} from './utils/state'
+import {checkAutoCompact} from './utils/autoCompactCore'
 
 // Extended ToolUseContext for query functions
 interface ExtendedToolUseContext extends ToolUseContext {
@@ -55,12 +39,12 @@ interface ExtendedToolUseContext extends ToolUseContext {
     isKodingRequest?: boolean
     model?: string | import('./utils/config').ModelPointerType
   }
-  readFileTimestamps: { [filename: string]: number }
+  readFileTimestamps: {[filename: string]: number}
   setToolJSX: (jsx: any) => void
   requestId?: string
 }
 
-export type Response = { costUSD: number; response: string }
+export type Response = {costUSD: number; response: string}
 export type UserMessage = {
   message: MessageParam
   type: 'user'
@@ -86,8 +70,8 @@ export type AssistantMessage = {
 }
 
 export type BinaryFeedbackResult =
-  | { message: AssistantMessage | null; shouldSkipPermissionCheck: false }
-  | { message: AssistantMessage; shouldSkipPermissionCheck: true }
+  | {message: AssistantMessage | null; shouldSkipPermissionCheck: false}
+  | {message: AssistantMessage; shouldSkipPermissionCheck: true}
 
 export type ProgressMessage = {
   content: AssistantMessage
@@ -108,39 +92,29 @@ const MAX_TOOL_USE_CONCURRENCY = 10
 async function queryWithBinaryFeedback(
   toolUseContext: ExtendedToolUseContext,
   getAssistantResponse: () => Promise<AssistantMessage>,
-  getBinaryFeedbackResponse?: (
-    m1: AssistantMessage,
-    m2: AssistantMessage,
-  ) => Promise<BinaryFeedbackResult>,
+  getBinaryFeedbackResponse?: (m1: AssistantMessage, m2: AssistantMessage) => Promise<BinaryFeedbackResult>
 ): Promise<BinaryFeedbackResult> {
-  if (
-    process.env.USER_TYPE !== 'ant' ||
-    !getBinaryFeedbackResponse ||
-    !(await shouldUseBinaryFeedback())
-  ) {
+  if (process.env.USER_TYPE !== 'ant' || !getBinaryFeedbackResponse || !(await shouldUseBinaryFeedback())) {
     const assistantMessage = await getAssistantResponse()
     if (toolUseContext.abortController.signal.aborted) {
-      return { message: null, shouldSkipPermissionCheck: false }
+      return {message: null, shouldSkipPermissionCheck: false}
     }
-    return { message: assistantMessage, shouldSkipPermissionCheck: false }
+    return {message: assistantMessage, shouldSkipPermissionCheck: false}
   }
-  const [m1, m2] = await Promise.all([
-    getAssistantResponse(),
-    getAssistantResponse(),
-  ])
+  const [m1, m2] = await Promise.all([getAssistantResponse(), getAssistantResponse()])
   if (toolUseContext.abortController.signal.aborted) {
-    return { message: null, shouldSkipPermissionCheck: false }
+    return {message: null, shouldSkipPermissionCheck: false}
   }
   if (m2.isApiErrorMessage) {
     // If m2 is an error, we might as well return m1, even if it's also an error --
     // the UI will display it as an error as it would in the non-feedback path.
-    return { message: m1, shouldSkipPermissionCheck: false }
+    return {message: m1, shouldSkipPermissionCheck: false}
   }
   if (m1.isApiErrorMessage) {
-    return { message: m2, shouldSkipPermissionCheck: false }
+    return {message: m2, shouldSkipPermissionCheck: false}
   }
   if (!messagePairValidForBinaryFeedback(m1, m2)) {
-    return { message: m1, shouldSkipPermissionCheck: false }
+    return {message: m1, shouldSkipPermissionCheck: false}
   }
   return await getBinaryFeedbackResponse(m1, m2)
 }
@@ -161,37 +135,34 @@ async function queryWithBinaryFeedback(
 export async function* query(
   messages: Message[],
   systemPrompt: string[],
-  context: { [k: string]: string },
+  context: {[k: string]: string},
   canUseTool: CanUseToolFn,
   toolUseContext: ExtendedToolUseContext,
-  getBinaryFeedbackResponse?: (
-    m1: AssistantMessage,
-    m2: AssistantMessage,
-  ) => Promise<BinaryFeedbackResult>,
+  getBinaryFeedbackResponse?: (m1: AssistantMessage, m2: AssistantMessage) => Promise<BinaryFeedbackResult>
 ): AsyncGenerator<Message, void> {
   const currentRequest = getCurrentRequest()
 
   markPhase('QUERY_INIT')
 
   // Auto-compact check
-  const { messages: processedMessages, wasCompacted } = await checkAutoCompact(
-    messages,
-    toolUseContext,
-  )
+  const {messages: processedMessages, wasCompacted} = await checkAutoCompact(messages, toolUseContext)
   if (wasCompacted) {
     messages = processedMessages
   }
 
   markPhase('SYSTEM_PROMPT_BUILD')
-  
-  const { systemPrompt: fullSystemPrompt, reminders } =
-    formatSystemPromptWithContext(systemPrompt, context, toolUseContext.agentId)
+
+  const {systemPrompt: fullSystemPrompt, reminders} = formatSystemPromptWithContext(
+    systemPrompt,
+    context,
+    toolUseContext.agentId
+  )
 
   // Emit session startup event
   emitReminderEvent('session:startup', {
     agentId: toolUseContext.agentId,
     messages: messages.length,
-    timestamp: Date.now(),
+    timestamp: Date.now()
   })
 
   // Inject reminders into the latest user message
@@ -209,12 +180,10 @@ export async function* query(
               typeof lastUserMessage.message.content === 'string'
                 ? reminders + lastUserMessage.message.content
                 : [
-                    ...(Array.isArray(lastUserMessage.message.content)
-                      ? lastUserMessage.message.content
-                      : []),
-                    { type: 'text', text: reminders },
-                  ],
-          },
+                    ...(Array.isArray(lastUserMessage.message.content) ? lastUserMessage.message.content : []),
+                    {type: 'text', text: reminders}
+                  ]
+          }
         }
         break
       }
@@ -234,18 +203,14 @@ export async function* query(
         safeMode: toolUseContext.options.safeMode ?? false,
         model: toolUseContext.options.model || 'main',
         prependCLISysprompt: true,
-        toolUseContext: toolUseContext,
-      },
+        toolUseContext: toolUseContext
+      }
     )
   }
 
-  const result = await queryWithBinaryFeedback(
-    toolUseContext,
-    getAssistantResponse,
-    getBinaryFeedbackResponse,
-  )
+  const result = await queryWithBinaryFeedback(toolUseContext, getAssistantResponse, getBinaryFeedbackResponse)
 
-  // If request was cancelled, return immediately with interrupt message  
+  // If request was cancelled, return immediately with interrupt message
   if (toolUseContext.abortController.signal.aborted) {
     yield createAssistantMessage(INTERRUPT_MESSAGE)
     return
@@ -263,9 +228,7 @@ export async function* query(
 
   // @see https://docs.anthropic.com/en/docs/build-with-claude/tool-use
   // Note: stop_reason === 'tool_use' is unreliable -- it's not always set correctly
-  const toolUseMessages = assistantMessage.message.content.filter(
-    _ => _.type === 'tool_use',
-  )
+  const toolUseMessages = assistantMessage.message.content.filter(_ => _.type === 'tool_use')
 
   // If there's no more tool use, we're done
   if (!toolUseMessages.length) {
@@ -273,10 +236,10 @@ export async function* query(
   }
 
   const toolResults: UserMessage[] = []
-  
+
   // Simple concurrency check like original system
   const canRunConcurrently = toolUseMessages.every(msg =>
-    toolUseContext.options.tools.find(t => t.name === msg.name)?.isReadOnly(),
+    toolUseContext.options.tools.find(t => t.name === msg.name)?.isReadOnly()
   )
 
   if (canRunConcurrently) {
@@ -285,7 +248,7 @@ export async function* query(
       assistantMessage,
       canUseTool,
       toolUseContext,
-      shouldSkipPermissionCheck,
+      shouldSkipPermissionCheck
     )) {
       yield message
       // progress messages are not sent to the server, so don't need to be accumulated for the next turn
@@ -299,7 +262,7 @@ export async function* query(
       assistantMessage,
       canUseTool,
       toolUseContext,
-      shouldSkipPermissionCheck,
+      shouldSkipPermissionCheck
     )) {
       yield message
       // progress messages are not sent to the server, so don't need to be accumulated for the next turn
@@ -316,12 +279,8 @@ export async function* query(
 
   // Sort toolResults to match the order of toolUseMessages
   const orderedToolResults = toolResults.sort((a, b) => {
-    const aIndex = toolUseMessages.findIndex(
-      tu => tu.id === (a.message.content[0] as ToolUseBlock).id,
-    )
-    const bIndex = toolUseMessages.findIndex(
-      tu => tu.id === (b.message.content[0] as ToolUseBlock).id,
-    )
+    const aIndex = toolUseMessages.findIndex(tu => tu.id === (a.message.content[0] as ToolUseBlock).id)
+    const bIndex = toolUseMessages.findIndex(tu => tu.id === (b.message.content[0] as ToolUseBlock).id)
     return aIndex - bIndex
   })
 
@@ -334,7 +293,7 @@ export async function* query(
       context,
       canUseTool,
       toolUseContext,
-      getBinaryFeedbackResponse,
+      getBinaryFeedbackResponse
     )
   } catch (error) {
     // Re-throw the error to maintain the original behavior
@@ -347,7 +306,7 @@ async function* runToolsConcurrently(
   assistantMessage: AssistantMessage,
   canUseTool: CanUseToolFn,
   toolUseContext: ExtendedToolUseContext,
-  shouldSkipPermissionCheck?: boolean,
+  shouldSkipPermissionCheck?: boolean
 ): AsyncGenerator<Message, void> {
   yield* all(
     toolUseMessages.map(toolUse =>
@@ -357,10 +316,10 @@ async function* runToolsConcurrently(
         assistantMessage,
         canUseTool,
         toolUseContext,
-        shouldSkipPermissionCheck,
-      ),
+        shouldSkipPermissionCheck
+      )
     ),
-    MAX_TOOL_USE_CONCURRENCY,
+    MAX_TOOL_USE_CONCURRENCY
   )
 }
 
@@ -369,7 +328,7 @@ async function* runToolsSerially(
   assistantMessage: AssistantMessage,
   canUseTool: CanUseToolFn,
   toolUseContext: ExtendedToolUseContext,
-  shouldSkipPermissionCheck?: boolean,
+  shouldSkipPermissionCheck?: boolean
 ): AsyncGenerator<Message, void> {
   for (const toolUse of toolUseMessages) {
     yield* runToolUse(
@@ -378,7 +337,7 @@ async function* runToolsSerially(
       assistantMessage,
       canUseTool,
       toolUseContext,
-      shouldSkipPermissionCheck,
+      shouldSkipPermissionCheck
     )
   }
 }
@@ -389,7 +348,7 @@ export async function* runToolUse(
   assistantMessage: AssistantMessage,
   canUseTool: CanUseToolFn,
   toolUseContext: ExtendedToolUseContext,
-  shouldSkipPermissionCheck?: boolean,
+  shouldSkipPermissionCheck?: boolean
 ): AsyncGenerator<Message, void> {
   const currentRequest = getCurrentRequest()
 
@@ -400,7 +359,7 @@ export async function* runToolUse(
     inputSize: JSON.stringify(toolUse.input).length,
     siblingToolCount: siblingToolUseIDs.size,
     shouldSkipPermissionCheck: !!shouldSkipPermissionCheck,
-    requestId: currentRequest?.id,
+    requestId: currentRequest?.id
   })
 
   logUserFriendly(
@@ -408,13 +367,10 @@ export async function* runToolUse(
     {
       toolName: toolUse.name,
       action: 'Starting',
-      target: toolUse.input ? Object.keys(toolUse.input).join(', ') : '',
+      target: toolUse.input ? Object.keys(toolUse.input).join(', ') : ''
     },
-    currentRequest?.id,
+    currentRequest?.id
   )
-
-
-  
 
   const toolName = toolUse.name
   const tool = toolUseContext.options.tools.find(t => t.name === toolName)
@@ -425,29 +381,27 @@ export async function* runToolUse(
       requestedTool: toolName,
       availableTools: toolUseContext.options.tools.map(t => t.name),
       toolUseID: toolUse.id,
-      requestId: currentRequest?.id,
+      requestId: currentRequest?.id
     })
-
-    
 
     yield createUserMessage([
       {
         type: 'tool_result',
         content: `Error: No such tool available: ${toolName}`,
         is_error: true,
-        tool_use_id: toolUse.id,
-      },
+        tool_use_id: toolUse.id
+      }
     ])
     return
   }
 
-  const toolInput = toolUse.input as { [key: string]: string }
+  const toolInput = toolUse.input as {[key: string]: string}
 
   debugLogger.flow('TOOL_VALIDATION_START', {
     toolName: tool.name,
     toolUseID: toolUse.id,
     inputKeys: Object.keys(toolInput),
-    requestId: currentRequest?.id,
+    requestId: currentRequest?.id
   })
 
   try {
@@ -457,21 +411,17 @@ export async function* runToolUse(
         toolName: tool.name,
         toolUseID: toolUse.id,
         abortReason: 'AbortController signal',
-        requestId: currentRequest?.id,
+        requestId: currentRequest?.id
       })
 
-      
-
-      const message = createUserMessage([
-        createToolResultStopMessage(toolUse.id),
-      ])
+      const message = createUserMessage([createToolResultStopMessage(toolUse.id)])
       yield message
       return
     }
 
     // Track if any progress messages were yielded
     let hasProgressMessages = false
-    
+
     for await (const message of checkPermissionsAndCallTool(
       tool,
       toolUse.id,
@@ -480,7 +430,7 @@ export async function* runToolUse(
       toolUseContext,
       canUseTool,
       assistantMessage,
-      shouldSkipPermissionCheck,
+      shouldSkipPermissionCheck
     )) {
       // 🔧 Check for cancellation during tool execution
       if (toolUseContext.abortController.signal.aborted) {
@@ -489,18 +439,16 @@ export async function* runToolUse(
           toolUseID: toolUse.id,
           hasProgressMessages,
           abortReason: 'AbortController signal during execution',
-          requestId: currentRequest?.id,
+          requestId: currentRequest?.id
         })
 
         // If we yielded progress messages but got cancelled, yield a cancellation result
         if (hasProgressMessages && message.type === 'progress') {
           yield message // yield the last progress message first
         }
-        
+
         // Always yield a tool result message for cancellation to clear UI state
-        const cancelMessage = createUserMessage([
-          createToolResultStopMessage(toolUse.id),
-        ])
+        const cancelMessage = createUserMessage([createToolResultStopMessage(toolUse.id)])
         yield cancelMessage
         return
       }
@@ -508,20 +456,20 @@ export async function* runToolUse(
       if (message.type === 'progress') {
         hasProgressMessages = true
       }
-      
+
       yield message
     }
   } catch (e) {
     logError(e)
-    
+
     // 🔧 Even on error, ensure we yield a tool result to clear UI state
     const errorMessage = createUserMessage([
       {
         type: 'tool_result',
         content: `Tool execution failed: ${e instanceof Error ? e.message : String(e)}`,
         is_error: true,
-        tool_use_id: toolUse.id,
-      },
+        tool_use_id: toolUse.id
+      }
     ])
     yield errorMessage
   }
@@ -530,14 +478,14 @@ export async function* runToolUse(
 // TODO: Generalize this to all tools
 export function normalizeToolInput(
   tool: Tool,
-  input: { [key: string]: boolean | string | number },
-): { [key: string]: boolean | string | number } {
+  input: {[key: string]: boolean | string | number}
+): {[key: string]: boolean | string | number} {
   switch (tool) {
     case BashTool: {
-      const { command, timeout } = BashTool.inputSchema.parse(input) // already validated upstream, won't throw
+      const {command, timeout} = BashTool.inputSchema.parse(input) // already validated upstream, won't throw
       return {
         command: command.replace(`cd ${getCwd()} && `, ''),
-        ...(timeout ? { timeout } : {}),
+        ...(timeout ? {timeout} : {})
       }
     }
     default:
@@ -549,11 +497,11 @@ async function* checkPermissionsAndCallTool(
   tool: Tool,
   toolUseID: string,
   siblingToolUseIDs: Set<string>,
-  input: { [key: string]: boolean | string | number },
+  input: {[key: string]: boolean | string | number},
   context: ToolUseContext,
   canUseTool: CanUseToolFn,
   assistantMessage: AssistantMessage,
-  shouldSkipPermissionCheck?: boolean,
+  shouldSkipPermissionCheck?: boolean
 ): AsyncGenerator<UserMessage | ProgressMessage, void> {
   // Validate input types with zod
   // (surprisingly, the model is not great at generating valid input)
@@ -561,20 +509,19 @@ async function* checkPermissionsAndCallTool(
   if (!isValidInput.success) {
     // Create a more helpful error message for common cases
     let errorMessage = `InputValidationError: ${isValidInput.error.message}`
-    
+
     // Special handling for the "View" tool (FileReadTool) being called with empty parameters
     if (tool.name === 'View' && Object.keys(input).length === 0) {
       errorMessage = `Error: The View tool requires a 'file_path' parameter to specify which file to read. Please provide the absolute path to the file you want to view. For example: {"file_path": "/path/to/file.txt"}`
     }
-    
-    
+
     yield createUserMessage([
       {
         type: 'tool_result',
         content: errorMessage,
         is_error: true,
-        tool_use_id: toolUseID,
-      },
+        tool_use_id: toolUseID
+      }
     ])
     return
   }
@@ -582,18 +529,15 @@ async function* checkPermissionsAndCallTool(
   const normalizedInput = normalizeToolInput(tool, input)
 
   // Validate input values. Each tool has its own validation logic
-  const isValidCall = await tool.validateInput?.(
-    normalizedInput as never,
-    context,
-  )
+  const isValidCall = await tool.validateInput?.(normalizedInput as never, context)
   if (isValidCall?.result === false) {
     yield createUserMessage([
       {
         type: 'tool_result',
         content: isValidCall!.message,
         is_error: true,
-        tool_use_id: toolUseID,
-      },
+        tool_use_id: toolUseID
+      }
     ])
     return
   }
@@ -601,7 +545,7 @@ async function* checkPermissionsAndCallTool(
   // Check whether we have permission to use the tool,
   // and ask the user for permission if we don't
   const permissionResult = shouldSkipPermissionCheck
-    ? ({ result: true } as const)
+    ? ({result: true} as const)
     : await canUseTool(tool, normalizedInput, context, assistantMessage)
   if (permissionResult.result === false) {
     yield createUserMessage([
@@ -609,8 +553,8 @@ async function* checkPermissionsAndCallTool(
         type: 'tool_result',
         content: permissionResult.message,
         is_error: true,
-        tool_use_id: toolUseID,
-      },
+        tool_use_id: toolUseID
+      }
     ])
     return
   }
@@ -621,29 +565,27 @@ async function* checkPermissionsAndCallTool(
     for await (const result of generator) {
       switch (result.type) {
         case 'result':
-          
           yield createUserMessage(
             [
               {
                 type: 'tool_result',
                 content: result.resultForAssistant || String(result.data),
-                tool_use_id: toolUseID,
-              },
+                tool_use_id: toolUseID
+              }
             ],
             {
               data: result.data,
-              resultForAssistant: result.resultForAssistant || String(result.data),
-            },
+              resultForAssistant: result.resultForAssistant || String(result.data)
+            }
           )
           return
         case 'progress':
-          
           yield createProgressMessage(
             toolUseID,
             siblingToolUseIDs,
             result.content,
             result.normalizedMessages || [],
-            result.tools || [],
+            result.tools || []
           )
           break
       }
@@ -651,14 +593,14 @@ async function* checkPermissionsAndCallTool(
   } catch (error) {
     const content = formatError(error)
     logError(error)
-    
+
     yield createUserMessage([
       {
         type: 'tool_result',
         content,
         is_error: true,
-        tool_use_id: toolUseID,
-      },
+        tool_use_id: toolUseID
+      }
     ])
   }
 }

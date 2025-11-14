@@ -37,7 +37,7 @@ export function formatDuration(ms: number): string {
 export function formatNumber(number: number): string {
   return new Intl.NumberFormat('en', {
     notation: 'compact',
-    maximumFractionDigits: 1,
+    maximumFractionDigits: 1
   })
     .format(number) // eg. "1321" => "1.3K"
     .toLowerCase() // eg. "1.3K" => "1.3k"

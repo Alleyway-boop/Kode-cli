@@ -1,19 +1,14 @@
-import { randomUUID, UUID } from 'crypto'
-import { Box } from 'ink'
-import {
-  AssistantMessage,
-  Message,
-  ProgressMessage,
-  UserMessage,
-} from '@query'
-import { getCommand, hasCommand } from '@commands'
-import { MalformedCommandError } from './errors'
-import { logError } from './log'
-import { resolve } from 'path'
-import { last, memoize } from 'lodash-es'
-import type { SetToolJSXFn, Tool, ToolUseContext } from '@tool'
-import { lastX } from '@utils/generators'
-import { NO_CONTENT_MESSAGE } from '@services/claude'
+import {randomUUID, UUID} from 'crypto'
+import {Box} from 'ink'
+import {AssistantMessage, Message, ProgressMessage, UserMessage} from '@query'
+import {getCommand, hasCommand} from '@commands'
+import {MalformedCommandError} from './errors'
+import {logError} from './log'
+import {resolve} from 'path'
+import {last, memoize} from 'lodash-es'
+import type {SetToolJSXFn, Tool, ToolUseContext} from '@tool'
+import {lastX} from '@utils/generators'
+import {NO_CONTENT_MESSAGE} from '@services/claude'
 import {
   ImageBlockParam,
   TextBlockParam,
@@ -21,16 +16,16 @@ import {
   ToolUseBlockParam,
   Message as APIMessage,
   ContentBlockParam,
-  ContentBlock,
+  ContentBlock
 } from '@anthropic-ai/sdk/resources/index.mjs'
-import { setCwd } from './state'
-import { getCwd } from './state'
+import {setCwd} from './state'
+import {getCwd} from './state'
 import chalk from 'chalk'
 import * as React from 'react'
-import { UserBashInputMessage } from '@components/messages/UserBashInputMessage'
-import { Spinner } from '@components/Spinner'
-import { BashTool } from '@tools/BashTool/BashTool'
-import { ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
+import {UserBashInputMessage} from '@components/messages/UserBashInputMessage'
+import {Spinner} from '@components/Spinner'
+import {BashTool} from '@tools/BashTool/BashTool'
+import {ToolUseBlock} from '@anthropic-ai/sdk/resources/index.mjs'
 
 // NOTE: Dynamic content processing for custom commands has been moved to
 // src/services/customCommands.ts for better organization and reusability.
@@ -38,8 +33,7 @@ import { ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
 // duplicated here but are imported when needed for custom command processing.
 
 export const INTERRUPT_MESSAGE = '[Request interrupted by user]'
-export const INTERRUPT_MESSAGE_FOR_TOOL_USE =
-  '[Request interrupted by user for tool use]'
+export const INTERRUPT_MESSAGE_FOR_TOOL_USE = '[Request interrupted by user for tool use]'
 export const CANCEL_MESSAGE =
   "The user doesn't want to take this action right now. STOP what you are doing and wait for the user to tell you how to proceed."
 export const REJECT_MESSAGE =
@@ -51,13 +45,10 @@ export const SYNTHETIC_ASSISTANT_MESSAGES = new Set([
   INTERRUPT_MESSAGE_FOR_TOOL_USE,
   CANCEL_MESSAGE,
   REJECT_MESSAGE,
-  NO_RESPONSE_REQUESTED,
+  NO_RESPONSE_REQUESTED
 ])
 
-function baseCreateAssistantMessage(
-  content: ContentBlock[],
-  extra?: Partial<AssistantMessage>,
-): AssistantMessage {
+function baseCreateAssistantMessage(content: ContentBlock[], extra?: Partial<AssistantMessage>): AssistantMessage {
   return {
     type: 'assistant',
     costUSD: 0,
@@ -74,11 +65,11 @@ function baseCreateAssistantMessage(
         input_tokens: 0,
         output_tokens: 0,
         cache_creation_input_tokens: 0,
-        cache_read_input_tokens: 0,
+        cache_read_input_tokens: 0
       },
-      content,
+      content
     },
-    ...extra,
+    ...extra
   }
 }
 
@@ -87,23 +78,21 @@ export function createAssistantMessage(content: string): AssistantMessage {
     {
       type: 'text' as const,
       text: content === '' ? NO_CONTENT_MESSAGE : content,
-      citations: [],
-    },
+      citations: []
+    }
   ])
 }
 
-export function createAssistantAPIErrorMessage(
-  content: string,
-): AssistantMessage {
+export function createAssistantAPIErrorMessage(content: string): AssistantMessage {
   return baseCreateAssistantMessage(
     [
       {
         type: 'text' as const,
         text: content === '' ? NO_CONTENT_MESSAGE : content,
-        citations: [],
-      },
+        citations: []
+      }
     ],
-    { isApiErrorMessage: true },
+    {isApiErrorMessage: true}
   )
 }
 
@@ -114,16 +103,16 @@ export type FullToolUseResult = {
 
 export function createUserMessage(
   content: string | ContentBlockParam[],
-  toolUseResult?: FullToolUseResult,
+  toolUseResult?: FullToolUseResult
 ): UserMessage {
   const m: UserMessage = {
     type: 'user',
     message: {
       role: 'user',
-      content,
+      content
     },
     uuid: randomUUID(),
-    toolUseResult,
+    toolUseResult
   }
   return m
 }
@@ -133,7 +122,7 @@ export function createProgressMessage(
   siblingToolUseIDs: Set<string>,
   content: AssistantMessage,
   normalizedMessages: NormalizedMessage[],
-  tools: Tool[],
+  tools: Tool[]
 ): ProgressMessage {
   return {
     type: 'progress',
@@ -142,18 +131,16 @@ export function createProgressMessage(
     siblingToolUseIDs,
     tools,
     toolUseID,
-    uuid: randomUUID(),
+    uuid: randomUUID()
   }
 }
 
-export function createToolResultStopMessage(
-  toolUseID: string,
-): ToolResultBlockParam {
+export function createToolResultStopMessage(toolUseID: string): ToolResultBlockParam {
   return {
     type: 'tool_result',
     content: CANCEL_MESSAGE,
     is_error: true,
-    tool_use_id: toolUseID,
+    tool_use_id: toolUseID
   }
 }
 
@@ -162,20 +149,16 @@ export async function processUserInput(
   mode: 'bash' | 'prompt' | 'koding',
   setToolJSX: SetToolJSXFn,
   context: ToolUseContext & {
-    setForkConvoWithMessagesOnTheNextRender: (
-      forkConvoWithMessages: Message[],
-    ) => void
+    setForkConvoWithMessagesOnTheNextRender: (forkConvoWithMessages: Message[]) => void
     options?: {
       isKodingRequest?: boolean
       kodingContext?: string
     }
   },
-  pastedImage: string | null,
+  pastedImage: string | null
 ): Promise<Message[]> {
   // Bash commands
   if (mode === 'bash') {
-    
-
     const userMessage = createUserMessage(`<bash-input>${input}</bash-input>`)
 
     // Special case: cd
@@ -186,17 +169,13 @@ export async function processUserInput(
         await setCwd(newCwd)
         return [
           userMessage,
-          createAssistantMessage(
-            `<bash-stdout>Changed directory to ${chalk.bold(`${newCwd}/`)}</bash-stdout>`,
-          ),
+          createAssistantMessage(`<bash-stdout>Changed directory to ${chalk.bold(`${newCwd}/`)}</bash-stdout>`)
         ]
       } catch (e) {
         logError(e)
         return [
           userMessage,
-          createAssistantMessage(
-            `<bash-stderr>cwd error: ${e instanceof Error ? e.message : String(e)}</bash-stderr>`,
-          ),
+          createAssistantMessage(`<bash-stderr>cwd error: ${e instanceof Error ? e.message : String(e)}</bash-stderr>`)
         ]
       }
     }
@@ -205,35 +184,30 @@ export async function processUserInput(
     setToolJSX({
       jsx: (
         <Box flexDirection="column" marginTop={1}>
-          <UserBashInputMessage
-            addMargin={false}
-            param={{ text: `<bash-input>${input}</bash-input>`, type: 'text' }}
-          />
+          <UserBashInputMessage addMargin={false} param={{text: `<bash-input>${input}</bash-input>`, type: 'text'}} />
           <Spinner />
         </Box>
       ),
-      shouldHidePromptInput: false,
+      shouldHidePromptInput: false
     })
     try {
       const validationResult = await BashTool.validateInput({
-        command: input,
+        command: input
       })
       if (!validationResult.result) {
         return [userMessage, createAssistantMessage(validationResult.message)]
       }
-      const { data } = await lastX(BashTool.call({ command: input }, context))
+      const {data} = await lastX(BashTool.call({command: input}, context))
       return [
         userMessage,
-        createAssistantMessage(
-          `<bash-stdout>${data.stdout}</bash-stdout><bash-stderr>${data.stderr}</bash-stderr>`,
-        ),
+        createAssistantMessage(`<bash-stdout>${data.stdout}</bash-stdout><bash-stderr>${data.stderr}</bash-stderr>`)
       ]
     } catch (e) {
       return [
         userMessage,
         createAssistantMessage(
-          `<bash-stderr>Command failed: ${e instanceof Error ? e.message : String(e)}</bash-stderr>`,
-        ),
+          `<bash-stderr>Command failed: ${e instanceof Error ? e.message : String(e)}</bash-stderr>`
+        )
       ]
     } finally {
       setToolJSX(null)
@@ -241,15 +215,11 @@ export async function processUserInput(
   }
   // Koding mode - special wrapper for display
   else if (mode === 'koding') {
-    
-
-    const userMessage = createUserMessage(
-      `<koding-input>${input}</koding-input>`,
-    )
+    const userMessage = createUserMessage(`<koding-input>${input}</koding-input>`)
     // Add the Koding flag to the message
     userMessage.options = {
       ...userMessage.options,
-      isKodingRequest: true,
+      isKodingRequest: true
     }
 
     // Rest of koding processing is handled separately to capture assistant response
@@ -264,30 +234,21 @@ export async function processUserInput(
       commandName = commandName + ' (MCP)'
     }
     if (!commandName) {
-      
-      return [
-        createAssistantMessage('Commands are in the form `/command [args]`'),
-      ]
+      return [createAssistantMessage('Commands are in the form `/command [args]`')]
     }
 
     // Check if it's a real command before processing
     if (!hasCommand(commandName, context.options.commands)) {
       // If not a real command, treat it as a regular user input
-      
+
       return [createUserMessage(input)]
     }
 
     const args = input.slice(commandName.length + 2)
-    const newMessages = await getMessagesForSlashCommand(
-      commandName,
-      args,
-      setToolJSX,
-      context,
-    )
+    const newMessages = await getMessagesForSlashCommand(commandName, args, setToolJSX, context)
 
     // Local JSX commands
     if (newMessages.length === 0) {
-      
       return []
     }
 
@@ -299,23 +260,20 @@ export async function processUserInput(
       typeof newMessages[1]!.message.content === 'string' &&
       newMessages[1]!.message.content.startsWith('Unknown command:')
     ) {
-      
       return newMessages
     }
 
     // User-Assistant pair (eg. local commands)
     if (newMessages.length === 2) {
-      
       return newMessages
     }
 
     // A valid command
-    
+
     return newMessages
   }
 
   // Regular user prompt
-  
 
   // Check if this is a Koding request that needs special handling
   const isKodingRequest = context.options?.isKodingRequest === true
@@ -331,31 +289,23 @@ export async function processUserInput(
         source: {
           type: 'base64',
           media_type: 'image/png',
-          data: pastedImage,
-        },
+          data: pastedImage
+        }
       },
       {
         type: 'text',
-        text:
-          isKodingRequest && kodingContextInfo
-            ? `${kodingContextInfo}\n\n${input}`
-            : input,
-      },
+        text: isKodingRequest && kodingContextInfo ? `${kodingContextInfo}\n\n${input}` : input
+      }
     ])
   } else {
-    let processedInput =
-      isKodingRequest && kodingContextInfo
-        ? `${kodingContextInfo}\n\n${input}`
-        : input
+    let processedInput = isKodingRequest && kodingContextInfo ? `${kodingContextInfo}\n\n${input}` : input
 
     // Process dynamic content for custom commands with ! and @ prefixes
     // This uses the same processing functions as custom commands to maintain consistency
     if (input.includes('!`') || input.includes('@')) {
       try {
         // Import functions from customCommands service to avoid code duplication
-        const { executeBashCommands } = await import(
-          '@services/customCommands'
-        )
+        const {executeBashCommands} = await import('@services/customCommands')
 
         // Execute bash commands if present
         if (input.includes('!`')) {
@@ -365,10 +315,10 @@ export async function processUserInput(
         }
 
         // Process mentions for system reminder integration
-        // Note: We don't call resolveFileReferences here anymore - 
+        // Note: We don't call resolveFileReferences here anymore -
         // @file mentions should trigger Read tool usage via reminders, not embed content
         if (input.includes('@')) {
-          const { processMentions } = await import('@services/mentionProcessor')
+          const {processMentions} = await import('@services/mentionProcessor')
           await processMentions(input)
         }
       } catch (error) {
@@ -384,7 +334,7 @@ export async function processUserInput(
   if (isKodingRequest) {
     userMessage.options = {
       ...userMessage.options,
-      isKodingRequest: true,
+      isKodingRequest: true
     }
   }
 
@@ -396,10 +346,8 @@ async function getMessagesForSlashCommand(
   args: string,
   setToolJSX: SetToolJSXFn,
   context: ToolUseContext & {
-    setForkConvoWithMessagesOnTheNextRender: (
-      forkConvoWithMessages: Message[],
-    ) => void
-  },
+    setForkConvoWithMessagesOnTheNextRender: (forkConvoWithMessages: Message[]) => void
+  }
 ): Promise<Message[]> {
   try {
     const command = getCommand(commandName, context.options.commands)
@@ -413,22 +361,19 @@ async function getMessagesForSlashCommand(
                 createUserMessage(`<command-name>${command.userFacingName()}</command-name>
           <command-message>${command.userFacingName()}</command-message>
           <command-args>${args}</command-args>`),
-                r
-                  ? createAssistantMessage(r)
-                  : createAssistantMessage(NO_RESPONSE_REQUESTED),
+                r ? createAssistantMessage(r) : createAssistantMessage(NO_RESPONSE_REQUESTED)
               ])
             }, context)
             .then(jsx => {
               setToolJSX({
                 jsx,
-                shouldHidePromptInput: true,
+                shouldHidePromptInput: true
               })
             })
         })
       }
       case 'local': {
-        const userMessage =
-          createUserMessage(`<command-name>${command.userFacingName()}</command-name>
+        const userMessage = createUserMessage(`<command-name>${command.userFacingName()}</command-name>
         <command-message>${command.userFacingName()}</command-message>
         <command-args>${args}</command-args>`)
 
@@ -443,20 +388,10 @@ async function getMessagesForSlashCommand(
             }
           })
 
-          return [
-            userMessage,
-            createAssistantMessage(
-              `<local-command-stdout>${result}</local-command-stdout>`,
-            ),
-          ]
+          return [userMessage, createAssistantMessage(`<local-command-stdout>${result}</local-command-stdout>`)]
         } catch (e) {
           logError(e)
-          return [
-            userMessage,
-            createAssistantMessage(
-              `<local-command-stderr>${String(e)}</local-command-stderr>`,
-            ),
-          ]
+          return [userMessage, createAssistantMessage(`<local-command-stderr>${String(e)}</local-command-stderr>`)]
         }
       }
       case 'prompt': {
@@ -467,9 +402,7 @@ async function getMessagesForSlashCommand(
           const userMessage = createUserMessage(
             typeof msg.content === 'string'
               ? msg.content
-              : msg.content
-                  .map(block => (block.type === 'text' ? block.text : ''))
-                  .join('\n'),
+              : msg.content.map(block => (block.type === 'text' ? block.text : '')).join('\n')
           )
 
           // Add metadata for tracking but don't wrap in special tags
@@ -477,7 +410,7 @@ async function getMessagesForSlashCommand(
             ...userMessage.options,
             isCustomCommand: true,
             commandName: command.userFacingName(),
-            commandArgs: args,
+            commandArgs: args
           }
 
           return userMessage
@@ -492,10 +425,7 @@ async function getMessagesForSlashCommand(
   }
 }
 
-export function extractTagFromMessage(
-  message: Message,
-  tagName: string,
-): string | null {
+export function extractTagFromMessage(message: Message, tagName: string): string | null {
   if (message.type === 'progress') {
     return null
   }
@@ -522,7 +452,7 @@ export function extractTag(html: string, tagName: string): string | null {
     `<${escapedTag}(?:\\s+[^>]*)?>` + // Opening tag with optional attributes
       '([\\s\\S]*?)' + // Content (non-greedy match)
       `<\\/${escapedTag}>`, // Closing tag
-    'gi',
+    'gi'
   )
 
   let match
@@ -594,22 +524,14 @@ export function isNotEmptyMessage(message: Message): boolean {
 // TODO: replace this with plain UserMessage if/when PR #405 lands
 type NormalizedUserMessage = {
   message: {
-    content: [
-      | TextBlockParam
-      | ImageBlockParam
-      | ToolUseBlockParam
-      | ToolResultBlockParam,
-    ]
+    content: [TextBlockParam | ImageBlockParam | ToolUseBlockParam | ToolResultBlockParam]
     role: 'user'
   }
   type: 'user'
   uuid: UUID
 }
 
-export type NormalizedMessage =
-  | NormalizedUserMessage
-  | AssistantMessage
-  | ProgressMessage
+export type NormalizedMessage = NormalizedUserMessage | AssistantMessage | ProgressMessage
 
 // Split messages, so each content block gets its own message
 export function normalizeMessages(messages: Message[]): NormalizedMessage[] {
@@ -628,12 +550,10 @@ export function normalizeMessages(messages: Message[]): NormalizedMessage[] {
             uuid: randomUUID(),
             message: {
               ...message.message,
-              content: [_],
+              content: [_]
             },
-            costUSD:
-              (message as AssistantMessage).costUSD /
-              message.message.content.length,
-            durationMs: (message as AssistantMessage).durationMs,
+            costUSD: (message as AssistantMessage).costUSD / message.message.content.length,
+            durationMs: (message as AssistantMessage).durationMs
           } as NormalizedMessage
         case 'user':
           // It seems like the line below was a no-op before, but I'm not sure.
@@ -652,12 +572,10 @@ export function normalizeMessages(messages: Message[]): NormalizedMessage[] {
 }
 
 type ToolUseRequestMessage = AssistantMessage & {
-  message: { content: ToolUseBlock[] }
+  message: {content: ToolUseBlock[]}
 }
 
-function isToolUseRequestMessage(
-  message: Message,
-): message is ToolUseRequestMessage {
+function isToolUseRequestMessage(message: Message): message is ToolUseRequestMessage {
   return (
     message.type === 'assistant' &&
     'costUSD' in message &&
@@ -667,9 +585,7 @@ function isToolUseRequestMessage(
 }
 
 // Re-order, to move result messages to be after their tool use messages
-export function reorderMessages(
-  messages: NormalizedMessage[],
-): NormalizedMessage[] {
+export function reorderMessages(messages: NormalizedMessage[]): NormalizedMessage[] {
   const ms: NormalizedMessage[] = []
   const toolUseMessages: ToolUseRequestMessage[] = []
 
@@ -682,17 +598,13 @@ export function reorderMessages(
     // if it's a tool progress message...
     if (message.type === 'progress') {
       // replace any existing progress messages with this one
-      const existingProgressMessage = ms.find(
-        _ => _.type === 'progress' && _.toolUseID === message.toolUseID,
-      )
+      const existingProgressMessage = ms.find(_ => _.type === 'progress' && _.toolUseID === message.toolUseID)
       if (existingProgressMessage) {
         ms[ms.indexOf(existingProgressMessage)] = message
         continue
       }
       // otherwise, insert it after its tool use
-      const toolUseMessage = toolUseMessages.find(
-        _ => _.message.content[0]?.id === message.toolUseID,
-      )
+      const toolUseMessage = toolUseMessages.find(_ => _.message.content[0]?.id === message.toolUseID)
       if (toolUseMessage) {
         ms.splice(ms.indexOf(toolUseMessage) + 1, 0, message)
         continue
@@ -705,22 +617,17 @@ export function reorderMessages(
       Array.isArray(message.message.content) &&
       message.message.content[0]?.type === 'tool_result'
     ) {
-      const toolUseID = (message.message.content[0] as ToolResultBlockParam)
-        ?.tool_use_id
+      const toolUseID = (message.message.content[0] as ToolResultBlockParam)?.tool_use_id
 
       // First check for progress messages
-      const lastProgressMessage = ms.find(
-        _ => _.type === 'progress' && _.toolUseID === toolUseID,
-      )
+      const lastProgressMessage = ms.find(_ => _.type === 'progress' && _.toolUseID === toolUseID)
       if (lastProgressMessage) {
         ms.splice(ms.indexOf(lastProgressMessage) + 1, 0, message)
         continue
       }
 
       // If no progress messages, check for tool use messages
-      const toolUseMessage = toolUseMessages.find(
-        _ => _.message.content[0]?.id === toolUseID,
-      )
+      const toolUseMessage = toolUseMessages.find(_ => _.message.content[0]?.id === toolUseID)
       if (toolUseMessage) {
         ms.splice(ms.indexOf(toolUseMessage) + 1, 0, message)
         continue
@@ -736,40 +643,32 @@ export function reorderMessages(
   return ms
 }
 
-const getToolResultIDs = memoize(
-  (normalizedMessages: NormalizedMessage[]): { [toolUseID: string]: boolean } =>
-    Object.fromEntries(
-      normalizedMessages.flatMap(_ =>
-        _.type === 'user' && _.message.content[0]?.type === 'tool_result'
-          ? [
-              [
-                _.message.content[0]!.tool_use_id,
-                _.message.content[0]!.is_error ?? false,
-              ],
-            ]
-          : ([] as [string, boolean][]),
-      ),
-    ),
+const getToolResultIDs = memoize((normalizedMessages: NormalizedMessage[]): {[toolUseID: string]: boolean} =>
+  Object.fromEntries(
+    normalizedMessages.flatMap(_ =>
+      _.type === 'user' && _.message.content[0]?.type === 'tool_result'
+        ? [[_.message.content[0]!.tool_use_id, _.message.content[0]!.is_error ?? false]]
+        : ([] as [string, boolean][])
+    )
+  )
 )
 
-export function getUnresolvedToolUseIDs(
-  normalizedMessages: NormalizedMessage[],
-): Set<string> {
+export function getUnresolvedToolUseIDs(normalizedMessages: NormalizedMessage[]): Set<string> {
   const toolResults = getToolResultIDs(normalizedMessages)
   return new Set(
     normalizedMessages
       .filter(
         (
-          _,
+          _
         ): _ is AssistantMessage & {
-          message: { content: [ToolUseBlockParam] }
+          message: {content: [ToolUseBlockParam]}
         } =>
           _.type === 'assistant' &&
           Array.isArray(_.message.content) &&
           _.message.content[0]?.type === 'tool_use' &&
-          !(_.message.content[0]?.id in toolResults),
+          !(_.message.content[0]?.id in toolResults)
       )
-      .map(_ => _.message.content[0].id),
+      .map(_ => _.message.content[0].id)
   )
 }
 
@@ -780,12 +679,10 @@ export function getUnresolvedToolUseIDs(
  *
  * TODO: Find a way to harden this logic to make it more explicit
  */
-export function getInProgressToolUseIDs(
-  normalizedMessages: NormalizedMessage[],
-): Set<string> {
+export function getInProgressToolUseIDs(normalizedMessages: NormalizedMessage[]): Set<string> {
   const unresolvedToolUseIDs = getUnresolvedToolUseIDs(normalizedMessages)
   const toolUseIDsThatHaveProgressMessages = new Set(
-    normalizedMessages.filter(_ => _.type === 'progress').map(_ => _.toolUseID),
+    normalizedMessages.filter(_ => _.type === 'progress').map(_ => _.toolUseID)
   )
   return new Set(
     (
@@ -801,22 +698,17 @@ export function getInProgressToolUseIDs(
           return true
         }
 
-        if (
-          toolUseIDsThatHaveProgressMessages.has(toolUseID) &&
-          unresolvedToolUseIDs.has(toolUseID)
-        ) {
+        if (toolUseIDsThatHaveProgressMessages.has(toolUseID) && unresolvedToolUseIDs.has(toolUseID)) {
           return true
         }
 
         return false
       }) as AssistantMessage[]
-    ).map(_ => (_.message.content[0]! as ToolUseBlockParam).id),
+    ).map(_ => (_.message.content[0]! as ToolUseBlockParam).id)
   )
 }
 
-export function getErroredToolUseMessages(
-  normalizedMessages: NormalizedMessage[],
-): AssistantMessage[] {
+export function getErroredToolUseMessages(normalizedMessages: NormalizedMessage[]): AssistantMessage[] {
   const toolResults = getToolResultIDs(normalizedMessages)
   return normalizedMessages.filter(
     _ =>
@@ -824,13 +716,11 @@ export function getErroredToolUseMessages(
       Array.isArray(_.message.content) &&
       _.message.content[0]?.type === 'tool_use' &&
       _.message.content[0]?.id in toolResults &&
-      toolResults[_.message.content[0]?.id],
+      toolResults[_.message.content[0]?.id]
   ) as AssistantMessage[]
 }
 
-export function normalizeMessagesForAPI(
-  messages: Message[],
-): (UserMessage | AssistantMessage)[] {
+export function normalizeMessagesForAPI(messages: Message[]): (UserMessage | AssistantMessage)[] {
   const result: (UserMessage | AssistantMessage)[] = []
   messages
     .filter(_ => _.type !== 'progress')
@@ -838,10 +728,7 @@ export function normalizeMessagesForAPI(
       switch (message.type) {
         case 'user': {
           // If the current message is not a tool result, add it to the result
-          if (
-            !Array.isArray(message.message.content) ||
-            message.message.content[0]?.type !== 'tool_result'
-          ) {
+          if (!Array.isArray(message.message.content) || message.message.content[0]?.type !== 'tool_result') {
             result.push(message)
             return
           }
@@ -863,11 +750,8 @@ export function normalizeMessagesForAPI(
             ...lastMessage,
             message: {
               ...lastMessage.message,
-              content: [
-                ...lastMessage.message.content,
-                ...message.message.content,
-              ],
-            },
+              content: [...lastMessage.message.content, ...message.message.content]
+            }
           }
           return
         }
@@ -881,32 +765,20 @@ export function normalizeMessagesForAPI(
 
 // Sometimes the API returns empty messages (eg. "\n\n"). We need to filter these out,
 // otherwise they will give an API error when we send them to the API next time we call query().
-export function normalizeContentFromAPI(
-  content: APIMessage['content'],
-): APIMessage['content'] {
-  const filteredContent = content.filter(
-    _ => _.type !== 'text' || _.text.trim().length > 0,
-  )
+export function normalizeContentFromAPI(content: APIMessage['content']): APIMessage['content'] {
+  const filteredContent = content.filter(_ => _.type !== 'text' || _.text.trim().length > 0)
 
   if (filteredContent.length === 0) {
-    return [{ type: 'text', text: NO_CONTENT_MESSAGE, citations: [] }]
+    return [{type: 'text', text: NO_CONTENT_MESSAGE, citations: []}]
   }
 
   return filteredContent
 }
 
 export function isEmptyMessageText(text: string): boolean {
-  return (
-    stripSystemMessages(text).trim() === '' ||
-    text.trim() === NO_CONTENT_MESSAGE
-  )
+  return stripSystemMessages(text).trim() === '' || text.trim() === NO_CONTENT_MESSAGE
 }
-const STRIPPED_TAGS = [
-  'commit_analysis',
-  'context',
-  'function_analysis',
-  'pr_analysis',
-]
+const STRIPPED_TAGS = ['commit_analysis', 'context', 'function_analysis', 'pr_analysis']
 
 export function stripSystemMessages(content: string): string {
   const regex = new RegExp(`<(${STRIPPED_TAGS.join('|')})>.*?</\\1>\n?`, 'gs')
@@ -930,9 +802,7 @@ export function getToolUseID(message: NormalizedMessage): string | null {
   }
 }
 
-export function getLastAssistantMessageId(
-  messages: Message[],
-): string | undefined {
+export function getLastAssistantMessageId(messages: Message[]): string | undefined {
   // Iterate from the end of the array to find the last assistant message
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]

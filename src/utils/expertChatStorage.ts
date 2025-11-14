@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
-import { randomUUID } from 'crypto'
+import {existsSync, readFileSync, writeFileSync, mkdirSync} from 'fs'
+import {join} from 'path'
+import {homedir} from 'os'
+import {randomUUID} from 'crypto'
 
 /**
  * Expert Chat Session Storage - 极简版
@@ -25,12 +25,11 @@ export interface ExpertChatSession {
  * 获取专家聊天存储目录
  */
 function getExpertChatDirectory(): string {
-  const configDir =
-    process.env.KODE_CONFIG_DIR ?? process.env.ANYKODE_CONFIG_DIR ?? join(homedir(), '.kode')
+  const configDir = process.env.KODE_CONFIG_DIR ?? process.env.ANYKODE_CONFIG_DIR ?? join(homedir(), '.kode')
   const expertChatDir = join(configDir, 'expert-chats')
 
   if (!existsSync(expertChatDir)) {
-    mkdirSync(expertChatDir, { recursive: true })
+    mkdirSync(expertChatDir, {recursive: true})
   }
 
   return expertChatDir
@@ -46,16 +45,14 @@ function getSessionFilePath(sessionId: string): string {
 /**
  * 创建新的专家聊天会话
  */
-export function createExpertChatSession(
-  expertModel: string,
-): ExpertChatSession {
+export function createExpertChatSession(expertModel: string): ExpertChatSession {
   const sessionId = randomUUID().slice(0, 5)
   const session: ExpertChatSession = {
     sessionId,
     expertModel,
     messages: [],
     createdAt: Date.now(),
-    lastUpdated: Date.now(),
+    lastUpdated: Date.now()
   }
 
   saveExpertChatSession(session)
@@ -65,9 +62,7 @@ export function createExpertChatSession(
 /**
  * 加载现有专家聊天会话
  */
-export function loadExpertChatSession(
-  sessionId: string,
-): ExpertChatSession | null {
+export function loadExpertChatSession(sessionId: string): ExpertChatSession | null {
   const filePath = getSessionFilePath(sessionId)
 
   if (!existsSync(filePath)) {
@@ -93,10 +88,7 @@ export function saveExpertChatSession(session: ExpertChatSession): void {
     session.lastUpdated = Date.now()
     writeFileSync(filePath, JSON.stringify(session, null, 2), 'utf-8')
   } catch (error) {
-    console.error(
-      `Failed to save expert chat session ${session.sessionId}:`,
-      error,
-    )
+    console.error(`Failed to save expert chat session ${session.sessionId}:`, error)
     throw error
   }
 }
@@ -107,14 +99,14 @@ export function saveExpertChatSession(session: ExpertChatSession): void {
 export function addMessageToSession(
   sessionId: string,
   role: 'user' | 'assistant',
-  content: string,
+  content: string
 ): ExpertChatSession | null {
   const session = loadExpertChatSession(sessionId)
   if (!session) {
     return null
   }
 
-  session.messages.push({ role, content })
+  session.messages.push({role, content})
   saveExpertChatSession(session)
 
   return session

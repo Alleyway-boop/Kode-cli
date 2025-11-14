@@ -1,68 +1,55 @@
-import { existsSync, mkdirSync, readFileSync, statSync } from 'fs'
-import { Box, Text } from 'ink'
-import { dirname, isAbsolute, relative, resolve, sep } from 'path'
+import {existsSync, mkdirSync, readFileSync, statSync} from 'fs'
+import {Box, Text} from 'ink'
+import {dirname, isAbsolute, relative, resolve, sep} from 'path'
 import * as React from 'react'
-import { z } from 'zod'
-import { FileEditToolUpdatedMessage } from '@components/FileEditToolUpdatedMessage'
-import { StructuredDiff } from '@components/StructuredDiff'
-import { Tool, ValidationResult } from '@tool'
-import { intersperse } from '@utils/array'
-import {
-  addLineNumbers,
-  detectFileEncoding,
-  detectLineEndings,
-  findSimilarFile,
-  writeTextContent,
-} from '@utils/file'
-import { logError } from '@utils/log'
-import { getCwd } from '@utils/state'
-import { getTheme } from '@utils/theme'
-import { NotebookEditTool } from '@tools/NotebookEditTool/NotebookEditTool'
+import {z} from 'zod'
+import {FileEditToolUpdatedMessage} from '@components/FileEditToolUpdatedMessage'
+import {StructuredDiff} from '@components/StructuredDiff'
+import {Tool, ValidationResult} from '@tool'
+import {intersperse} from '@utils/array'
+import {addLineNumbers, detectFileEncoding, detectLineEndings, findSimilarFile, writeTextContent} from '@utils/file'
+import {logError} from '@utils/log'
+import {getCwd} from '@utils/state'
+import {getTheme} from '@utils/theme'
+import {NotebookEditTool} from '@tools/NotebookEditTool/NotebookEditTool'
 // Local content-based edit function for MultiEditTool
 function applyContentEdit(
   content: string,
   oldString: string,
   newString: string,
   replaceAll: boolean = false
-): { newContent: string; occurrences: number } {
+): {newContent: string; occurrences: number} {
   if (replaceAll) {
     const regex = new RegExp(oldString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
     const matches = content.match(regex)
     const occurrences = matches ? matches.length : 0
     const newContent = content.replace(regex, newString)
-    return { newContent, occurrences }
+    return {newContent, occurrences}
   } else {
     if (content.includes(oldString)) {
       const newContent = content.replace(oldString, newString)
-      return { newContent, occurrences: 1 }
+      return {newContent, occurrences: 1}
     } else {
       throw new Error(`String not found: ${oldString.substring(0, 50)}...`)
     }
   }
 }
-import { hasWritePermission } from '@utils/permissions/filesystem'
-import { PROJECT_FILE } from '@constants/product'
-import { DESCRIPTION, PROMPT } from './prompt'
-import { emitReminderEvent } from '@services/systemReminder'
-import { recordFileEdit } from '@services/fileFreshness'
-import { getPatch } from '@utils/diff'
+import {hasWritePermission} from '@utils/permissions/filesystem'
+import {PROJECT_FILE} from '@constants/product'
+import {DESCRIPTION, PROMPT} from './prompt'
+import {emitReminderEvent} from '@services/systemReminder'
+import {recordFileEdit} from '@services/fileFreshness'
+import {getPatch} from '@utils/diff'
 
 const EditSchema = z.object({
   old_string: z.string().describe('The text to replace'),
   new_string: z.string().describe('The text to replace it with'),
-  replace_all: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe('Replace all occurences of old_string (default false)'),
+  replace_all: z.boolean().optional().default(false).describe('Replace all occurences of old_string (default false)')
 })
 
 const inputSchema = z.strictObject({
   file_path: z.string().describe('The absolute path to the file to modify'),
-  edits: z
-    .array(EditSchema)
-    .min(1)
-    .describe('Array of edit operations to perform sequentially on the file'),
+  edits: z.array(EditSchema).min(1).describe('Array of edit operations to perform sequentially on the file')
 })
 
 export type In = typeof inputSchema
@@ -98,18 +85,16 @@ export const MultiEditTool = {
   renderResultForAssistant(content) {
     return content
   },
-  renderToolUseMessage(input, { verbose }) {
-    const { file_path, edits } = input
+  renderToolUseMessage(input, {verbose}) {
+    const {file_path, edits} = input
     const workingDir = getCwd()
-    const relativePath = isAbsolute(file_path)
-      ? relative(workingDir, file_path)
-      : file_path
+    const relativePath = isAbsolute(file_path) ? relative(workingDir, file_path) : file_path
 
     if (verbose) {
       const editSummary = edits
         .map(
           (edit, index) =>
-            `${index + 1}. Replace "${edit.old_string.substring(0, 50)}${edit.old_string.length > 50 ? '...' : ''}" with "${edit.new_string.substring(0, 50)}${edit.new_string.length > 50 ? '...' : ''}"`,
+            `${index + 1}. Replace "${edit.old_string.substring(0, 50)}${edit.old_string.length > 50 ? '...' : ''}" with "${edit.new_string.substring(0, 50)}${edit.new_string.length > 50 ? '...' : ''}"`
         )
         .join('\n')
       return `Multiple edits to ${relativePath}:\n${editSummary}`
@@ -129,36 +114,28 @@ export const MultiEditTool = {
       const isError = output.includes('Error:')
       return (
         <Box flexDirection="column">
-          <Text color={isError ? getTheme().error : getTheme().success}>
-            {output}
-          </Text>
+          <Text color={isError ? getTheme().error : getTheme().success}>{output}</Text>
         </Box>
       )
     }
 
     return (
-      <FileEditToolUpdatedMessage
-        filePath={output.filePath}
-        structuredPatch={output.structuredPatch}
-        verbose={false}
-      />
+      <FileEditToolUpdatedMessage filePath={output.filePath} structuredPatch={output.structuredPatch} verbose={false} />
     )
   },
   async validateInput(
-    { file_path, edits }: z.infer<typeof inputSchema>,
-    context?: { readFileTimestamps?: Record<string, number> },
+    {file_path, edits}: z.infer<typeof inputSchema>,
+    context?: {readFileTimestamps?: Record<string, number>}
   ): Promise<ValidationResult> {
     const workingDir = getCwd()
-    const normalizedPath = isAbsolute(file_path)
-      ? resolve(file_path)
-      : resolve(workingDir, file_path)
+    const normalizedPath = isAbsolute(file_path) ? resolve(file_path) : resolve(workingDir, file_path)
 
     // Check if it's a notebook file
     if (normalizedPath.endsWith('.ipynb')) {
       return {
         result: false,
         errorCode: 1,
-        message: `For Jupyter notebooks (.ipynb files), use the ${NotebookEditTool.name} tool instead.`,
+        message: `For Jupyter notebooks (.ipynb files), use the ${NotebookEditTool.name} tool instead.`
       }
     }
 
@@ -169,7 +146,7 @@ export const MultiEditTool = {
         return {
           result: false,
           errorCode: 2,
-          message: `Parent directory does not exist: ${parentDir}`,
+          message: `Parent directory does not exist: ${parentDir}`
         }
       }
 
@@ -178,8 +155,7 @@ export const MultiEditTool = {
         return {
           result: false,
           errorCode: 6,
-          message:
-            'For new files, the first edit must have an empty old_string to create the file content.',
+          message: 'For new files, the first edit must have an empty old_string to create the file content.'
         }
       }
     } else {
@@ -191,12 +167,11 @@ export const MultiEditTool = {
         return {
           result: false,
           errorCode: 7,
-          message:
-            'File has not been read yet. Read it first before editing it.',
+          message: 'File has not been read yet. Read it first before editing it.',
           meta: {
             filePath: normalizedPath,
-            isFilePathAbsolute: String(isAbsolute(file_path)),
-          },
+            isFilePathAbsolute: String(isAbsolute(file_path))
+          }
         }
       }
 
@@ -212,8 +187,8 @@ export const MultiEditTool = {
           meta: {
             filePath: normalizedPath,
             lastWriteTime,
-            readTimestamp,
-          },
+            readTimestamp
+          }
         }
       }
 
@@ -223,25 +198,22 @@ export const MultiEditTool = {
         return {
           result: false,
           errorCode: 9,
-          message: 'Cannot edit binary files.',
+          message: 'Cannot edit binary files.'
         }
       }
 
       const currentContent = readFileSync(normalizedPath, 'utf-8')
       for (let i = 0; i < edits.length; i++) {
         const edit = edits[i]
-        if (
-          edit.old_string !== '' &&
-          !currentContent.includes(edit.old_string)
-        ) {
+        if (edit.old_string !== '' && !currentContent.includes(edit.old_string)) {
           return {
             result: false,
             errorCode: 10,
             message: `Edit ${i + 1}: String to replace not found in file: "${edit.old_string.substring(0, 100)}${edit.old_string.length > 100 ? '...' : ''}"`,
             meta: {
               editIndex: i + 1,
-              oldString: edit.old_string.substring(0, 200),
-            },
+              oldString: edit.old_string.substring(0, 200)
+            }
           }
         }
       }
@@ -254,19 +226,17 @@ export const MultiEditTool = {
         return {
           result: false,
           errorCode: 3,
-          message: `Edit ${i + 1}: old_string and new_string cannot be the same`,
+          message: `Edit ${i + 1}: old_string and new_string cannot be the same`
         }
       }
     }
 
-    return { result: true }
+    return {result: true}
   },
-  async *call({ file_path, edits }, { readFileTimestamps }) {
+  async *call({file_path, edits}, {readFileTimestamps}) {
     const startTime = Date.now()
     const workingDir = getCwd()
-    const filePath = isAbsolute(file_path)
-      ? resolve(file_path)
-      : resolve(workingDir, file_path)
+    const filePath = isAbsolute(file_path) ? resolve(file_path) : resolve(workingDir, file_path)
 
     try {
       // Read current file content (or empty for new files)
@@ -279,7 +249,7 @@ export const MultiEditTool = {
           yield {
             type: 'result',
             data: 'Error: Cannot edit binary files',
-            resultForAssistant: 'Error: Cannot edit binary files',
+            resultForAssistant: 'Error: Cannot edit binary files'
           }
           return
         }
@@ -288,7 +258,7 @@ export const MultiEditTool = {
         // For new files, ensure parent directory exists
         const parentDir = dirname(filePath)
         if (!existsSync(parentDir)) {
-          mkdirSync(parentDir, { recursive: true })
+          mkdirSync(parentDir, {recursive: true})
         }
       }
 
@@ -298,31 +268,25 @@ export const MultiEditTool = {
 
       for (let i = 0; i < edits.length; i++) {
         const edit = edits[i]
-        const { old_string, new_string, replace_all } = edit
+        const {old_string, new_string, replace_all} = edit
 
         try {
-          const result = applyContentEdit(
-            modifiedContent,
-            old_string,
-            new_string,
-            replace_all,
-          )
+          const result = applyContentEdit(modifiedContent, old_string, new_string, replace_all)
           modifiedContent = result.newContent
           appliedEdits.push({
             editIndex: i + 1,
             success: true,
             old_string: old_string.substring(0, 100),
             new_string: new_string.substring(0, 100),
-            occurrences: result.occurrences,
+            occurrences: result.occurrences
           })
         } catch (error) {
           // If any edit fails, abort the entire operation
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error'
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           yield {
             type: 'result',
             data: `Error in edit ${i + 1}: ${errorMessage}`,
-            resultForAssistant: `Error in edit ${i + 1}: ${errorMessage}`,
+            resultForAssistant: `Error in edit ${i + 1}: ${errorMessage}`
           }
           return
         }
@@ -344,12 +308,12 @@ export const MultiEditTool = {
         filePath,
         edits: edits.map(e => ({
           oldString: e.old_string,
-          newString: e.new_string,
+          newString: e.new_string
         })),
         originalContent: currentContent,
         newContent: modifiedContent,
         timestamp: Date.now(),
-        operation: fileExists ? 'update' : 'create',
+        operation: fileExists ? 'update' : 'create'
       })
 
       // Generate result data
@@ -360,7 +324,7 @@ export const MultiEditTool = {
         filePath: file_path,
         fileContents: currentContent,
         oldStr: currentContent,
-        newStr: modifiedContent,
+        newStr: modifiedContent
       })
 
       const resultData = {
@@ -369,20 +333,18 @@ export const MultiEditTool = {
         editsApplied: appliedEdits,
         totalEdits: edits.length,
         summary,
-        structuredPatch,
+        structuredPatch
       }
 
       // Log the operation
-      
 
       yield {
         type: 'result',
         data: resultData,
-        resultForAssistant: summary,
+        resultForAssistant: summary
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred'
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       const errorResult = `Error applying multi-edit: ${errorMessage}`
 
       logError(error)
@@ -390,8 +352,8 @@ export const MultiEditTool = {
       yield {
         type: 'result',
         data: errorResult,
-        resultForAssistant: errorResult,
+        resultForAssistant: errorResult
       }
     }
-  },
+  }
 } satisfies Tool<typeof inputSchema, any>

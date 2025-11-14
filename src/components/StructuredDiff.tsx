@@ -1,9 +1,9 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import * as React from 'react'
-import { Hunk } from 'diff'
-import { getTheme, ThemeNames } from '@utils/theme'
-import { useMemo } from 'react'
-import { wrapText } from '@utils/format'
+import {Hunk} from 'diff'
+import {getTheme, ThemeNames} from '@utils/theme'
+import {useMemo} from 'react'
+import {wrapText} from '@utils/format'
 
 type Props = {
   patch: Hunk
@@ -13,15 +13,10 @@ type Props = {
   key?: React.Key
 }
 
-export function StructuredDiff({
-  patch,
-  dim,
-  width,
-  overrideTheme,
-}: Props): React.ReactNode {
+export function StructuredDiff({patch, dim, width, overrideTheme}: Props): React.ReactNode {
   const diff = useMemo(
     () => formatDiff(patch.lines, patch.oldStart, width, dim, overrideTheme),
-    [patch.lines, patch.oldStart, width, dim, overrideTheme],
+    [patch.lines, patch.oldStart, width, dim, overrideTheme]
   )
 
   return diff.map((_, i) => <Box key={i}>{_}</Box>)
@@ -32,7 +27,7 @@ function formatDiff(
   startingLineNumber: number,
   width: number,
   dim: boolean,
-  overrideTheme?: ThemeNames,
+  overrideTheme?: ThemeNames
 ): React.ReactNode[] {
   const theme = getTheme(overrideTheme)
 
@@ -42,25 +37,25 @@ function formatDiff(
         return {
           code: ' ' + code.slice(1),
           i: 0,
-          type: 'add',
+          type: 'add'
         }
       }
       if (code.startsWith('-')) {
         return {
           code: ' ' + code.slice(1),
           i: 0,
-          type: 'remove',
+          type: 'remove'
         }
       }
-      return { code, i: 0, type: 'nochange' }
+      return {code, i: 0, type: 'nochange'}
     }),
-    startingLineNumber,
+    startingLineNumber
   )
 
-  const maxLineNumber = Math.max(...ls.map(({ i }) => i))
+  const maxLineNumber = Math.max(...ls.map(({i}) => i))
   const maxWidth = maxLineNumber.toString().length
 
-  return ls.flatMap(({ type, code, i }) => {
+  return ls.flatMap(({type, code, i}) => {
     const wrappedLines = wrapText(code, width - maxWidth)
     return wrappedLines.map((line, lineIndex) => {
       const key = `${type}-${i}-${lineIndex}`
@@ -69,15 +64,10 @@ function formatDiff(
           return (
             <React.Fragment key={key}>
               <Text>
-                <LineNumber
-                  i={lineIndex === 0 ? i : undefined}
-                  width={maxWidth}
-                />
+                <LineNumber i={lineIndex === 0 ? i : undefined} width={maxWidth} />
                 <Text
                   color={overrideTheme ? theme.text : undefined}
-                  backgroundColor={
-                    dim ? theme.diff.addedDimmed : theme.diff.added
-                  }
+                  backgroundColor={dim ? theme.diff.addedDimmed : theme.diff.added}
                   dimColor={dim}
                 >
                   {line}
@@ -89,15 +79,10 @@ function formatDiff(
           return (
             <React.Fragment key={key}>
               <Text>
-                <LineNumber
-                  i={lineIndex === 0 ? i : undefined}
-                  width={maxWidth}
-                />
+                <LineNumber i={lineIndex === 0 ? i : undefined} width={maxWidth} />
                 <Text
                   color={overrideTheme ? theme.text : undefined}
-                  backgroundColor={
-                    dim ? theme.diff.removedDimmed : theme.diff.removed
-                  }
+                  backgroundColor={dim ? theme.diff.removedDimmed : theme.diff.removed}
                   dimColor={dim}
                 >
                   {line}
@@ -109,17 +94,11 @@ function formatDiff(
           return (
             <React.Fragment key={key}>
               <Text>
-              <LineNumber
-                i={lineIndex === 0 ? i : undefined}
-                width={maxWidth}
-              />
-              <Text
-                color={overrideTheme ? theme.text : undefined}
-                dimColor={dim}
-              >
-                {line}
+                <LineNumber i={lineIndex === 0 ? i : undefined} width={maxWidth} />
+                <Text color={overrideTheme ? theme.text : undefined} dimColor={dim}>
+                  {line}
+                </Text>
               </Text>
-            </Text>
             </React.Fragment>
           )
       }
@@ -127,34 +106,26 @@ function formatDiff(
   })
 }
 
-function LineNumber({
-  i,
-  width,
-}: {
-  i: number | undefined
-  width: number
-}): React.ReactNode {
+function LineNumber({i, width}: {i: number | undefined; width: number}): React.ReactNode {
   return (
-    <Text color={getTheme().secondaryText}>
-      {i !== undefined ? i.toString().padStart(width) : ' '.repeat(width)}{' '}
-    </Text>
+    <Text color={getTheme().secondaryText}>{i !== undefined ? i.toString().padStart(width) : ' '.repeat(width)} </Text>
   )
 }
 
 function numberDiffLines(
-  diff: { code: string; type: string }[],
-  startLine: number,
-): { code: string; type: string; i: number }[] {
+  diff: {code: string; type: string}[],
+  startLine: number
+): {code: string; type: string; i: number}[] {
   let i = startLine
-  const result: { code: string; type: string; i: number }[] = []
+  const result: {code: string; type: string; i: number}[] = []
   const queue = [...diff]
 
   while (queue.length > 0) {
-    const { code, type } = queue.shift()!
+    const {code, type} = queue.shift()!
     const line = {
       code: code,
       type,
-      i,
+      i
     }
 
     // Update counters based on change type
@@ -172,11 +143,11 @@ function numberDiffLines(
         let numRemoved = 0
         while (queue[0]?.type === 'remove') {
           i++
-          const { code, type } = queue.shift()!
+          const {code, type} = queue.shift()!
           const line = {
             code: code,
             type,
-            i,
+            i
           }
           result.push(line)
           numRemoved++

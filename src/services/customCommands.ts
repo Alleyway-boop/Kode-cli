@@ -1,12 +1,12 @@
-import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
-import { memoize } from 'lodash-es'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import type { Command } from '@commands'
-import { getCwd } from '@utils/state'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
+import {existsSync, readFileSync} from 'fs'
+import {join} from 'path'
+import {homedir} from 'os'
+import {memoize} from 'lodash-es'
+import type {MessageParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import type {Command} from '@commands'
+import {getCwd} from '@utils/state'
+import {execFile} from 'child_process'
+import {promisify} from 'util'
 
 const execFileAsync = promisify(execFile)
 
@@ -43,10 +43,10 @@ export async function executeBashCommands(content: string): Promise<string> {
       const args = parts.slice(1)
 
       // Execute with conservative timeout (5s vs BashTool's 2min default)
-      const { stdout, stderr } = await execFileAsync(cmd, args, {
+      const {stdout, stderr} = await execFileAsync(cmd, args, {
         timeout: 5000,
         encoding: 'utf8',
-        cwd: getCwd(), // Use current working directory for consistency
+        cwd: getCwd() // Use current working directory for consistency
       })
 
       // Replace the bash command with its output, preferring stdout
@@ -102,7 +102,7 @@ export async function resolveFileReferences(content: string): Promise<string> {
       const fullPath = join(getCwd(), filePath)
 
       if (existsSync(fullPath)) {
-        const fileContent = readFileSync(fullPath, { encoding: 'utf-8' })
+        const fileContent = readFileSync(fullPath, {encoding: 'utf-8'})
 
         // Format file content with filename header for clarity
         // This matches the format used by FileReadTool for consistency
@@ -236,7 +236,7 @@ export function parseFrontmatter(content: string): {
   const match = content.match(frontmatterRegex)
 
   if (!match) {
-    return { frontmatter: {}, content }
+    return {frontmatter: {}, content}
   }
 
   const yamlContent = match[1] || ''
@@ -307,7 +307,7 @@ export function parseFrontmatter(content: string): {
     ;(frontmatter as any)[currentKey] = arrayItems
   }
 
-  return { frontmatter, content: markdownContent }
+  return {frontmatter, content: markdownContent}
 }
 
 /**
@@ -328,16 +328,12 @@ export function parseFrontmatter(content: string): {
 async function scanMarkdownFiles(
   args: string[], // Legacy parameter for ripgrep compatibility
   directory: string,
-  signal: AbortSignal,
+  signal: AbortSignal
 ): Promise<string[]> {
   try {
     // Use find command as fallback since ripgrep may not be available
     // This provides broader compatibility across different systems
-    const { stdout } = await execFileAsync(
-      'find',
-      [directory, '-name', '*.md', '-type', 'f'],
-      { signal, timeout: 3000 },
-    )
+    const {stdout} = await execFileAsync('find', [directory, '-name', '*.md', '-type', 'f'], {signal, timeout: 3000})
     return stdout
       .trim()
       .split('\n')
@@ -371,7 +367,7 @@ function createCustomCommand(
   frontmatter: CustomCommandFrontmatter,
   content: string,
   filePath: string,
-  baseDir: string,
+  baseDir: string
 ): CustomCommandWithScope | null {
   // Extract command name with namespace support
   const relativePath = filePath.replace(baseDir + '/', '')
@@ -382,17 +378,14 @@ function createCustomCommand(
   // This follows the same pattern as Claude Desktop's command system
   const userClaudeDir = join(homedir(), '.claude', 'commands')
   const userKodeDir = join(homedir(), '.kode', 'commands')
-  const scope: 'user' | 'project' =
-    (baseDir === userClaudeDir || baseDir === userKodeDir) ? 'user' : 'project'
+  const scope: 'user' | 'project' = baseDir === userClaudeDir || baseDir === userKodeDir ? 'user' : 'project'
   const prefix = scope === 'user' ? 'user' : 'project'
 
   // Create proper command name with prefix and namespace
   let finalName: string
   if (frontmatter.name) {
     // If frontmatter specifies name, use it but ensure proper prefix
-    finalName = frontmatter.name.startsWith(`${prefix}:`)
-      ? frontmatter.name
-      : `${prefix}:${frontmatter.name}`
+    finalName = frontmatter.name.startsWith(`${prefix}:`) ? frontmatter.name : `${prefix}:${frontmatter.name}`
   } else {
     // Generate name from file path, supporting directory-based namespacing
     if (pathParts.length > 1) {
@@ -408,8 +401,7 @@ function createCustomCommand(
   const enabled = frontmatter.enabled !== false // Default to true
   const hidden = frontmatter.hidden === true // Default to false
   const aliases = frontmatter.aliases || []
-  const progressMessage =
-    frontmatter.progressMessage || `Running ${finalName}...`
+  const progressMessage = frontmatter.progressMessage || `Running ${finalName}...`
   const argNames = frontmatter.argNames
 
   // Validate required fields
@@ -435,7 +427,7 @@ function createCustomCommand(
     async getPromptForCommand(args: string): Promise<MessageParam[]> {
       let prompt = content.trim()
 
-  // Process argument substitution following legacy conventions
+      // Process argument substitution following legacy conventions
       // This supports both the official $ARGUMENTS format and legacy {arg} format
 
       // Step 1: Handle $ARGUMENTS placeholder (legacy command format)
@@ -453,21 +445,13 @@ function createCustomCommand(
       }
 
       // Step 3: If args are provided but no placeholders used, append to prompt
-      if (
-        args.trim() &&
-        !prompt.includes('$ARGUMENTS') &&
-        (!argNames || argNames.length === 0)
-      ) {
+      if (args.trim() && !prompt.includes('$ARGUMENTS') && (!argNames || argNames.length === 0)) {
         prompt += `\n\nAdditional context: ${args}`
       }
 
       // Step 4: Add tool restrictions if specified
       const allowedTools = frontmatter['allowed-tools']
-      if (
-        allowedTools &&
-        Array.isArray(allowedTools) &&
-        allowedTools.length > 0
-      ) {
+      if (allowedTools && Array.isArray(allowedTools) && allowedTools.length > 0) {
         const allowedToolsStr = allowedTools.join(', ')
         prompt += `\n\nIMPORTANT: You are restricted to using only these tools: ${allowedToolsStr}. Do not use any other tools even if they might be helpful for the task.`
       }
@@ -475,10 +459,10 @@ function createCustomCommand(
       return [
         {
           role: 'user',
-          content: prompt,
-        },
+          content: prompt
+        }
       ]
-    },
+    }
   }
 
   return command
@@ -523,30 +507,30 @@ export const loadCustomCommands = memoize(
           ? scanMarkdownFiles(
               ['--files', '--hidden', '--glob', '*.md'], // Legacy args for ripgrep compatibility
               projectClaudeDir,
-              abortController.signal,
+              abortController.signal
             )
           : Promise.resolve([]),
         existsSync(userClaudeDir)
           ? scanMarkdownFiles(
               ['--files', '--glob', '*.md'], // Legacy args for ripgrep compatibility
               userClaudeDir,
-              abortController.signal,
+              abortController.signal
             )
           : Promise.resolve([]),
         existsSync(projectKodeDir)
           ? scanMarkdownFiles(
               ['--files', '--hidden', '--glob', '*.md'], // Legacy args for ripgrep compatibility
               projectKodeDir,
-              abortController.signal,
+              abortController.signal
             )
           : Promise.resolve([]),
         existsSync(userKodeDir)
           ? scanMarkdownFiles(
               ['--files', '--glob', '*.md'], // Legacy args for ripgrep compatibility
               userKodeDir,
-              abortController.signal,
+              abortController.signal
             )
-          : Promise.resolve([]),
+          : Promise.resolve([])
       ])
 
       // Combine files with priority: project > user, kode > claude
@@ -557,7 +541,6 @@ export const loadCustomCommands = memoize(
 
       // Log performance metrics for monitoring
       // This follows the same pattern as other performance-sensitive operations
-      
 
       // Parse files and create command objects
       const commands: CustomCommandWithScope[] = []
@@ -565,17 +548,11 @@ export const loadCustomCommands = memoize(
       // Process project files first (higher priority)
       for (const filePath of projectFiles) {
         try {
-          const content = readFileSync(filePath, { encoding: 'utf-8' })
-          const { frontmatter, content: commandContent } =
-            parseFrontmatter(content)
+          const content = readFileSync(filePath, {encoding: 'utf-8'})
+          const {frontmatter, content: commandContent} = parseFrontmatter(content)
           // Determine which base directory this file is from
           const baseDir = filePath.includes('.kode/commands') ? projectKodeDir : projectClaudeDir
-          const command = createCustomCommand(
-            frontmatter,
-            commandContent,
-            filePath,
-            baseDir,
-          )
+          const command = createCustomCommand(frontmatter, commandContent, filePath, baseDir)
 
           if (command) {
             commands.push(command)
@@ -588,17 +565,11 @@ export const loadCustomCommands = memoize(
       // Process user files second (lower priority)
       for (const filePath of userFiles) {
         try {
-          const content = readFileSync(filePath, { encoding: 'utf-8' })
-          const { frontmatter, content: commandContent } =
-            parseFrontmatter(content)
+          const content = readFileSync(filePath, {encoding: 'utf-8'})
+          const {frontmatter, content: commandContent} = parseFrontmatter(content)
           // Determine which base directory this file is from
           const baseDir = filePath.includes('.kode/commands') ? userKodeDir : userClaudeDir
-          const command = createCustomCommand(
-            frontmatter,
-            commandContent,
-            filePath,
-            baseDir,
-          )
+          const command = createCustomCommand(frontmatter, commandContent, filePath, baseDir)
 
           if (command) {
             commands.push(command)
@@ -612,7 +583,6 @@ export const loadCustomCommands = memoize(
       const enabledCommands = commands.filter(cmd => cmd.isEnabled)
 
       // Log loading results for debugging and monitoring
-      
 
       return enabledCommands
     } catch (error) {
@@ -634,7 +604,7 @@ export const loadCustomCommands = memoize(
     // Create cache key that includes directory existence and timestamp
     // This provides reasonable cache invalidation without excessive file system checks
     return `${cwd}:${existsSync(userClaudeDir)}:${existsSync(projectClaudeDir)}:${existsSync(userKodeDir)}:${existsSync(projectKodeDir)}:${Math.floor(Date.now() / 60000)}`
-  },
+  }
 )
 
 /**
@@ -670,7 +640,7 @@ export function getCustomCommandDirectories(): {
     userClaude: join(homedir(), '.claude', 'commands'),
     projectClaude: join(getCwd(), '.claude', 'commands'),
     userKode: join(homedir(), '.kode', 'commands'),
-    projectKode: join(getCwd(), '.kode', 'commands'),
+    projectKode: join(getCwd(), '.kode', 'commands')
   }
 }
 
@@ -684,6 +654,6 @@ export function getCustomCommandDirectories(): {
  * @returns boolean - True if at least one command directory exists
  */
 export function hasCustomCommands(): boolean {
-  const { userClaude, projectClaude, userKode, projectKode } = getCustomCommandDirectories()
+  const {userClaude, projectClaude, userKode, projectKode} = getCustomCommandDirectories()
   return existsSync(userClaude) || existsSync(projectClaude) || existsSync(userKode) || existsSync(projectKode)
 }

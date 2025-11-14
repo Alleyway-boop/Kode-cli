@@ -1,19 +1,16 @@
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync } from 'fs'
-import { Box, Text } from 'ink'
-import { join } from 'path'
+import {existsSync, lstatSync, mkdirSync, readdirSync, readFileSync} from 'fs'
+import {Box, Text} from 'ink'
+import {join} from 'path'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { Tool } from '@tool'
-import { MEMORY_DIR } from '@utils/env'
-import { resolveAgentId } from '@utils/agentStorage'
-import { DESCRIPTION, PROMPT } from './prompt'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {Tool} from '@tool'
+import {MEMORY_DIR} from '@utils/env'
+import {resolveAgentId} from '@utils/agentStorage'
+import {DESCRIPTION, PROMPT} from './prompt'
 
 const inputSchema = z.strictObject({
-  file_path: z
-    .string()
-    .optional()
-    .describe('Optional path to a specific memory file to read'),
+  file_path: z.string().optional().describe('Optional path to a specific memory file to read')
 })
 
 export const MemoryReadTool = {
@@ -41,7 +38,7 @@ export const MemoryReadTool = {
   needsPermissions() {
     return false
   },
-  renderResultForAssistant({ content }) {
+  renderResultForAssistant({content}) {
     return content
   },
   renderToolUseMessage(input) {
@@ -62,25 +59,25 @@ export const MemoryReadTool = {
       </Box>
     )
   },
-  async validateInput({ file_path }, context) {
+  async validateInput({file_path}, context) {
     const agentId = resolveAgentId(context?.agentId)
     const agentMemoryDir = join(MEMORY_DIR, 'agents', agentId)
 
     if (file_path) {
       const fullPath = join(agentMemoryDir, file_path)
       if (!fullPath.startsWith(agentMemoryDir)) {
-        return { result: false, message: 'Invalid memory file path' }
+        return {result: false, message: 'Invalid memory file path'}
       }
       if (!existsSync(fullPath)) {
-        return { result: false, message: 'Memory file does not exist' }
+        return {result: false, message: 'Memory file does not exist'}
       }
     }
-    return { result: true }
+    return {result: true}
   },
-  async *call({ file_path }, context) {
+  async *call({file_path}, context) {
     const agentId = resolveAgentId(context?.agentId)
     const agentMemoryDir = join(MEMORY_DIR, 'agents', agentId)
-    mkdirSync(agentMemoryDir, { recursive: true })
+    mkdirSync(agentMemoryDir, {recursive: true})
 
     // If a specific file is requested, return its contents
     if (file_path) {
@@ -92,15 +89,15 @@ export const MemoryReadTool = {
       yield {
         type: 'result',
         data: {
-          content,
+          content
         },
-        resultForAssistant: this.renderResultForAssistant({ content }),
+        resultForAssistant: this.renderResultForAssistant({content})
       }
       return
     }
 
     // Otherwise return the index and file list for this agent
-    const files = readdirSync(agentMemoryDir, { recursive: true })
+    const files = readdirSync(agentMemoryDir, {recursive: true})
       .map(f => join(agentMemoryDir, f.toString()))
       .filter(f => !lstatSync(f).isDirectory())
       .map(f => `- ${f}`)
@@ -119,8 +116,8 @@ Files in the agent memory directory:
 ${files}`
     yield {
       type: 'result',
-      data: { content },
-      resultForAssistant: this.renderResultForAssistant({ content }),
+      data: {content},
+      resultForAssistant: this.renderResultForAssistant({content})
     }
-  },
-} satisfies Tool<typeof inputSchema, { content: string }>
+  }
+} satisfies Tool<typeof inputSchema, {content: string}>

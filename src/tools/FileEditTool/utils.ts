@@ -1,9 +1,9 @@
-import { isAbsolute, resolve } from 'path'
-import { getCwd } from '@utils/state'
-import { readFileSync } from 'fs'
-import { detectFileEncoding } from '@utils/file'
-import { type Hunk } from 'diff'
-import { getPatch } from '@utils/diff'
+import {isAbsolute, resolve} from 'path'
+import {getCwd} from '@utils/state'
+import {readFileSync} from 'fs'
+import {detectFileEncoding} from '@utils/file'
+import {type Hunk} from 'diff'
+import {getPatch} from '@utils/diff'
 
 /**
  * Applies an edit to a file and returns the patch and updated file.
@@ -12,11 +12,9 @@ import { getPatch } from '@utils/diff'
 export function applyEdit(
   file_path: string,
   old_string: string,
-  new_string: string,
-): { patch: Hunk[]; updatedFile: string } {
-  const fullFilePath = isAbsolute(file_path)
-    ? file_path
-    : resolve(getCwd(), file_path)
+  new_string: string
+): {patch: Hunk[]; updatedFile: string} {
+  const fullFilePath = isAbsolute(file_path) ? file_path : resolve(getCwd(), file_path)
 
   let originalFile
   let updatedFile
@@ -29,10 +27,7 @@ export function applyEdit(
     const enc = detectFileEncoding(fullFilePath)
     originalFile = readFileSync(fullFilePath, enc)
     if (new_string === '') {
-      if (
-        !old_string.endsWith('\n') &&
-        originalFile.includes(old_string + '\n')
-      ) {
+      if (!old_string.endsWith('\n') && originalFile.includes(old_string + '\n')) {
         updatedFile = originalFile.replace(old_string + '\n', () => new_string)
       } else {
         updatedFile = originalFile.replace(old_string, () => new_string)
@@ -41,9 +36,7 @@ export function applyEdit(
       updatedFile = originalFile.replace(old_string, () => new_string)
     }
     if (updatedFile === originalFile) {
-      throw new Error(
-        'Original and edited file match exactly. Failed to apply edit.',
-      )
+      throw new Error('Original and edited file match exactly. Failed to apply edit.')
     }
   }
 
@@ -51,8 +44,8 @@ export function applyEdit(
     filePath: file_path,
     fileContents: originalFile,
     oldStr: originalFile,
-    newStr: updatedFile,
+    newStr: updatedFile
   })
 
-  return { patch, updatedFile }
+  return {patch, updatedFile}
 }

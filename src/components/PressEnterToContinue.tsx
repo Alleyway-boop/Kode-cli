@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { getTheme } from '@utils/theme'
-import { Text } from 'ink'
+import {getTheme} from '@utils/theme'
+import {Text} from 'ink'
 
 export function PressEnterToContinue(): React.ReactNode {
   return (

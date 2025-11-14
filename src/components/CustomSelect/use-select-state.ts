@@ -1,15 +1,8 @@
-import { isDeepStrictEqual } from 'node:util'
-import {
-  useReducer,
-  type Reducer,
-  useCallback,
-  useMemo,
-  useState,
-  useEffect,
-} from 'react'
+import {isDeepStrictEqual} from 'node:util'
+import {useReducer, type Reducer, useCallback, useMemo, useState, useEffect} from 'react'
 import OptionMap from './option-map'
-import { Option } from '@inkjs/ui'
-import type { OptionHeader, OptionSubtree } from './select'
+import {Option} from '@inkjs/ui'
+import type {OptionHeader, OptionSubtree} from './select'
 
 type State = {
   /**
@@ -105,14 +98,11 @@ const reducer: Reducer<State, Action> = (state, action) => {
       if (!needsToScroll) {
         return {
           ...state,
-          focusedValue: next.value,
+          focusedValue: next.value
         }
       }
 
-      const nextVisibleToIndex = Math.min(
-        state.optionMap.size,
-        state.visibleToIndex + 1,
-      )
+      const nextVisibleToIndex = Math.min(state.optionMap.size, state.visibleToIndex + 1)
 
       const nextVisibleFromIndex = nextVisibleToIndex - state.visibleOptionCount
 
@@ -120,7 +110,7 @@ const reducer: Reducer<State, Action> = (state, action) => {
         ...state,
         focusedValue: next.value,
         visibleFromIndex: nextVisibleFromIndex,
-        visibleToIndex: nextVisibleToIndex,
+        visibleToIndex: nextVisibleToIndex
       }
     }
 
@@ -150,7 +140,7 @@ const reducer: Reducer<State, Action> = (state, action) => {
       if (!needsToScroll) {
         return {
           ...state,
-          focusedValue: previous.value,
+          focusedValue: previous.value
         }
       }
 
@@ -162,7 +152,7 @@ const reducer: Reducer<State, Action> = (state, action) => {
         ...state,
         focusedValue: previous.value,
         visibleFromIndex: nextVisibleFromIndex,
-        visibleToIndex: nextVisibleToIndex,
+        visibleToIndex: nextVisibleToIndex
       }
     }
 
@@ -170,7 +160,7 @@ const reducer: Reducer<State, Action> = (state, action) => {
       return {
         ...state,
         previousValue: state.value,
-        value: state.focusedValue,
+        value: state.focusedValue
       }
     }
 
@@ -181,7 +171,7 @@ const reducer: Reducer<State, Action> = (state, action) => {
     case 'set-focus': {
       return {
         ...state,
-        focusedValue: action.value,
+        focusedValue: action.value
       }
     }
   }
@@ -221,14 +211,11 @@ export type UseSelectStateProps = {
   focusValue?: string
 }
 
-export type SelectState = Pick<
-  State,
-  'focusedValue' | 'visibleFromIndex' | 'visibleToIndex' | 'value'
-> & {
+export type SelectState = Pick<State, 'focusedValue' | 'visibleFromIndex' | 'visibleToIndex' | 'value'> & {
   /**
    * Visible options.
    */
-  visibleOptions: Array<(Option | OptionHeader) & { index: number }>
+  visibleOptions: Array<(Option | OptionHeader) & {index: number}>
 
   /**
    * Focus next option and scroll the list down, if needed.
@@ -246,19 +233,12 @@ export type SelectState = Pick<
   selectFocusedOption: () => void
 }
 
-const flattenOptions = (
-  options: (Option | OptionSubtree)[],
-): (Option | OptionHeader)[] =>
+const flattenOptions = (options: (Option | OptionSubtree)[]): (Option | OptionHeader)[] =>
   options.flatMap(option => {
     if ('options' in option) {
       const flatSubtree = flattenOptions(option.options)
-      const optionValues = flatSubtree.flatMap(o =>
-        'value' in o ? o.value : [],
-      )
-      const header =
-        option.header !== undefined
-          ? [{ header: option.header, optionValues }]
-          : []
+      const optionValues = flatSubtree.flatMap(o => ('value' in o ? o.value : []))
+      const header = option.header !== undefined ? [{header: option.header, optionValues}] : []
 
       return [...header, ...flatSubtree]
     }
@@ -268,11 +248,8 @@ const flattenOptions = (
 const createDefaultState = ({
   visibleOptionCount: customVisibleOptionCount,
   defaultValue,
-  options,
-}: Pick<
-  UseSelectStateProps,
-  'visibleOptionCount' | 'defaultValue' | 'options'
->) => {
+  options
+}: Pick<UseSelectStateProps, 'visibleOptionCount' | 'defaultValue' | 'options'>) => {
   const flatOptions = flattenOptions(options)
 
   const visibleOptionCount =
@@ -288,8 +265,7 @@ const createDefaultState = ({
   if (defaultValue && optionMap.get(defaultValue)) {
     focusedValue = defaultValue
   } else {
-    focusedValue =
-      firstOption && 'value' in firstOption ? firstOption.value : undefined
+    focusedValue = firstOption && 'value' in firstOption ? firstOption.value : undefined
   }
 
   // Calculate visible range based on focused value
@@ -301,10 +277,7 @@ const createDefaultState = ({
     // Center the focused option in the visible area if possible
     const halfVisible = Math.floor(visibleOptionCount / 2)
     visibleFromIndex = Math.max(0, focusedIndex - halfVisible)
-    visibleToIndex = Math.min(
-      flatOptions.length,
-      visibleFromIndex + visibleOptionCount,
-    )
+    visibleToIndex = Math.min(flatOptions.length, visibleFromIndex + visibleOptionCount)
 
     // Adjust if we can't show enough items at the end
     if (visibleToIndex - visibleFromIndex < visibleOptionCount) {
@@ -319,7 +292,7 @@ const createDefaultState = ({
     visibleFromIndex,
     visibleToIndex,
     previousValue: defaultValue,
-    value: defaultValue,
+    value: defaultValue
   }
 }
 
@@ -329,25 +302,18 @@ export const useSelectState = ({
   defaultValue,
   onChange,
   onFocus,
-  focusValue,
+  focusValue
 }: UseSelectStateProps) => {
   const flatOptions = flattenOptions(options)
 
-  const [state, dispatch] = useReducer(
-    reducer,
-    { visibleOptionCount, defaultValue, options },
-    createDefaultState,
-  )
+  const [state, dispatch] = useReducer(reducer, {visibleOptionCount, defaultValue, options}, createDefaultState)
 
   const [lastOptions, setLastOptions] = useState(flatOptions)
 
-  if (
-    flatOptions !== lastOptions &&
-    !isDeepStrictEqual(flatOptions, lastOptions)
-  ) {
+  if (flatOptions !== lastOptions && !isDeepStrictEqual(flatOptions, lastOptions)) {
     dispatch({
       type: 'reset',
-      state: createDefaultState({ visibleOptionCount, defaultValue, options }),
+      state: createDefaultState({visibleOptionCount, defaultValue, options})
     })
 
     setLastOptions(flatOptions)
@@ -355,19 +321,19 @@ export const useSelectState = ({
 
   const focusNextOption = useCallback(() => {
     dispatch({
-      type: 'focus-next-option',
+      type: 'focus-next-option'
     })
   }, [])
 
   const focusPreviousOption = useCallback(() => {
     dispatch({
-      type: 'focus-previous-option',
+      type: 'focus-previous-option'
     })
   }, [])
 
   const selectFocusedOption = useCallback(() => {
     dispatch({
-      type: 'select-focused-option',
+      type: 'select-focused-option'
     })
   }, [])
 
@@ -375,7 +341,7 @@ export const useSelectState = ({
     return flatOptions
       .map((option, index) => ({
         ...option,
-        index,
+        index
       }))
       .slice(state.visibleFromIndex, state.visibleToIndex)
   }, [flatOptions, state.visibleFromIndex, state.visibleToIndex])
@@ -396,7 +362,7 @@ export const useSelectState = ({
     if (focusValue) {
       dispatch({
         type: 'set-focus',
-        value: focusValue,
+        value: focusValue
       })
     }
   }, [focusValue])
@@ -409,6 +375,6 @@ export const useSelectState = ({
     visibleOptions,
     focusNextOption,
     focusPreviousOption,
-    selectFocusedOption,
+    selectFocusedOption
   }
 }

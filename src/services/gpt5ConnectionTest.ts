@@ -1,11 +1,11 @@
 /**
  * 🔥 GPT-5 Connection Test Service
- * 
+ *
  * Specialized connection testing for GPT-5 models that supports both
  * Responses API and Chat Completions API with proper fallback handling.
  */
 
-import { getModelFeatures } from './openai'
+import {getModelFeatures} from './openai'
 
 export interface ConnectionTestResult {
   success: boolean
@@ -29,13 +29,13 @@ export interface GPT5TestConfig {
  */
 export async function testGPT5Connection(config: GPT5TestConfig): Promise<ConnectionTestResult> {
   const startTime = Date.now()
-  
+
   // Validate configuration
   if (!config.model || !config.apiKey) {
     return {
       success: false,
       message: 'Invalid configuration',
-      details: 'Model name and API key are required',
+      details: 'Model name and API key are required'
     }
   }
 
@@ -53,7 +53,7 @@ export async function testGPT5Connection(config: GPT5TestConfig): Promise<Connec
   if (isGPT5 && modelFeatures.supportsResponsesAPI && isOfficialOpenAI) {
     console.log(`🚀 Attempting Responses API for ${config.model}`)
     const responsesResult = await testResponsesAPI(config, baseURL, startTime)
-    
+
     if (responsesResult.success) {
       console.log(`✅ Responses API test successful for ${config.model}`)
       return responsesResult
@@ -71,30 +71,30 @@ export async function testGPT5Connection(config: GPT5TestConfig): Promise<Connec
  * Test using GPT-5 Responses API
  */
 async function testResponsesAPI(
-  config: GPT5TestConfig, 
-  baseURL: string, 
+  config: GPT5TestConfig,
+  baseURL: string,
   startTime: number
 ): Promise<ConnectionTestResult> {
   const testURL = `${baseURL.replace(/\/+$/, '')}/responses`
-  
+
   const testPayload = {
     model: config.model,
     input: [
       {
         role: 'user',
-        content: 'Please respond with exactly "YES" (in capital letters) to confirm this connection is working.',
-      },
+        content: 'Please respond with exactly "YES" (in capital letters) to confirm this connection is working.'
+      }
     ],
     max_completion_tokens: Math.max(config.maxTokens || 8192, 8192),
     temperature: 1, // GPT-5 requirement
     reasoning: {
-      effort: 'low', // Fast response for connection test
-    },
+      effort: 'low' // Fast response for connection test
+    }
   }
 
   const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${config.apiKey}`,
+    Authorization: `Bearer ${config.apiKey}`
   }
 
   console.log(`🔧 Responses API URL: ${testURL}`)
@@ -104,7 +104,7 @@ async function testResponsesAPI(
     const response = await fetch(testURL, {
       method: 'POST',
       headers,
-      body: JSON.stringify(testPayload),
+      body: JSON.stringify(testPayload)
     })
 
     const responseTime = Date.now() - startTime
@@ -135,7 +135,7 @@ async function testResponsesAPI(
           endpoint: '/responses',
           details: `Model responded correctly: "${responseContent.trim()}"`,
           apiUsed: 'responses',
-          responseTime,
+          responseTime
         }
       } else {
         return {
@@ -144,7 +144,7 @@ async function testResponsesAPI(
           endpoint: '/responses',
           details: `Expected "YES" but got: "${responseContent.trim() || '(empty response)'}"`,
           apiUsed: 'responses',
-          responseTime,
+          responseTime
         }
       }
     } else {
@@ -159,19 +159,19 @@ async function testResponsesAPI(
         endpoint: '/responses',
         details: `Error: ${errorMessage}`,
         apiUsed: 'responses',
-        responseTime: Date.now() - startTime,
+        responseTime: Date.now() - startTime
       }
     }
   } catch (error) {
     console.log(`❌ Responses API connection error:`, error)
-    
+
     return {
       success: false,
       message: '❌ Responses API connection failed',
       endpoint: '/responses',
       details: error instanceof Error ? error.message : String(error),
       apiUsed: 'responses',
-      responseTime: Date.now() - startTime,
+      responseTime: Date.now() - startTime
     }
   }
 }
@@ -180,38 +180,38 @@ async function testResponsesAPI(
  * Test using Chat Completions API with GPT-5 compatibility
  */
 async function testChatCompletionsAPI(
-  config: GPT5TestConfig, 
-  baseURL: string, 
+  config: GPT5TestConfig,
+  baseURL: string,
   startTime: number
 ): Promise<ConnectionTestResult> {
   const testURL = `${baseURL.replace(/\/+$/, '')}/chat/completions`
-  
+
   const isGPT5 = config.model.toLowerCase().includes('gpt-5')
-  
+
   // Create test payload with GPT-5 compatibility
   const testPayload: any = {
     model: config.model,
     messages: [
       {
         role: 'user',
-        content: 'Please respond with exactly "YES" (in capital letters) to confirm this connection is working.',
-      },
+        content: 'Please respond with exactly "YES" (in capital letters) to confirm this connection is working.'
+      }
     ],
     temperature: isGPT5 ? 1 : 0, // GPT-5 requires temperature=1
-    stream: false,
+    stream: false
   }
 
   // 🔧 Apply GPT-5 parameter transformations
   if (isGPT5) {
     testPayload.max_completion_tokens = Math.max(config.maxTokens || 8192, 8192)
-    delete testPayload.max_tokens  // 🔥 CRITICAL: Remove max_tokens for GPT-5
+    delete testPayload.max_tokens // 🔥 CRITICAL: Remove max_tokens for GPT-5
     console.log(`🔧 GPT-5 mode: Using max_completion_tokens = ${testPayload.max_completion_tokens}`)
   } else {
     testPayload.max_tokens = Math.max(config.maxTokens || 8192, 8192)
   }
 
   const headers = {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   }
 
   // Add provider-specific headers
@@ -228,7 +228,7 @@ async function testChatCompletionsAPI(
     const response = await fetch(testURL, {
       method: 'POST',
       headers,
-      body: JSON.stringify(testPayload),
+      body: JSON.stringify(testPayload)
     })
 
     const responseTime = Date.now() - startTime
@@ -247,7 +247,7 @@ async function testChatCompletionsAPI(
           endpoint: '/chat/completions',
           details: `Model responded correctly: "${responseContent.trim()}"`,
           apiUsed: 'chat_completions',
-          responseTime,
+          responseTime
         }
       } else {
         return {
@@ -256,7 +256,7 @@ async function testChatCompletionsAPI(
           endpoint: '/chat/completions',
           details: `Expected "YES" but got: "${responseContent.trim() || '(empty response)'}"`,
           apiUsed: 'chat_completions',
-          responseTime,
+          responseTime
         }
       }
     } else {
@@ -268,7 +268,8 @@ async function testChatCompletionsAPI(
       // 🔧 Provide specific guidance for GPT-5 errors
       let details = `Error: ${errorMessage}`
       if (response.status === 400 && errorMessage.includes('max_tokens') && isGPT5) {
-        details += '\n\n🔧 GPT-5 Fix Applied: This error suggests a parameter compatibility issue. Please check if the provider supports GPT-5 with max_completion_tokens.'
+        details +=
+          '\n\n🔧 GPT-5 Fix Applied: This error suggests a parameter compatibility issue. Please check if the provider supports GPT-5 with max_completion_tokens.'
       }
 
       return {
@@ -277,19 +278,19 @@ async function testChatCompletionsAPI(
         endpoint: '/chat/completions',
         details: details,
         apiUsed: 'chat_completions',
-        responseTime: Date.now() - startTime,
+        responseTime: Date.now() - startTime
       }
     }
   } catch (error) {
     console.log(`❌ Chat Completions connection error:`, error)
-    
+
     return {
       success: false,
       message: '❌ Chat Completions connection failed',
       endpoint: '/chat/completions',
       details: error instanceof Error ? error.message : String(error),
       apiUsed: 'chat_completions',
-      responseTime: Date.now() - startTime,
+      responseTime: Date.now() - startTime
     }
   }
 }
@@ -297,14 +298,17 @@ async function testChatCompletionsAPI(
 /**
  * Quick validation for GPT-5 configuration
  */
-export function validateGPT5Config(config: GPT5TestConfig): { valid: boolean; errors: string[] } {
+export function validateGPT5Config(config: GPT5TestConfig): {
+  valid: boolean
+  errors: string[]
+} {
   console.log(`🔧 validateGPT5Config called with:`, {
     model: config.model,
     hasApiKey: !!config.apiKey,
     baseURL: config.baseURL,
-    provider: config.provider,
+    provider: config.provider
   })
-  
+
   const errors: string[] = []
 
   if (!config.model) {
@@ -322,19 +326,19 @@ export function validateGPT5Config(config: GPT5TestConfig): { valid: boolean; er
   const isGPT5 = config.model?.toLowerCase().includes('gpt-5')
   if (isGPT5) {
     console.log(`🔧 GPT-5 validation: model=${config.model}, maxTokens=${config.maxTokens}`)
-    
+
     if (config.maxTokens && config.maxTokens < 1000) {
       errors.push('GPT-5 models typically require at least 1000 max tokens')
     }
-    
+
     // 完全移除第三方provider限制，允许所有代理中转站使用GPT-5
     console.log(`🔧 No third-party restrictions applied for GPT-5`)
   }
 
-  console.log(`🔧 Validation result:`, { valid: errors.length === 0, errors })
+  console.log(`🔧 Validation result:`, {valid: errors.length === 0, errors})
 
   return {
     valid: errors.length === 0,
-    errors,
+    errors
   }
 }

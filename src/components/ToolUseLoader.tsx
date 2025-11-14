@@ -1,8 +1,8 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import React from 'react'
-import { useInterval } from '@hooks/useInterval'
-import { getTheme } from '@utils/theme'
-import { BLACK_CIRCLE } from '@constants/figures'
+import {useInterval} from '@hooks/useInterval'
+import {getTheme} from '@utils/theme'
+import {BLACK_CIRCLE} from '@constants/figures'
 
 type Props = {
   isError: boolean
@@ -10,11 +10,7 @@ type Props = {
   shouldAnimate: boolean
 }
 
-export function ToolUseLoader({
-  isError,
-  isUnresolved,
-  shouldAnimate,
-}: Props): React.ReactNode {
+export function ToolUseLoader({isError, isUnresolved, shouldAnimate}: Props): React.ReactNode {
   const [isVisible, setIsVisible] = React.useState(true)
 
   useInterval(() => {
@@ -26,11 +22,7 @@ export function ToolUseLoader({
     setIsVisible(_ => !_)
   }, 600)
 
-  const color = isUnresolved
-    ? getTheme().secondaryText
-    : isError
-      ? getTheme().error
-      : getTheme().success
+  const color = isUnresolved ? getTheme().secondaryText : isError ? getTheme().error : getTheme().success
 
   return (
     <Box minWidth={2}>

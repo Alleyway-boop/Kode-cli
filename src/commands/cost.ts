@@ -1,5 +1,5 @@
-import type { Command } from '@commands'
-import { formatTotalCost } from '@costTracker'
+import type {Command} from '@commands'
+import {formatTotalCost} from '@costTracker'
 
 const cost = {
   type: 'local',
@@ -12,7 +12,7 @@ const cost = {
   },
   userFacingName() {
     return 'cost'
-  },
+  }
 } satisfies Command
 
 export default cost

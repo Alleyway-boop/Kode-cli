@@ -1,12 +1,12 @@
-import { useEffect } from 'react'
-import { sendNotification } from '@services/notifier'
-import { memoize } from 'lodash-es'
+import {useEffect} from 'react'
+import {sendNotification} from '@services/notifier'
+import {memoize} from 'lodash-es'
 
 // The time threshold in milliseconds for considering an interaction "recent" (6 seconds)
 const DEFAULT_INTERACTION_THRESHOLD_MS = 6000
 
 const STATE = {
-  lastInteractionTime: Date.now(),
+  lastInteractionTime: Date.now()
 }
 
 function updateLastInteractionTime(): void {
@@ -38,10 +38,7 @@ const init = memoize(() => process.stdin.on('data', updateLastInteractionTime))
  * @param message - The notification message to display
  * @param timeout - The timeout in milliseconds (defaults to 6000ms)
  */
-export function useNotifyAfterTimeout(
-  message: string,
-  timeout: number = DEFAULT_INTERACTION_THRESHOLD_MS,
-): void {
+export function useNotifyAfterTimeout(message: string, timeout: number = DEFAULT_INTERACTION_THRESHOLD_MS): void {
   // Reset interaction time when hook is called to make sure that requests
   // that took a long time to complete don't pop up a notification right away
   useEffect(() => {
@@ -55,7 +52,7 @@ export function useNotifyAfterTimeout(
       if (shouldNotify(timeout) && !hasNotified) {
         hasNotified = true
         sendNotification({
-          message,
+          message
         })
       }
     }, timeout)

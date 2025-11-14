@@ -1,7 +1,7 @@
 import {
   ProjectConfig,
   getCurrentProjectConfig as getCurrentProjectConfigDefault,
-  saveCurrentProjectConfig as saveCurrentProjectConfigDefault,
+  saveCurrentProjectConfig as saveCurrentProjectConfigDefault
 } from '@utils/config'
 
 export type ProjectConfigHandler = {
@@ -12,7 +12,7 @@ export type ProjectConfigHandler = {
 // Default config handler using the real implementation
 const defaultConfigHandler: ProjectConfigHandler = {
   getCurrentProjectConfig: getCurrentProjectConfigDefault,
-  saveCurrentProjectConfig: saveCurrentProjectConfigDefault,
+  saveCurrentProjectConfig: saveCurrentProjectConfigDefault
 }
 
 /**
@@ -20,7 +20,7 @@ const defaultConfigHandler: ProjectConfigHandler = {
  */
 export function handleListApprovedTools(
   cwd: string,
-  projectConfigHandler: ProjectConfigHandler = defaultConfigHandler,
+  projectConfigHandler: ProjectConfigHandler = defaultConfigHandler
 ): string {
   const projectConfig = projectConfigHandler.getCurrentProjectConfig()
   return `Allowed tools for ${cwd}:\n${projectConfig.allowedTools.join('\n')}`
@@ -31,8 +31,8 @@ export function handleListApprovedTools(
  */
 export function handleRemoveApprovedTool(
   tool: string,
-  projectConfigHandler: ProjectConfigHandler = defaultConfigHandler,
-): { success: boolean; message: string } {
+  projectConfigHandler: ProjectConfigHandler = defaultConfigHandler
+): {success: boolean; message: string} {
   const projectConfig = projectConfigHandler.getCurrentProjectConfig()
   const originalToolCount = projectConfig.allowedTools.length
   const updatedAllowedTools = projectConfig.allowedTools.filter(t => t !== tool)
@@ -42,12 +42,12 @@ export function handleRemoveApprovedTool(
     projectConfigHandler.saveCurrentProjectConfig(projectConfig)
     return {
       success: true,
-      message: `Removed ${tool} from the list of approved tools`,
+      message: `Removed ${tool} from the list of approved tools`
     }
   } else {
     return {
       success: false,
-      message: `${tool} was not in the list of approved tools`,
+      message: `${tool} was not in the list of approved tools`
     }
   }
 }

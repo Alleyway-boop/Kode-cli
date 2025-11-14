@@ -21,17 +21,15 @@ type QueuedGenerator<A> = {
 // Run all generators concurrently up to a concurrency cap, yielding values as they come in
 export async function* all<A>(
   generators: AsyncGenerator<A, void>[],
-  concurrencyCap = Infinity,
+  concurrencyCap = Infinity
 ): AsyncGenerator<A, void> {
   const next = (generator: AsyncGenerator<A, void>) => {
-    const promise: Promise<QueuedGenerator<A>> = generator
-      .next()
-      .then(({ done, value }) => ({
-        done,
-        value,
-        generator,
-        promise,
-      }))
+    const promise: Promise<QueuedGenerator<A>> = generator.next().then(({done, value}) => ({
+      done,
+      value,
+      generator,
+      promise
+    }))
     return promise
   }
   const waiting = [...generators]
@@ -44,7 +42,7 @@ export async function* all<A>(
   }
 
   while (promises.size > 0) {
-    const { done, value, generator, promise } = await Promise.race(promises)
+    const {done, value, generator, promise} = await Promise.race(promises)
     promises.delete(promise)
 
     if (!done) {

@@ -1,22 +1,22 @@
-import { Box, Text, useInput } from 'ink'
+import {Box, Text, useInput} from 'ink'
 import * as React from 'react'
-import { useState, useCallback, useEffect } from 'react'
-import { getTheme } from '@utils/theme'
-import { getMessagesGetter } from '@messages'
-import type { Message } from '@query'
+import {useState, useCallback, useEffect} from 'react'
+import {getTheme} from '@utils/theme'
+import {getMessagesGetter} from '@messages'
+import type {Message} from '@query'
 import TextInput from './TextInput'
-import { logError, getInMemoryErrors } from '@utils/log'
-import { env } from '@utils/env'
-import { getGitState, getIsGit, GitRepoState } from '@utils/git'
-import { useTerminalSize } from '@hooks/useTerminalSize'
-import { getAnthropicApiKey, getGlobalConfig } from '@utils/config'
-import { USER_AGENT } from '@utils/http'
-import { PRODUCT_NAME } from '@constants/product'
-import { API_ERROR_MESSAGE_PREFIX, queryQuick } from '@services/claude'
-import { openBrowser } from '@utils/browser'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { MACRO } from '@constants/macros'
-import { GITHUB_ISSUES_REPO_URL } from '@constants/product'
+import {logError, getInMemoryErrors} from '@utils/log'
+import {env} from '@utils/env'
+import {getGitState, getIsGit, GitRepoState} from '@utils/git'
+import {useTerminalSize} from '@hooks/useTerminalSize'
+import {getAnthropicApiKey, getGlobalConfig} from '@utils/config'
+import {USER_AGENT} from '@utils/http'
+import {PRODUCT_NAME} from '@constants/product'
+import {API_ERROR_MESSAGE_PREFIX, queryQuick} from '@services/claude'
+import {openBrowser} from '@utils/browser'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {MACRO} from '@constants/macros'
+import {GITHUB_ISSUES_REPO_URL} from '@constants/product'
 
 type Props = {
   onDone(result: string): void
@@ -38,7 +38,7 @@ type FeedbackData = {
   transcript: Message[]
 }
 
-export function Bug({ onDone }: Props): React.ReactNode {
+export function Bug({onDone}: Props): React.ReactNode {
   const [step, setStep] = useState<Step>('userInput')
   const [cursorOffset, setCursorOffset] = useState(0)
   const [description, setDescription] = useState('')
@@ -47,7 +47,7 @@ export function Bug({ onDone }: Props): React.ReactNode {
   const [envInfo, setEnvInfo] = useState<{
     isGit: boolean
     gitState: GitRepoState | null
-  }>({ isGit: false, gitState: null })
+  }>({isGit: false, gitState: null})
   const [title, setTitle] = useState<string | null>(null)
   const textInputColumns = useTerminalSize().columns - 4
   const messages = getMessagesGetter()()
@@ -59,7 +59,7 @@ export function Bug({ onDone }: Props): React.ReactNode {
       if (isGit) {
         gitState = await getGitState()
       }
-      setEnvInfo({ isGit, gitState })
+      setEnvInfo({isGit, gitState})
     }
     void loadEnvInfo()
   }, [])
@@ -129,11 +129,7 @@ export function Bug({ onDone }: Props): React.ReactNode {
     }
 
     if (step === 'consent' && (key.return || input === ' ')) {
-      const issueUrl = createGitHubIssueUrl(
-        feedbackId,
-        description.slice(0, 80),
-        description,
-      )
+      const issueUrl = createGitHubIssueUrl(feedbackId, description.slice(0, 80), description)
       void openBrowser(issueUrl)
       onDone('<bash-stdout>Bug report submitted</bash-stdout>')
     }
@@ -156,17 +152,13 @@ export function Bug({ onDone }: Props): React.ReactNode {
         </Text>
         {step === 'userInput' && (
           <Box flexDirection="column" gap={1}>
-            <Text>
-              Describe the issue below and copy/paste any errors you see:
-            </Text>
+            <Text>Describe the issue below and copy/paste any errors you see:</Text>
             <TextInput
               value={description}
               onChange={setDescription}
               columns={textInputColumns}
               onSubmit={() => setStep('consent')}
-              onExitMessage={() =>
-                onDone('<bash-stderr>Bug report cancelled</bash-stderr>')
-              }
+              onExitMessage={() => onDone('<bash-stderr>Bug report cancelled</bash-stderr>')}
               cursorOffset={cursorOffset}
               onChangeCursorOffset={setCursorOffset}
             />
@@ -239,9 +231,7 @@ export function Bug({ onDone }: Props): React.ReactNode {
             <Box marginTop={1}>
               <Text>Press </Text>
               <Text bold>Enter </Text>
-              <Text>
-                to also create a GitHub issue, or any other key to close.
-              </Text>
+              <Text>to also create a GitHub issue, or any other key to close.</Text>
             </Box>
           </Box>
         )}
@@ -262,11 +252,7 @@ export function Bug({ onDone }: Props): React.ReactNode {
   )
 }
 
-function createGitHubIssueUrl(
-  feedbackId: string,
-  title: string,
-  description: string,
-): string {
+function createGitHubIssueUrl(feedbackId: string, title: string, description: string): string {
   const globalConfig = getGlobalConfig()
 
   // Get ModelProfile information instead of legacy model info
@@ -306,24 +292,19 @@ ${modelInfo}`)
 async function generateTitle(description: string): Promise<string> {
   const response = await queryQuick({
     systemPrompt: [
-      'Generate a concise issue title (max 80 chars) that captures the key point of this feedback. Do not include quotes or prefixes like "Feedback:" or "Issue:". If you cannot generate a title, just use "User Feedback".',
+      'Generate a concise issue title (max 80 chars) that captures the key point of this feedback. Do not include quotes or prefixes like "Feedback:" or "Issue:". If you cannot generate a title, just use "User Feedback".'
     ],
-    userPrompt: description,
+    userPrompt: description
   })
-  const title =
-    response.message.content[0]?.type === 'text'
-      ? response.message.content[0].text
-      : 'Bug Report'
+  const title = response.message.content[0]?.type === 'text' ? response.message.content[0].text : 'Bug Report'
   if (title.startsWith(API_ERROR_MESSAGE_PREFIX)) {
     return `Bug Report: ${description.slice(0, 60)}${description.length > 60 ? '...' : ''}`
   }
   return title
 }
 
-async function submitFeedback(
-  data: FeedbackData,
-): Promise<{ success: boolean; feedbackId?: string }> {
-  return { success: true, feedbackId: '123' }
+async function submitFeedback(data: FeedbackData): Promise<{success: boolean; feedbackId?: string}> {
+  return {success: true, feedbackId: '123'}
   // try {
   //   const apiKey = getAnthropicApiKey()
   //   if (!apiKey) {

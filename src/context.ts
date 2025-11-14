@@ -1,23 +1,20 @@
-import {
-  getCurrentProjectConfig,
-  saveCurrentProjectConfig,
-} from '@utils/config'
-import { logError } from './utils/log'
-import { getCodeStyle } from './utils/style'
-import { getCwd } from './utils/state'
-import { memoize, omit } from 'lodash-es'
-import { LSTool } from './tools/lsTool/lsTool'
-import { getIsGit } from './utils/git'
-import { ripGrep } from './utils/ripgrep'
+import {getCurrentProjectConfig, saveCurrentProjectConfig} from '@utils/config'
+import {logError} from './utils/log'
+import {getCodeStyle} from './utils/style'
+import {getCwd} from './utils/state'
+import {memoize, omit} from 'lodash-es'
+import {LSTool} from './tools/lsTool/lsTool'
+import {getIsGit} from './utils/git'
+import {ripGrep} from './utils/ripgrep'
 import * as path from 'path'
-import { execFileNoThrow } from './utils/execFileNoThrow'
-import { join } from 'path'
-import { readFile } from 'fs/promises'
-import { existsSync } from 'fs'
-import { getModelManager } from './utils/model'
-import { lastX } from './utils/generators'
-import { getGitEmail } from './utils/user'
-import { PROJECT_FILE } from './constants/product'
+import {execFileNoThrow} from './utils/execFileNoThrow'
+import {join} from 'path'
+import {readFile} from 'fs/promises'
+import {existsSync} from 'fs'
+import {getModelManager} from './utils/model'
+import {lastX} from './utils/generators'
+import {getGitEmail} from './utils/user'
+import {PROJECT_FILE} from './constants/product'
 /**
  * Locate AGENTS.md and CLAUDE.md files for backward compatibility with
  * existing documentation workflows.
@@ -28,16 +25,8 @@ export async function getClaudeFiles(): Promise<string | null> {
   try {
     // Search for both AGENTS.md and CLAUDE.md files
     const [codeContextFiles, claudeFiles] = await Promise.all([
-      ripGrep(
-        ['--files', '--glob', join('**', '*', PROJECT_FILE)],
-        getCwd(),
-        abortController.signal,
-      ).catch(() => []),
-      ripGrep(
-        ['--files', '--glob', join('**', '*', 'CLAUDE.md')],
-        getCwd(),
-        abortController.signal,
-      ).catch(() => []),
+      ripGrep(['--files', '--glob', join('**', '*', PROJECT_FILE)], getCwd(), abortController.signal).catch(() => []),
+      ripGrep(['--files', '--glob', join('**', '*', 'CLAUDE.md')], getCwd(), abortController.signal).catch(() => [])
     ])
 
     const allFiles = [...codeContextFiles, ...claudeFiles]
@@ -64,23 +53,14 @@ export async function getClaudeFiles(): Promise<string | null> {
 
 export function setContext(key: string, value: string): void {
   const projectConfig = getCurrentProjectConfig()
-  const context = omit(
-    { ...projectConfig.context, [key]: value },
-    'codeStyle',
-    'directoryStructure',
-  )
-  saveCurrentProjectConfig({ ...projectConfig, context })
+  const context = omit({...projectConfig.context, [key]: value}, 'codeStyle', 'directoryStructure')
+  saveCurrentProjectConfig({...projectConfig, context})
 }
 
 export function removeContext(key: string): void {
   const projectConfig = getCurrentProjectConfig()
-  const context = omit(
-    projectConfig.context,
-    key,
-    'codeStyle',
-    'directoryStructure',
-  )
-  saveCurrentProjectConfig({ ...projectConfig, context })
+  const context = omit(projectConfig.context, key, 'codeStyle', 'directoryStructure')
+  saveCurrentProjectConfig({...projectConfig, context})
 }
 
 export const getReadme = memoize(async (): Promise<string | null> => {
@@ -146,48 +126,23 @@ export const getGitStatus = memoize(async (): Promise<string | null> => {
 
   try {
     const [branch, mainBranch, status, log, authorLog] = await Promise.all([
+      execFileNoThrow('git', ['branch', '--show-current'], undefined, undefined, false).then(({stdout}) =>
+        stdout.trim()
+      ),
+      execFileNoThrow('git', ['rev-parse', '--abbrev-ref', 'origin/HEAD'], undefined, undefined, false).then(
+        ({stdout}) => stdout.replace('origin/', '').trim()
+      ),
+      execFileNoThrow('git', ['status', '--short'], undefined, undefined, false).then(({stdout}) => stdout.trim()),
+      execFileNoThrow('git', ['log', '--oneline', '-n', '5'], undefined, undefined, false).then(({stdout}) =>
+        stdout.trim()
+      ),
       execFileNoThrow(
         'git',
-        ['branch', '--show-current'],
+        ['log', '--oneline', '-n', '5', '--author', (await getGitEmail()) || ''],
         undefined,
         undefined,
-        false,
-      ).then(({ stdout }) => stdout.trim()),
-      execFileNoThrow(
-        'git',
-        ['rev-parse', '--abbrev-ref', 'origin/HEAD'],
-        undefined,
-        undefined,
-        false,
-      ).then(({ stdout }) => stdout.replace('origin/', '').trim()),
-      execFileNoThrow(
-        'git',
-        ['status', '--short'],
-        undefined,
-        undefined,
-        false,
-      ).then(({ stdout }) => stdout.trim()),
-      execFileNoThrow(
-        'git',
-        ['log', '--oneline', '-n', '5'],
-        undefined,
-        undefined,
-        false,
-      ).then(({ stdout }) => stdout.trim()),
-      execFileNoThrow(
-        'git',
-        [
-          'log',
-          '--oneline',
-          '-n',
-          '5',
-          '--author',
-          (await getGitEmail()) || '',
-        ],
-        undefined,
-        undefined,
-        false,
-      ).then(({ stdout }) => stdout.trim()),
+        false
+      ).then(({stdout}) => stdout.trim())
     ])
     // Check if status has more than 200 lines
     const statusLines = status.split('\n').length
@@ -214,66 +169,63 @@ export const getContext = memoize(
     const codeStyle = getCodeStyle()
     const projectConfig = getCurrentProjectConfig()
     const dontCrawl = projectConfig.dontCrawlDirectory
-    const [gitStatus, directoryStructure, claudeFiles, readme, projectDocs] =
-      await Promise.all([
-        getGitStatus(),
-        dontCrawl ? Promise.resolve('') : getDirectoryStructure(),
-        dontCrawl ? Promise.resolve('') : getClaudeFiles(),
-        getReadme(),
-        getProjectDocs(),
-      ])
+    const [gitStatus, directoryStructure, claudeFiles, readme, projectDocs] = await Promise.all([
+      getGitStatus(),
+      dontCrawl ? Promise.resolve('') : getDirectoryStructure(),
+      dontCrawl ? Promise.resolve('') : getClaudeFiles(),
+      getReadme(),
+      getProjectDocs()
+    ])
     return {
       ...projectConfig.context,
-      ...(directoryStructure ? { directoryStructure } : {}),
-      ...(gitStatus ? { gitStatus } : {}),
-      ...(codeStyle ? { codeStyle } : {}),
-      ...(claudeFiles ? { claudeFiles } : {}),
-      ...(readme ? { readme } : {}),
-      ...(projectDocs ? { projectDocs } : {}),
+      ...(directoryStructure ? {directoryStructure} : {}),
+      ...(gitStatus ? {gitStatus} : {}),
+      ...(codeStyle ? {codeStyle} : {}),
+      ...(claudeFiles ? {claudeFiles} : {}),
+      ...(readme ? {readme} : {}),
+      ...(projectDocs ? {projectDocs} : {})
     }
-  },
+  }
 )
 
 /**
  * Approximate directory structure, to orient Claude. Claude will start with this, then use
  * tools like LS and View to get more information.
  */
-export const getDirectoryStructure = memoize(
-  async function (): Promise<string> {
-    let lines: string
-    try {
-      const abortController = new AbortController()
-      setTimeout(() => {
-        abortController.abort()
-      }, 1_000)
-      // 🔧 Fix: Use ModelManager instead of legacy function
-      const model = getModelManager().getModelName('main')
-      const resultsGen = LSTool.call(
-        {
-          path: '.',
+export const getDirectoryStructure = memoize(async function (): Promise<string> {
+  let lines: string
+  try {
+    const abortController = new AbortController()
+    setTimeout(() => {
+      abortController.abort()
+    }, 1_000)
+    // 🔧 Fix: Use ModelManager instead of legacy function
+    const model = getModelManager().getModelName('main')
+    const resultsGen = LSTool.call(
+      {
+        path: '.'
+      },
+      {
+        abortController,
+        options: {
+          commands: [],
+          tools: [],
+          forkNumber: 0,
+          messageLogName: 'unused',
+          maxThinkingTokens: 0
         },
-        {
-          abortController,
-          options: {
-            commands: [],
-            tools: [],
-            forkNumber: 0,
-            messageLogName: 'unused',
-            maxThinkingTokens: 0,
-          },
-          messageId: undefined,
-          readFileTimestamps: {},
-        },
-      )
-      const result = await lastX(resultsGen)
-      lines = result.data
-    } catch (error) {
-      logError(error)
-      return ''
-    }
+        messageId: undefined,
+        readFileTimestamps: {}
+      }
+    )
+    const result = await lastX(resultsGen)
+    lines = result.data
+  } catch (error) {
+    logError(error)
+    return ''
+  }
 
-    return `Below is a snapshot of this project's file structure at the start of the conversation. This snapshot will NOT update during the conversation.
+  return `Below is a snapshot of this project's file structure at the start of the conversation. This snapshot will NOT update during the conversation.
 
 ${lines}`
-  },
-)
+})

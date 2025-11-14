@@ -10,17 +10,17 @@ interface ConversationState {
 
 class ResponseStateManager {
   private conversationStates = new Map<string, ConversationState>()
-  
+
   // Cache cleanup after 1 hour of inactivity
   private readonly CLEANUP_INTERVAL = 60 * 60 * 1000
-  
+
   constructor() {
     // Periodic cleanup of stale conversations
     setInterval(() => {
       this.cleanup()
     }, this.CLEANUP_INTERVAL)
   }
-  
+
   /**
    * Set the previous response ID for a conversation
    */
@@ -30,7 +30,7 @@ class ResponseStateManager {
       lastUpdate: Date.now()
     })
   }
-  
+
   /**
    * Get the previous response ID for a conversation
    */
@@ -43,21 +43,21 @@ class ResponseStateManager {
     }
     return undefined
   }
-  
+
   /**
    * Clear state for a conversation
    */
   clearConversation(conversationId: string): void {
     this.conversationStates.delete(conversationId)
   }
-  
+
   /**
    * Clear all conversation states
    */
   clearAll(): void {
     this.conversationStates.clear()
   }
-  
+
   /**
    * Clean up stale conversations
    */
@@ -69,7 +69,7 @@ class ResponseStateManager {
       }
     }
   }
-  
+
   /**
    * Get current state size (for debugging/monitoring)
    */

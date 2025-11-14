@@ -1,15 +1,13 @@
 import React from 'react'
-import { render } from 'ink'
-import { MCPServerMultiselectDialog } from '@components/MCPServerMultiselectDialog'
-import { MCPServerApprovalDialog } from '@components/MCPServerApprovalDialog'
-import { getMcprcServerStatus } from './mcpClient'
-import { getMcprcConfig } from '@utils/config'
+import {render} from 'ink'
+import {MCPServerMultiselectDialog} from '@components/MCPServerMultiselectDialog'
+import {MCPServerApprovalDialog} from '@components/MCPServerApprovalDialog'
+import {getMcprcServerStatus} from './mcpClient'
+import {getMcprcConfig} from '@utils/config'
 
 export async function handleMcprcServerApprovals(): Promise<void> {
   const mcprcServers = getMcprcConfig()
-  const pendingServers = Object.keys(mcprcServers).filter(
-    serverName => getMcprcServerStatus(serverName) === 'pending',
-  )
+  const pendingServers = Object.keys(mcprcServers).filter(serverName => getMcprcServerStatus(serverName) === 'pending')
 
   if (pendingServers.length === 0) {
     return
@@ -32,7 +30,7 @@ export async function handleMcprcServerApprovals(): Promise<void> {
             clearScreenAndResolve()
           }}
         />,
-        { exitOnCtrlC: false },
+        {exitOnCtrlC: false}
       )
     } else {
       const result = render(
@@ -43,7 +41,7 @@ export async function handleMcprcServerApprovals(): Promise<void> {
             clearScreenAndResolve()
           }}
         />,
-        { exitOnCtrlC: false },
+        {exitOnCtrlC: false}
       )
     }
   })

@@ -1,5 +1,5 @@
-import { ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
-import type { Tool } from '@tool'
+import {ToolUseBlock} from '@anthropic-ai/sdk/resources/index.mjs'
+import type {Tool} from '@tool'
 
 export interface ToolExecutionGroup {
   concurrent: ToolUseBlock[]
@@ -20,11 +20,9 @@ export class ToolExecutionController {
   /**
    * Group tools into concurrent and sequential execution groups
    */
-  groupToolsForExecution(
-    toolUseMessages: ToolUseBlock[],
-  ): ToolExecutionGroup[] {
+  groupToolsForExecution(toolUseMessages: ToolUseBlock[]): ToolExecutionGroup[] {
     const groups: ToolExecutionGroup[] = []
-    let currentGroup: ToolExecutionGroup = { concurrent: [], sequential: [] }
+    let currentGroup: ToolExecutionGroup = {concurrent: [], sequential: []}
 
     for (const toolUse of toolUseMessages) {
       const tool = this.findTool(toolUse.name)
@@ -32,7 +30,7 @@ export class ToolExecutionController {
       if (!tool) {
         // Unknown tool, execute sequentially for safety
         this.flushCurrentGroup(groups, currentGroup)
-        currentGroup = { concurrent: [], sequential: [toolUse] }
+        currentGroup = {concurrent: [], sequential: [toolUse]}
         continue
       }
 
@@ -42,16 +40,14 @@ export class ToolExecutionController {
       } else {
         // Must be executed sequentially
         this.flushCurrentGroup(groups, currentGroup)
-        currentGroup = { concurrent: [], sequential: [toolUse] }
+        currentGroup = {concurrent: [], sequential: [toolUse]}
       }
     }
 
     // Flush the last group
     this.flushCurrentGroup(groups, currentGroup)
 
-    return groups.filter(
-      group => group.concurrent.length > 0 || group.sequential.length > 0,
-    )
+    return groups.filter(group => group.concurrent.length > 0 || group.sequential.length > 0)
   }
 
   /**
@@ -75,13 +71,13 @@ export class ToolExecutionController {
     const tool = this.findTool(toolName)
 
     if (!tool) {
-      return { found: false, isConcurrencySafe: false, isReadOnly: false }
+      return {found: false, isConcurrencySafe: false, isReadOnly: false}
     }
 
     return {
       found: true,
       isConcurrencySafe: tool.isConcurrencySafe(),
-      isReadOnly: tool.isReadOnly(),
+      isReadOnly: tool.isReadOnly()
     }
   }
 
@@ -96,33 +92,21 @@ export class ToolExecutionController {
     recommendations: string[]
   } {
     const groups = this.groupToolsForExecution(toolUseMessages)
-    const concurrentCount = groups.reduce(
-      (sum, g) => sum + g.concurrent.length,
-      0,
-    )
-    const sequentialCount = groups.reduce(
-      (sum, g) => sum + g.sequential.length,
-      0,
-    )
+    const concurrentCount = groups.reduce((sum, g) => sum + g.concurrent.length, 0)
+    const sequentialCount = groups.reduce((sum, g) => sum + g.sequential.length, 0)
 
     const recommendations: string[] = []
 
     if (concurrentCount > 1) {
-      recommendations.push(
-        `${concurrentCount} tools can run concurrently for better performance`,
-      )
+      recommendations.push(`${concurrentCount} tools can run concurrently for better performance`)
     }
 
     if (sequentialCount > 1) {
-      recommendations.push(
-        `${sequentialCount} tools must run sequentially for safety`,
-      )
+      recommendations.push(`${sequentialCount} tools must run sequentially for safety`)
     }
 
     if (groups.length > 1) {
-      recommendations.push(
-        `Execution will be divided into ${groups.length} groups`,
-      )
+      recommendations.push(`Execution will be divided into ${groups.length} groups`)
     }
 
     return {
@@ -130,7 +114,7 @@ export class ToolExecutionController {
       concurrentCount,
       sequentialCount,
       groups,
-      recommendations,
+      recommendations
     }
   }
 
@@ -138,15 +122,9 @@ export class ToolExecutionController {
     return this.tools.find(t => t.name === name)
   }
 
-  private flushCurrentGroup(
-    groups: ToolExecutionGroup[],
-    currentGroup: ToolExecutionGroup,
-  ): void {
-    if (
-      currentGroup.concurrent.length > 0 ||
-      currentGroup.sequential.length > 0
-    ) {
-      groups.push({ ...currentGroup })
+  private flushCurrentGroup(groups: ToolExecutionGroup[], currentGroup: ToolExecutionGroup): void {
+    if (currentGroup.concurrent.length > 0 || currentGroup.sequential.length > 0) {
+      groups.push({...currentGroup})
       currentGroup.concurrent = []
       currentGroup.sequential = []
     }
@@ -156,8 +134,6 @@ export class ToolExecutionController {
 /**
  * Create a tool execution controller for the given tools
  */
-export function createToolExecutionController(
-  tools: Tool[],
-): ToolExecutionController {
+export function createToolExecutionController(tools: Tool[]): ToolExecutionController {
   return new ToolExecutionController(tools)
 }

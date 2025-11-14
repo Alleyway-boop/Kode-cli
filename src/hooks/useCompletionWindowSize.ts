@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { useTerminalSize } from '@hooks/useTerminalSize'
+import {useCallback} from 'react'
+import {useTerminalSize} from '@hooks/useTerminalSize'
 
 export interface CompletionWindowSize {
   windowSize: number
@@ -10,27 +10,27 @@ export interface CompletionWindowSize {
 
 // UI元素占用的固定行数
 const RESERVED_SPACE = {
-  inputLine: 2,        // 输入行 + 边框
-  helpText: 2,         // 帮助文本框
-  indicators: 1,       // 滚动指示器
-  padding: 2,          // 上下边距
-  statusMessages: 1,   // 状态消息空间
+  inputLine: 2, // 输入行 + 边框
+  helpText: 2, // 帮助文本框
+  indicators: 1, // 滚动指示器
+  padding: 2, // 上下边距
+  statusMessages: 1 // 状态消息空间
 }
 
 const TOTAL_RESERVED_SPACE = Object.values(RESERVED_SPACE).reduce((sum, space) => sum + space, 0)
 
 // 响应式断点
 const BREAKPOINTS = {
-  compact: 15,    // 15行以下启用紧凑模式
-  standard: 25,  // 25行标准模式
-  large: 40,     // 40行以上增强模式
+  compact: 15, // 15行以下启用紧凑模式
+  standard: 25, // 25行标准模式
+  large: 40 // 40行以上增强模式
 } as const
 
 // 窗口大小限制
 const WINDOW_LIMITS = {
-  minimum: 3,     // 最少显示3个项目
-  maximum: 15,    // 最多显示15个项目
-  compact: 5,     // 紧凑模式最多5个项目
+  minimum: 3, // 最少显示3个项目
+  maximum: 15, // 最多显示15个项目
+  compact: 5 // 紧凑模式最多5个项目
 } as const
 
 /**
@@ -39,7 +39,7 @@ const WINDOW_LIMITS = {
  * 根据终端高度、UI元素占用空间和响应式断点计算最优的窗口大小
  */
 export function useCompletionWindowSize(): CompletionWindowSize {
-  const { rows } = useTerminalSize()
+  const {rows} = useTerminalSize()
 
   const calculateWindowSize = useCallback((terminalRows: number): CompletionWindowSize => {
     // 计算可用于列表的行数

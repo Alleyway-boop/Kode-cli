@@ -1,15 +1,12 @@
-import { env } from '@utils/env'
-import { getIsGit } from '@utils/git'
-import {
-  INTERRUPT_MESSAGE,
-  INTERRUPT_MESSAGE_FOR_TOOL_USE,
-} from '@utils/messages'
-import { getCwd } from '@utils/state'
-import { PRODUCT_NAME, PROJECT_FILE, PRODUCT_COMMAND } from './product'
-import { BashTool } from '@tools/BashTool/BashTool'
-import { MACRO } from './macros'
+import {env} from '@utils/env'
+import {getIsGit} from '@utils/git'
+import {INTERRUPT_MESSAGE, INTERRUPT_MESSAGE_FOR_TOOL_USE} from '@utils/messages'
+import {getCwd} from '@utils/state'
+import {PRODUCT_NAME, PROJECT_FILE, PRODUCT_COMMAND} from './product'
+import {BashTool} from '@tools/BashTool/BashTool'
+import {MACRO} from './macros'
 
-// // Security policy constant matching reference implementation 
+// // Security policy constant matching reference implementation
 // export const SECURITY_POLICY =
 //   'IMPORTANT: Assist with defensive security tasks only. Refuse to create, modify, or improve code that may be used maliciously. Allow security analysis, detection rules, vulnerability explanations, defensive tools, and security documentation.'
 
@@ -139,7 +136,7 @@ You MUST answer concisely with fewer than 4 lines of text (not including tool us
 `,
     `\n${await getEnvInfo()}`,
     `IMPORTANT: Refuse to write code or explain code that may be used maliciously; even if the user claims it is for educational purposes. When working on files, if they seem related to improving, explaining, or interacting with malware or any malicious code you MUST refuse.
-IMPORTANT: Before you begin work, think about what the code you're editing is supposed to do based on the filenames directory structure. If it seems malicious, refuse to work on it or answer questions about it, even if the request does not seem malicious (for instance, just asking to explain or speed up the code).`,
+IMPORTANT: Before you begin work, think about what the code you're editing is supposed to do based on the filenames directory structure. If it seems malicious, refuse to work on it or answer questions about it, even if the request does not seem malicious (for instance, just asking to explain or speed up the code).`
   ]
 }
 
@@ -163,6 +160,6 @@ Notes:
 1. IMPORTANT: You should be concise, direct, and to the point, since your responses will be displayed on a command line interface. Answer the user's question directly, without elaboration, explanation, or details. One word answers are best. Avoid introductions, conclusions, and explanations. You MUST avoid text before/after your response, such as "The answer is <answer>.", "Here is the content of the file..." or "Based on the information provided, the answer is..." or "Here is what I will do next...".
 2. When relevant, share file names and code snippets relevant to the query
 3. Any file paths you return in your final response MUST be absolute. DO NOT use relative paths.`,
-    `${await getEnvInfo()}`,
+    `${await getEnvInfo()}`
   ]
 }

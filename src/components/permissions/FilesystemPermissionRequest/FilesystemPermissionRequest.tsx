@@ -1,37 +1,24 @@
-import { Box, Text } from 'ink'
-import React, { useMemo } from 'react'
-import { Select } from '@components/CustomSelect/select'
-import { getTheme } from '@utils/theme'
-import {
-  PermissionRequestTitle,
-  textColorForRiskScore,
-} from '@components/permissions/PermissionRequestTitle'
-import { logUnaryEvent } from '@utils/unaryLogging'
-import { env } from '@utils/env'
-import {
-  type PermissionRequestProps,
-  type ToolUseConfirm,
-} from '@components/permissions/PermissionRequest'
+import {Box, Text} from 'ink'
+import React, {useMemo} from 'react'
+import {Select} from '@components/CustomSelect/select'
+import {getTheme} from '@utils/theme'
+import {PermissionRequestTitle, textColorForRiskScore} from '@components/permissions/PermissionRequestTitle'
+import {logUnaryEvent} from '@utils/unaryLogging'
+import {env} from '@utils/env'
+import {type PermissionRequestProps, type ToolUseConfirm} from '@components/permissions/PermissionRequest'
 import chalk from 'chalk'
-import {
-  UnaryEvent,
-  usePermissionRequestLogging,
-} from '@hooks/usePermissionRequestLogging'
-import { FileEditTool } from '@tools/FileEditTool/FileEditTool'
-import { FileWriteTool } from '@tools/FileWriteTool/FileWriteTool'
-import { GrepTool } from '@tools/GrepTool/GrepTool'
-import { GlobTool } from '@tools/GlobTool/GlobTool'
-import { LSTool } from '@tools/lsTool/lsTool'
-import { FileReadTool } from '@tools/FileReadTool/FileReadTool'
-import { NotebookEditTool } from '@tools/NotebookEditTool/NotebookEditTool'
-import { NotebookReadTool } from '@tools/NotebookReadTool/NotebookReadTool'
-import { FallbackPermissionRequest } from '@components/permissions/FallbackPermissionRequest'
-import {
-  grantWritePermissionForOriginalDir,
-  pathInOriginalCwd,
-  toAbsolutePath,
-} from '@utils/permissions/filesystem'
-import { getCwd } from '@utils/state'
+import {UnaryEvent, usePermissionRequestLogging} from '@hooks/usePermissionRequestLogging'
+import {FileEditTool} from '@tools/FileEditTool/FileEditTool'
+import {FileWriteTool} from '@tools/FileWriteTool/FileWriteTool'
+import {GrepTool} from '@tools/GrepTool/GrepTool'
+import {GlobTool} from '@tools/GlobTool/GlobTool'
+import {LSTool} from '@tools/lsTool/lsTool'
+import {FileReadTool} from '@tools/FileReadTool/FileReadTool'
+import {NotebookEditTool} from '@tools/NotebookEditTool/NotebookEditTool'
+import {NotebookReadTool} from '@tools/NotebookReadTool/NotebookReadTool'
+import {FallbackPermissionRequest} from '@components/permissions/FallbackPermissionRequest'
+import {grantWritePermissionForOriginalDir, pathInOriginalCwd, toAbsolutePath} from '@utils/permissions/filesystem'
+import {getCwd} from '@utils/state'
 
 function pathArgNameForToolUse(toolUseConfirm: ToolUseConfirm): string | null {
   switch (toolUseConfirm.tool) {
@@ -80,26 +67,15 @@ function pathFromToolUse(toolUseConfirm: ToolUseConfirm): string | null {
 export function FilesystemPermissionRequest({
   toolUseConfirm,
   onDone,
-  verbose,
+  verbose
 }: PermissionRequestProps): React.ReactNode {
   const path = pathFromToolUse(toolUseConfirm)
   if (!path) {
     // Fall back to generic permission request if no path is found
-    return (
-      <FallbackPermissionRequest
-        toolUseConfirm={toolUseConfirm}
-        onDone={onDone}
-        verbose={verbose}
-      />
-    )
+    return <FallbackPermissionRequest toolUseConfirm={toolUseConfirm} onDone={onDone} verbose={verbose} />
   }
   return (
-    <FilesystemPermissionRequestImpl
-      toolUseConfirm={toolUseConfirm}
-      path={path}
-      onDone={onDone}
-      verbose={verbose}
-    />
+    <FilesystemPermissionRequestImpl toolUseConfirm={toolUseConfirm} path={path} onDone={onDone} verbose={verbose} />
   )
 }
 
@@ -114,8 +90,8 @@ function getDontAskAgainOptions(toolUseConfirm: ToolUseConfirm, path: string) {
     ? [
         {
           label: "Yes, and don't ask again for file edits this session",
-          value: 'yes-dont-ask-again',
-        },
+          value: 'yes-dont-ask-again'
+        }
       ]
     : []
 }
@@ -127,25 +103,18 @@ type Props = {
   verbose: boolean
 }
 
-function FilesystemPermissionRequestImpl({
-  toolUseConfirm,
-  path,
-  onDone,
-  verbose,
-}: Props): React.ReactNode {
+function FilesystemPermissionRequestImpl({toolUseConfirm, path, onDone, verbose}: Props): React.ReactNode {
   const userFacingName = toolUseConfirm.tool.userFacingName()
 
-  const userFacingReadOrWrite = toolUseConfirm.tool.isReadOnly()
-    ? 'Read'
-    : 'Edit'
+  const userFacingReadOrWrite = toolUseConfirm.tool.isReadOnly() ? 'Read' : 'Edit'
   const title = `${userFacingReadOrWrite} ${isMultiFile(toolUseConfirm) ? 'files' : 'file'}`
 
   const unaryEvent = useMemo<UnaryEvent>(
     () => ({
       completion_type: 'tool_use_single',
-      language_name: 'none',
+      language_name: 'none'
     }),
-    [],
+    []
   )
 
   usePermissionRequestLogging(toolUseConfirm, unaryEvent)
@@ -160,18 +129,10 @@ function FilesystemPermissionRequestImpl({
       paddingRight={1}
       paddingBottom={1}
     >
-      <PermissionRequestTitle
-        title={title}
-        riskScore={toolUseConfirm.riskScore}
-      />
+      <PermissionRequestTitle title={title} riskScore={toolUseConfirm.riskScore} />
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text>
-          {userFacingName}(
-          {toolUseConfirm.tool.renderToolUseMessage(
-            toolUseConfirm.input as never,
-            { verbose },
-          )}
-          )
+          {userFacingName}({toolUseConfirm.tool.renderToolUseMessage(toolUseConfirm.input as never, {verbose})})
         </Text>
       </Box>
 
@@ -181,13 +142,13 @@ function FilesystemPermissionRequestImpl({
           options={[
             {
               label: 'Yes',
-              value: 'yes',
+              value: 'yes'
             },
             ...getDontAskAgainOptions(toolUseConfirm, path),
             {
               label: `No, and provide instructions (${chalk.bold.hex(getTheme().warning)('esc')})`,
-              value: 'no',
-            },
+              value: 'no'
+            }
           ]}
           onChange={newValue => {
             switch (newValue) {
@@ -198,8 +159,8 @@ function FilesystemPermissionRequestImpl({
                   metadata: {
                     language_name: 'none',
                     message_id: toolUseConfirm.assistantMessage.message.id,
-                    platform: env.platform,
-                  },
+                    platform: env.platform
+                  }
                 })
                 toolUseConfirm.onAllow('temporary')
                 onDone()
@@ -211,8 +172,8 @@ function FilesystemPermissionRequestImpl({
                   metadata: {
                     language_name: 'none',
                     message_id: toolUseConfirm.assistantMessage.message.id,
-                    platform: env.platform,
-                  },
+                    platform: env.platform
+                  }
                 })
                 grantWritePermissionForOriginalDir()
                 toolUseConfirm.onAllow('permanent')
@@ -225,8 +186,8 @@ function FilesystemPermissionRequestImpl({
                   metadata: {
                     language_name: 'none',
                     message_id: toolUseConfirm.assistantMessage.message.id,
-                    platform: env.platform,
-                  },
+                    platform: env.platform
+                  }
                 })
                 toolUseConfirm.onReject()
                 onDone()

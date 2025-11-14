@@ -1,9 +1,5 @@
 // Permission mode types retained for compatibility with earlier agent implementations
-export type PermissionMode =
-  | 'default'
-  | 'acceptEdits'
-  | 'plan'
-  | 'bypassPermissions'
+export type PermissionMode = 'default' | 'acceptEdits' | 'plan' | 'bypassPermissions'
 
 export interface PermissionContext {
   mode: PermissionMode
@@ -47,8 +43,8 @@ export const MODE_CONFIGS: Record<PermissionMode, ModeConfig> = {
     restrictions: {
       readOnly: false,
       requireConfirmation: true,
-      bypassValidation: false,
-    },
+      bypassValidation: false
+    }
   },
   acceptEdits: {
     name: 'acceptEdits',
@@ -60,8 +56,8 @@ export const MODE_CONFIGS: Record<PermissionMode, ModeConfig> = {
     restrictions: {
       readOnly: false,
       requireConfirmation: false,
-      bypassValidation: false,
-    },
+      bypassValidation: false
+    }
   },
   plan: {
     name: 'plan',
@@ -69,21 +65,12 @@ export const MODE_CONFIGS: Record<PermissionMode, ModeConfig> = {
     icon: '📝',
     color: 'yellow',
     description: 'Research and planning - read-only tools only',
-    allowedTools: [
-      'Read',
-      'Grep',
-      'Glob',
-      'LS',
-      'WebSearch',
-      'WebFetch',
-      'NotebookRead',
-      'exit_plan_mode',
-    ],
+    allowedTools: ['Read', 'Grep', 'Glob', 'LS', 'WebSearch', 'WebFetch', 'NotebookRead', 'exit_plan_mode'],
     restrictions: {
       readOnly: true,
       requireConfirmation: true,
-      bypassValidation: false,
-    },
+      bypassValidation: false
+    }
   },
   bypassPermissions: {
     name: 'bypassPermissions',
@@ -95,16 +82,13 @@ export const MODE_CONFIGS: Record<PermissionMode, ModeConfig> = {
     restrictions: {
       readOnly: false,
       requireConfirmation: false,
-      bypassValidation: true,
-    },
-  },
+      bypassValidation: true
+    }
+  }
 }
 
 // Mode cycling function preserved from the Claude Code workflow
-export function getNextPermissionMode(
-  currentMode: PermissionMode,
-  isBypassAvailable: boolean = true,
-): PermissionMode {
+export function getNextPermissionMode(currentMode: PermissionMode, isBypassAvailable: boolean = true): PermissionMode {
   switch (currentMode) {
     case 'default':
       return 'acceptEdits'

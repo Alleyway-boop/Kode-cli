@@ -1,35 +1,20 @@
-import { stat } from 'fs/promises'
-import { Box, Text } from 'ink'
+import {stat} from 'fs/promises'
+import {Box, Text} from 'ink'
 import React from 'react'
-import { z } from 'zod'
-import { Cost } from '@components/Cost'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { Tool } from '@tool'
-import { getCwd } from '@utils/state'
-import {
-  getAbsolutePath,
-  getAbsoluteAndRelativePaths,
-} from '@utils/file'
-import { ripGrep } from '@utils/ripgrep'
-import { DESCRIPTION, TOOL_NAME_FOR_PROMPT } from './prompt'
-import { hasReadPermission } from '@utils/permissions/filesystem'
+import {z} from 'zod'
+import {Cost} from '@components/Cost'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {Tool} from '@tool'
+import {getCwd} from '@utils/state'
+import {getAbsolutePath, getAbsoluteAndRelativePaths} from '@utils/file'
+import {ripGrep} from '@utils/ripgrep'
+import {DESCRIPTION, TOOL_NAME_FOR_PROMPT} from './prompt'
+import {hasReadPermission} from '@utils/permissions/filesystem'
 
 const inputSchema = z.strictObject({
-  pattern: z
-    .string()
-    .describe('The regular expression pattern to search for in file contents'),
-  path: z
-    .string()
-    .optional()
-    .describe(
-      'The directory to search in. Defaults to the current working directory.',
-    ),
-  include: z
-    .string()
-    .optional()
-    .describe(
-      'File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")',
-    ),
+  pattern: z.string().describe('The regular expression pattern to search for in file contents'),
+  path: z.string().optional().describe('The directory to search in. Defaults to the current working directory.'),
+  include: z.string().optional().describe('File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")')
 })
 
 const MAX_RESULTS = 100
@@ -59,14 +44,14 @@ export const GrepTool = {
   async isEnabled() {
     return true
   },
-  needsPermissions({ path }) {
+  needsPermissions({path}) {
     return !hasReadPermission(path || getCwd())
   },
   async prompt() {
     return DESCRIPTION
   },
-  renderToolUseMessage({ pattern, path, include }, { verbose }) {
-    const { absolutePath, relativePath } = getAbsoluteAndRelativePaths(path)
+  renderToolUseMessage({pattern, path, include}, {verbose}) {
+    const {absolutePath, relativePath} = getAbsoluteAndRelativePaths(path)
     return `pattern: "${pattern}"${relativePath || verbose ? `, path: "${verbose ? absolutePath : relativePath}"` : ''}${include ? `, include: "${include}"` : ''}`
   },
   renderToolUseRejectedMessage() {
@@ -84,26 +69,23 @@ export const GrepTool = {
         <Box flexDirection="row">
           <Text>&nbsp;&nbsp;⎿ &nbsp;Found </Text>
           <Text bold>{output.numFiles} </Text>
-          <Text>
-            {output.numFiles === 0 || output.numFiles > 1 ? 'files' : 'file'}
-          </Text>
+          <Text>{output.numFiles === 0 || output.numFiles > 1 ? 'files' : 'file'}</Text>
         </Box>
         <Cost costUSD={0} durationMs={output.durationMs} debug={false} />
       </Box>
     )
   },
-  renderResultForAssistant({ numFiles, filenames }) {
+  renderResultForAssistant({numFiles, filenames}) {
     if (numFiles === 0) {
       return 'No files found'
     }
     let result = `Found ${numFiles} file${numFiles === 1 ? '' : 's'}\n${filenames.slice(0, MAX_RESULTS).join('\n')}`
     if (numFiles > MAX_RESULTS) {
-      result +=
-        '\n(Results are truncated. Consider using a more specific path or pattern.)'
+      result += '\n(Results are truncated. Consider using a more specific path or pattern.)'
     }
     return result
   },
-  async *call({ pattern, path, include }, { abortController }) {
+  async *call({pattern, path, include}, {abortController}) {
     const start = Date.now()
     const absolutePath = getAbsolutePath(path) || getCwd()
 
@@ -135,13 +117,13 @@ export const GrepTool = {
     const output = {
       filenames: matches,
       durationMs: Date.now() - start,
-      numFiles: matches.length,
+      numFiles: matches.length
     }
 
     yield {
       type: 'result',
       resultForAssistant: this.renderResultForAssistant(output),
-      data: output,
+      data: output
     }
-  },
+  }
 } satisfies Tool<Input, Output>

@@ -1,24 +1,15 @@
-import { Box, Text } from 'ink'
-import React, { useMemo } from 'react'
-import { Select } from '@components/CustomSelect/select'
-import { getTheme } from '@utils/theme'
-import {
-  PermissionRequestTitle,
-  textColorForRiskScore,
-} from './PermissionRequestTitle'
-import { logUnaryEvent } from '@utils/unaryLogging'
-import { env } from '@utils/env'
-import { getCwd } from '@utils/state'
-import { savePermission } from '@permissions'
-import {
-  type ToolUseConfirm,
-  toolUseConfirmGetPrefix,
-} from './PermissionRequest'
+import {Box, Text} from 'ink'
+import React, {useMemo} from 'react'
+import {Select} from '@components/CustomSelect/select'
+import {getTheme} from '@utils/theme'
+import {PermissionRequestTitle, textColorForRiskScore} from './PermissionRequestTitle'
+import {logUnaryEvent} from '@utils/unaryLogging'
+import {env} from '@utils/env'
+import {getCwd} from '@utils/state'
+import {savePermission} from '@permissions'
+import {type ToolUseConfirm, toolUseConfirmGetPrefix} from './PermissionRequest'
 import chalk from 'chalk'
-import {
-  UnaryEvent,
-  usePermissionRequestLogging,
-} from '@hooks/usePermissionRequestLogging'
+import {UnaryEvent, usePermissionRequestLogging} from '@hooks/usePermissionRequestLogging'
 
 type Props = {
   toolUseConfirm: ToolUseConfirm
@@ -26,11 +17,7 @@ type Props = {
   verbose: boolean
 }
 
-export function FallbackPermissionRequest({
-  toolUseConfirm,
-  onDone,
-  verbose,
-}: Props): React.ReactNode {
+export function FallbackPermissionRequest({toolUseConfirm, onDone, verbose}: Props): React.ReactNode {
   const theme = getTheme()
 
   // TODO: Avoid these special cases
@@ -42,9 +29,9 @@ export function FallbackPermissionRequest({
   const unaryEvent = useMemo<UnaryEvent>(
     () => ({
       completion_type: 'tool_use_single',
-      language_name: 'none',
+      language_name: 'none'
     }),
-    [],
+    []
   )
 
   usePermissionRequestLogging(toolUseConfirm, unaryEvent)
@@ -59,23 +46,11 @@ export function FallbackPermissionRequest({
       paddingRight={1}
       paddingBottom={1}
     >
-      <PermissionRequestTitle
-        title="Tool use"
-        riskScore={toolUseConfirm.riskScore}
-      />
+      <PermissionRequestTitle title="Tool use" riskScore={toolUseConfirm.riskScore} />
       <Box flexDirection="column" paddingX={2} paddingY={1}>
         <Text>
-          {userFacingName}(
-          {toolUseConfirm.tool.renderToolUseMessage(
-            toolUseConfirm.input as never,
-            { verbose },
-          )}
-          )
-          {originalUserFacingName.endsWith(' (MCP)') ? (
-            <Text color={theme.secondaryText}> (MCP)</Text>
-          ) : (
-            ''
-          )}
+          {userFacingName}({toolUseConfirm.tool.renderToolUseMessage(toolUseConfirm.input as never, {verbose})})
+          {originalUserFacingName.endsWith(' (MCP)') ? <Text color={theme.secondaryText}> (MCP)</Text> : ''}
         </Text>
         <Text color={theme.secondaryText}>{toolUseConfirm.description}</Text>
       </Box>
@@ -86,16 +61,16 @@ export function FallbackPermissionRequest({
           options={[
             {
               label: 'Yes',
-              value: 'yes',
+              value: 'yes'
             },
             {
               label: `Yes, and don't ask again for ${chalk.bold(userFacingName)} commands in ${chalk.bold(getCwd())}`,
-              value: 'yes-dont-ask-again',
+              value: 'yes-dont-ask-again'
             },
             {
               label: `No, and provide instructions (${chalk.bold.hex(getTheme().warning)('esc')})`,
-              value: 'no',
-            },
+              value: 'no'
+            }
           ]}
           onChange={newValue => {
             switch (newValue) {
@@ -106,8 +81,8 @@ export function FallbackPermissionRequest({
                   metadata: {
                     language_name: 'none',
                     message_id: toolUseConfirm.assistantMessage.message.id,
-                    platform: env.platform,
-                  },
+                    platform: env.platform
+                  }
                 })
                 toolUseConfirm.onAllow('temporary')
                 onDone()
@@ -119,17 +94,15 @@ export function FallbackPermissionRequest({
                   metadata: {
                     language_name: 'none',
                     message_id: toolUseConfirm.assistantMessage.message.id,
-                    platform: env.platform,
-                  },
+                    platform: env.platform
+                  }
                 })
-                savePermission(
-                  toolUseConfirm.tool,
-                  toolUseConfirm.input,
-                  toolUseConfirmGetPrefix(toolUseConfirm),
-                ).then(() => {
-                  toolUseConfirm.onAllow('permanent')
-                  onDone()
-                })
+                savePermission(toolUseConfirm.tool, toolUseConfirm.input, toolUseConfirmGetPrefix(toolUseConfirm)).then(
+                  () => {
+                    toolUseConfirm.onAllow('permanent')
+                    onDone()
+                  }
+                )
                 break
               case 'no':
                 logUnaryEvent({
@@ -138,8 +111,8 @@ export function FallbackPermissionRequest({
                   metadata: {
                     language_name: 'none',
                     message_id: toolUseConfirm.assistantMessage.message.id,
-                    platform: env.platform,
-                  },
+                    platform: env.platform
+                  }
                 })
                 toolUseConfirm.onReject()
                 onDone()

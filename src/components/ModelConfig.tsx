@@ -1,18 +1,13 @@
-import { Box, Text, useInput } from 'ink'
+import {Box, Text, useInput} from 'ink'
 import * as React from 'react'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import {useState, useCallback, useEffect, useRef} from 'react'
 import figures from 'figures'
-import { getTheme } from '@utils/theme'
-import {
-  getGlobalConfig,
-  saveGlobalConfig,
-  ModelPointerType,
-  setModelPointer,
-} from '@utils/config'
-import { getModelManager } from '@utils/model'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { ModelSelector } from './ModelSelector'
-import { ModelListManager } from './ModelListManager'
+import {getTheme} from '@utils/theme'
+import {getGlobalConfig, saveGlobalConfig, ModelPointerType, setModelPointer} from '@utils/config'
+import {getModelManager} from '@utils/model'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {ModelSelector} from './ModelSelector'
+import {ModelListManager} from './ModelListManager'
 
 type Props = {
   onClose: () => void
@@ -23,20 +18,18 @@ type ModelPointerSetting = {
   label: string
   description: string
   value: string
-  options: Array<{ id: string; name: string }>
+  options: Array<{id: string; name: string}>
   type: 'modelPointer' | 'action'
   onChange(value?: string): void
 }
 
-export function ModelConfig({ onClose }: Props): React.ReactNode {
+export function ModelConfig({onClose}: Props): React.ReactNode {
   const config = getGlobalConfig()
   const theme = getTheme()
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [showModelSelector, setShowModelSelector] = useState(false)
   const [showModelListManager, setShowModelListManager] = useState(false)
-  const [currentPointer, setCurrentPointer] = useState<ModelPointerType | null>(
-    null,
-  )
+  const [currentPointer, setCurrentPointer] = useState<ModelPointerType | null>(null)
   const [refreshKey, setRefreshKey] = useState(0) // 添加刷新键来强制更新
   const [isDeleteMode, setIsDeleteMode] = useState(false) // 保留用于清空指针的删除模式
   const selectedIndexRef = useRef(selectedIndex) // 用ref保持焦点状态
@@ -55,7 +48,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
     name: string
   }> => {
     const profiles = modelManager.getAvailableModels()
-    return profiles.map(p => ({ id: p.modelName, name: p.name }))
+    return profiles.map(p => ({id: p.modelName, name: p.name}))
   }, [modelManager, refreshKey]) // 依赖refreshKey来强制更新
 
   // Create menu items: model pointers + "Add New Model" as separate item
@@ -68,7 +61,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         value: config.modelPointers?.main || '',
         options: availableModels,
         type: 'modelPointer' as const,
-        onChange: (value: string) => handleModelPointerChange('main', value),
+        onChange: (value: string) => handleModelPointerChange('main', value)
       },
       {
         id: 'task',
@@ -77,7 +70,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         value: config.modelPointers?.task || '',
         options: availableModels,
         type: 'modelPointer' as const,
-        onChange: (value: string) => handleModelPointerChange('task', value),
+        onChange: (value: string) => handleModelPointerChange('task', value)
       },
       {
         id: 'reasoning',
@@ -86,8 +79,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         value: config.modelPointers?.reasoning || '',
         options: availableModels,
         type: 'modelPointer' as const,
-        onChange: (value: string) =>
-          handleModelPointerChange('reasoning', value),
+        onChange: (value: string) => handleModelPointerChange('reasoning', value)
       },
       {
         id: 'quick',
@@ -96,8 +88,8 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         value: config.modelPointers?.quick || '',
         options: availableModels,
         type: 'modelPointer' as const,
-        onChange: (value: string) => handleModelPointerChange('quick', value),
-      },
+        onChange: (value: string) => handleModelPointerChange('quick', value)
+      }
     ]
 
     // Add menu actions as separate menu items
@@ -110,15 +102,12 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         value: '',
         options: [],
         type: 'action' as const,
-        onChange: () => handleManageModels(),
-      },
+        onChange: () => handleManageModels()
+      }
     ]
   }, [config.modelPointers, availableModels, refreshKey])
 
-  const handleModelPointerChange = (
-    pointer: ModelPointerType,
-    modelId: string,
-  ) => {
+  const handleModelPointerChange = (pointer: ModelPointerType, modelId: string) => {
     // Direct model assignment
     setModelPointer(pointer, modelId)
     // Force re-render to show updated assignment
@@ -174,9 +163,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
             handleManageModels()
             return
           }
-          const currentIndex = setting.options.findIndex(
-            opt => opt.id === setting.value,
-          )
+          const currentIndex = setting.options.findIndex(opt => opt.id === setting.value)
           const nextIndex = (currentIndex + 1) % setting.options.length
           const nextOption = setting.options[nextIndex]
           if (nextOption) {
@@ -188,7 +175,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         }
       }
     },
-    [selectedIndex, menuItems, onClose, isDeleteMode, modelManager],
+    [selectedIndex, menuItems, onClose, isDeleteMode, modelManager]
   )
 
   useInput(handleInput)
@@ -214,17 +201,9 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
 
   // Main configuration screen - completely following Config component layout
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      borderColor={theme.secondaryBorder}
-      paddingX={1}
-      marginTop={1}
-    >
+    <Box flexDirection="column" borderStyle="round" borderColor={theme.secondaryBorder} paddingX={1} marginTop={1}>
       <Box flexDirection="column" minHeight={2} marginBottom={1}>
-        <Text bold>
-          Model Configuration{isDeleteMode ? ' - CLEAR MODE' : ''}
-        </Text>
+        <Text bold>Model Configuration{isDeleteMode ? ' - CLEAR MODE' : ''}</Text>
         <Text dimColor>
           {isDeleteMode
             ? 'Press Enter/Space to clear selected pointer assignment, Esc to cancel'
@@ -240,9 +219,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         let actionText = ''
 
         if (setting.type === 'modelPointer') {
-          const currentModel = setting.options.find(
-            opt => opt.id === setting.value,
-          )
+          const currentModel = setting.options.find(opt => opt.id === setting.value)
           displayValue = currentModel?.name || '(not configured)'
           actionText = isSelected ? ' [Space to cycle]' : ''
         } else if (setting.type === 'action') {
@@ -260,13 +237,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
               </Box>
               <Box>
                 {setting.type === 'modelPointer' && (
-                  <Text
-                    color={
-                      displayValue !== '(not configured)'
-                        ? theme.success
-                        : theme.warning
-                    }
-                  >
+                  <Text color={displayValue !== '(not configured)' ? theme.success : theme.warning}>
                     {displayValue}
                   </Text>
                 )}
@@ -282,12 +253,7 @@ export function ModelConfig({ onClose }: Props): React.ReactNode {
         )
       })}
 
-      <Box
-        marginTop={1}
-        paddingTop={1}
-        borderTopColor={theme.secondaryBorder}
-        borderTopStyle="single"
-      >
+      <Box marginTop={1} paddingTop={1} borderTopColor={theme.secondaryBorder} borderTopStyle="single">
         <Text dimColor>
           {isDeleteMode
             ? 'CLEAR MODE: Press Enter/Space to clear assignment, Esc to cancel'

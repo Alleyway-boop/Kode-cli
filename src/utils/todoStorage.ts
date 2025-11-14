@@ -1,5 +1,5 @@
-import { setSessionState, getSessionState } from './sessionState'
-import { readAgentData, writeAgentData, resolveAgentId } from './agentStorage'
+import {setSessionState, getSessionState} from './sessionState'
+import {readAgentData, writeAgentData, resolveAgentId} from './agentStorage'
 
 export interface TodoItem {
   id: string
@@ -18,7 +18,7 @@ export interface TodoQuery {
   priority?: TodoItem['priority'][]
   contentMatch?: string
   tags?: string[]
-  dateRange?: { from?: Date; to?: Date }
+  dateRange?: {from?: Date; to?: Date}
 }
 
 export interface TodoStorageConfig {
@@ -37,7 +37,7 @@ const DEFAULT_CONFIG: TodoStorageConfig = {
   maxTodos: 100,
   autoArchiveCompleted: false,
   sortBy: 'status', // Using smart sorting now
-  sortOrder: 'desc',
+  sortOrder: 'desc'
 }
 
 // In-memory cache for performance
@@ -64,7 +64,7 @@ function updateMetrics(operation: string, cacheHit: boolean = false): void {
     totalOperations: 0,
     cacheHits: 0,
     cacheMisses: 0,
-    lastOperation: 0,
+    lastOperation: 0
   }
 
   metrics.totalOperations++
@@ -78,7 +78,7 @@ function updateMetrics(operation: string, cacheHit: boolean = false): void {
 
   setSessionState({
     ...sessionState,
-    todoMetrics: metrics,
+    todoMetrics: metrics
   })
 }
 
@@ -89,7 +89,7 @@ export function getTodoMetrics(): TodoMetrics {
       totalOperations: 0,
       cacheHits: 0,
       cacheMisses: 0,
-      lastOperation: 0,
+      lastOperation: 0
     }
   )
 }
@@ -137,9 +137,7 @@ export function setTodos(todos: TodoItem[], agentId?: string): void {
   if (agentId) {
     // Validate todo limit
     if (todos.length > config.maxTodos) {
-      throw new Error(
-        `Todo limit exceeded. Maximum ${config.maxTodos} todos allowed.`,
-      )
+      throw new Error(`Todo limit exceeded. Maximum ${config.maxTodos} todos allowed.`)
     }
 
     // Auto-archive completed todos if enabled
@@ -150,30 +148,25 @@ export function setTodos(todos: TodoItem[], agentId?: string): void {
 
     const updatedTodos = processedTodos.map(todo => {
       // Find existing todo to track status changes
-      const existingTodo = existingTodos.find(
-        existing => existing.id === todo.id,
-      )
+      const existingTodo = existingTodos.find(existing => existing.id === todo.id)
 
       return {
         ...todo,
         updatedAt: Date.now(),
         createdAt: todo.createdAt || Date.now(),
-        previousStatus:
-          existingTodo?.status !== todo.status
-            ? existingTodo?.status
-            : todo.previousStatus,
+        previousStatus: existingTodo?.status !== todo.status ? existingTodo?.status : todo.previousStatus
       }
     })
 
     // Smart sorting for agent todos
     updatedTodos.sort((a, b) => {
       // 1. Status priority: in_progress > pending > completed
-      const statusOrder = { in_progress: 3, pending: 2, completed: 1 }
+      const statusOrder = {in_progress: 3, pending: 2, completed: 1}
       const statusDiff = statusOrder[b.status] - statusOrder[a.status]
       if (statusDiff !== 0) return statusDiff
 
       // 2. For same status, sort by priority: high > medium > low
-      const priorityOrder = { high: 3, medium: 2, low: 1 }
+      const priorityOrder = {high: 3, medium: 2, low: 1}
       const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
       if (priorityDiff !== 0) return priorityDiff
 
@@ -192,9 +185,7 @@ export function setTodos(todos: TodoItem[], agentId?: string): void {
   // Original session-based logic for backward compatibility
   // Validate todo limit
   if (todos.length > config.maxTodos) {
-    throw new Error(
-      `Todo limit exceeded. Maximum ${config.maxTodos} todos allowed.`,
-    )
+    throw new Error(`Todo limit exceeded. Maximum ${config.maxTodos} todos allowed.`)
   }
 
   // Auto-archive completed todos if enabled
@@ -211,22 +202,19 @@ export function setTodos(todos: TodoItem[], agentId?: string): void {
       ...todo,
       updatedAt: Date.now(),
       createdAt: todo.createdAt || Date.now(),
-      previousStatus:
-        existingTodo?.status !== todo.status
-          ? existingTodo?.status
-          : todo.previousStatus,
+      previousStatus: existingTodo?.status !== todo.status ? existingTodo?.status : todo.previousStatus
     }
   })
 
   // Smart sorting: status -> priority -> updatedAt
   updatedTodos.sort((a, b) => {
     // 1. Status priority: in_progress > pending > completed
-    const statusOrder = { in_progress: 3, pending: 2, completed: 1 }
+    const statusOrder = {in_progress: 3, pending: 2, completed: 1}
     const statusDiff = statusOrder[b.status] - statusOrder[a.status]
     if (statusDiff !== 0) return statusDiff
 
     // 2. For same status, sort by priority: high > medium > low
-    const priorityOrder = { high: 3, medium: 2, low: 1 }
+    const priorityOrder = {high: 3, medium: 2, low: 1}
     const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority]
     if (priorityDiff !== 0) return priorityDiff
 
@@ -238,7 +226,7 @@ export function setTodos(todos: TodoItem[], agentId?: string): void {
 
   setSessionState({
     ...getSessionState(),
-    [TODO_STORAGE_KEY]: updatedTodos,
+    [TODO_STORAGE_KEY]: updatedTodos
   } as any)
 
   // Invalidate cache
@@ -248,16 +236,16 @@ export function setTodos(todos: TodoItem[], agentId?: string): void {
 
 export function getTodoConfig(): TodoStorageConfig {
   const sessionState = getSessionState() as any
-  return { ...DEFAULT_CONFIG, ...(sessionState[TODO_CONFIG_KEY] || {}) }
+  return {...DEFAULT_CONFIG, ...(sessionState[TODO_CONFIG_KEY] || {})}
 }
 
 export function setTodoConfig(config: Partial<TodoStorageConfig>): void {
   const currentConfig = getTodoConfig()
-  const newConfig = { ...currentConfig, ...config }
+  const newConfig = {...currentConfig, ...config}
 
   setSessionState({
     ...getSessionState(),
-    [TODO_CONFIG_KEY]: newConfig,
+    [TODO_CONFIG_KEY]: newConfig
   } as any)
 
   // Re-sort existing todos if sort order changed
@@ -267,9 +255,7 @@ export function setTodoConfig(config: Partial<TodoStorageConfig>): void {
   }
 }
 
-export function addTodo(
-  todo: Omit<TodoItem, 'createdAt' | 'updatedAt'>,
-): TodoItem[] {
+export function addTodo(todo: Omit<TodoItem, 'createdAt' | 'updatedAt'>): TodoItem[] {
   const todos = getTodos()
 
   // Check for duplicate IDs
@@ -280,7 +266,7 @@ export function addTodo(
   const newTodo: TodoItem = {
     ...todo,
     createdAt: Date.now(),
-    updatedAt: Date.now(),
+    updatedAt: Date.now()
   }
 
   const updatedTodos = [...todos, newTodo]
@@ -297,9 +283,7 @@ export function updateTodo(id: string, updates: Partial<TodoItem>): TodoItem[] {
     throw new Error(`Todo with ID '${id}' not found`)
   }
 
-  const updatedTodos = todos.map(todo =>
-    todo.id === id ? { ...todo, ...updates, updatedAt: Date.now() } : todo,
-  )
+  const updatedTodos = todos.map(todo => (todo.id === id ? {...todo, ...updates, updatedAt: Date.now()} : todo))
 
   setTodos(updatedTodos)
   updateMetrics('updateTodo')
@@ -360,10 +344,7 @@ export function queryTodos(query: TodoQuery): TodoItem[] {
     }
 
     // Content search
-    if (
-      query.contentMatch &&
-      !todo.content.toLowerCase().includes(query.contentMatch.toLowerCase())
-    ) {
+    if (query.contentMatch && !todo.content.toLowerCase().includes(query.contentMatch.toLowerCase())) {
       return false
     }
 
@@ -394,18 +375,15 @@ export function getTodoStatistics() {
     byStatus: {
       pending: todos.filter(t => t.status === 'pending').length,
       in_progress: todos.filter(t => t.status === 'in_progress').length,
-      completed: todos.filter(t => t.status === 'completed').length,
+      completed: todos.filter(t => t.status === 'completed').length
     },
     byPriority: {
       high: todos.filter(t => t.priority === 'high').length,
       medium: todos.filter(t => t.priority === 'medium').length,
-      low: todos.filter(t => t.priority === 'low').length,
+      low: todos.filter(t => t.priority === 'low').length
     },
     metrics,
-    cacheEfficiency:
-      metrics.totalOperations > 0
-        ? Math.round((metrics.cacheHits / metrics.totalOperations) * 100)
-        : 0,
+    cacheEfficiency: metrics.totalOperations > 0 ? Math.round((metrics.cacheHits / metrics.totalOperations) * 100) : 0
   }
 }
 
@@ -420,7 +398,7 @@ export function optimizeTodoStorage(): void {
       todo.id &&
       todo.content &&
       ['pending', 'in_progress', 'completed'].includes(todo.status) &&
-      ['high', 'medium', 'low'].includes(todo.priority),
+      ['high', 'medium', 'low'].includes(todo.priority)
   )
 
   if (validTodos.length !== todos.length) {

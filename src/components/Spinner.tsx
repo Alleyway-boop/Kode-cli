@@ -1,15 +1,12 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import * as React from 'react'
-import { useEffect, useRef, useState } from 'react'
-import { getTheme } from '@utils/theme'
-import { sample } from 'lodash-es'
-import { getSessionState } from '@utils/sessionState'
+import {useEffect, useRef, useState} from 'react'
+import {getTheme} from '@utils/theme'
+import {sample} from 'lodash-es'
+import {getSessionState} from '@utils/sessionState'
 // NB: The third character in this string is an emoji that
 // renders on Windows consoles with a green background
-const CHARACTERS =
-  process.platform === 'darwin'
-    ? ['·', '✢', '✳', '∗', '✻', '✽']
-    : ['·', '✢', '*', '∗', '✻', '✽']
+const CHARACTERS = process.platform === 'darwin' ? ['·', '✢', '✳', '∗', '✻', '✽'] : ['·', '✢', '*', '∗', '✻', '✽']
 
 const MESSAGES = [
   'Accomplishing',
@@ -67,7 +64,7 @@ const MESSAGES = [
   'Thinking',
   'Transmuting',
   'Vibing',
-  'Working',
+  'Working'
 ]
 
 export function Spinner(): React.ReactNode {
@@ -102,9 +99,7 @@ export function Spinner(): React.ReactNode {
       <Text color={getTheme().secondaryText}>
         ({elapsedTime}s · <Text bold>esc</Text> to interrupt)
       </Text>
-      <Text color={getTheme().secondaryText}>
-        · {getSessionState('currentError')}
-      </Text>
+      <Text color={getTheme().secondaryText}>· {getSessionState('currentError')}</Text>
     </Box>
   )
 }

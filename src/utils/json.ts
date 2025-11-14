@@ -1,4 +1,4 @@
-import { logError } from './log'
+import {logError} from './log'
 
 export function safeParseJSON(json: string | null | undefined): unknown {
   if (!json) {

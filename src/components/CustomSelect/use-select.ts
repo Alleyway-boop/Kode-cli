@@ -1,5 +1,5 @@
-import { useInput } from 'ink'
-import { type SelectState } from './use-select-state'
+import {useInput} from 'ink'
+import {type SelectState} from './use-select-state'
 
 export type UseSelectProps = {
   /**
@@ -15,7 +15,7 @@ export type UseSelectProps = {
   state: SelectState
 }
 
-export const useSelect = ({ isDisabled = false, state }: UseSelectProps) => {
+export const useSelect = ({isDisabled = false, state}: UseSelectProps) => {
   useInput(
     (_input, key) => {
       if (key.downArrow) {
@@ -30,6 +30,6 @@ export const useSelect = ({ isDisabled = false, state }: UseSelectProps) => {
         state.selectFocusedOption()
       }
     },
-    { isActive: !isDisabled },
+    {isActive: !isDisabled}
   )
 }

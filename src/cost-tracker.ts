@@ -1,11 +1,8 @@
 import chalk from 'chalk'
-import { useEffect } from 'react'
-import { formatDuration } from './utils/format'
-import {
-  getCurrentProjectConfig,
-  saveCurrentProjectConfig,
-} from '@utils/config'
-import { SESSION_ID } from './utils/log'
+import {useEffect} from 'react'
+import {formatDuration} from './utils/format'
+import {getCurrentProjectConfig, saveCurrentProjectConfig} from '@utils/config'
+import {SESSION_ID} from './utils/log'
 
 // DO NOT ADD MORE STATE HERE OR BORIS WILL CURSE YOU
 const STATE: {
@@ -15,7 +12,7 @@ const STATE: {
 } = {
   totalCost: 0,
   totalAPIDuration: 0,
-  startTime: Date.now(),
+  startTime: Date.now()
 }
 
 export function addToTotalCost(cost: number, duration: number): void {
@@ -43,7 +40,7 @@ export function formatTotalCost(): string {
   return chalk.grey(
     `Total cost: ${formatCost(STATE.totalCost)}
 Total duration (API): ${formatDuration(STATE.totalAPIDuration)}
-Total duration (wall): ${formatDuration(getTotalDuration())}`,
+Total duration (wall): ${formatDuration(getTotalDuration())}`
   )
 }
 
@@ -59,7 +56,7 @@ export function useCostSummary(): void {
         lastCost: STATE.totalCost,
         lastAPIDuration: STATE.totalAPIDuration,
         lastDuration: getTotalDuration(),
-        lastSessionId: SESSION_ID,
+        lastSessionId: SESSION_ID
       })
     }
     process.on('exit', f)

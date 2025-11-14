@@ -1,7 +1,7 @@
 // Type definitions for log-related functionality
 // Used by log selector, log list, and log utilities
 
-import { UUID } from 'crypto'
+import {UUID} from 'crypto'
 
 /**
  * Serialized message structure stored in log files
@@ -11,7 +11,7 @@ export interface SerializedMessage {
   type: 'user' | 'assistant' | 'progress'
   uuid: UUID
   message?: {
-    content: string | Array<{ type: string; text?: string }>
+    content: string | Array<{type: string; text?: string}>
     role: 'user' | 'assistant' | 'system'
   }
   costUSD?: number
@@ -32,16 +32,16 @@ export interface LogOption {
   date: string
   fullPath: string
   value: number // Index in the logs array
-  
+
   // Timestamps for sorting
   created: Date
   modified: Date
-  
+
   // Content metadata
   firstPrompt: string
   messageCount: number
   messages: SerializedMessage[]
-  
+
   // Fork and branch info
   forkNumber?: number
   sidechainNumber?: number

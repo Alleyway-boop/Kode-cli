@@ -1,22 +1,17 @@
 import * as React from 'react'
-import { OrderedList } from '@inkjs/ui'
-import { Box, Text } from 'ink'
-import {
-  getCurrentProjectConfig,
-  getGlobalConfig,
-  saveCurrentProjectConfig,
-  saveGlobalConfig,
-} from '@utils/config'
-import { existsSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
+import {OrderedList} from '@inkjs/ui'
+import {Box, Text} from 'ink'
+import {getCurrentProjectConfig, getGlobalConfig, saveCurrentProjectConfig, saveGlobalConfig} from '@utils/config'
+import {existsSync} from 'fs'
+import {join} from 'path'
+import {homedir} from 'os'
 import terminalSetup from '@commands/terminalSetup'
-import { getTheme } from '@utils/theme'
-import { RELEASE_NOTES } from '@constants/releaseNotes'
-import { gt } from 'semver'
-import { isDirEmpty } from '@utils/file'
-import { MACRO } from '@constants/macros'
-import { PROJECT_FILE, PRODUCT_NAME } from '@constants/product'
+import {getTheme} from '@utils/theme'
+import {RELEASE_NOTES} from '@constants/releaseNotes'
+import {gt} from 'semver'
+import {isDirEmpty} from '@utils/file'
+import {MACRO} from '@constants/macros'
+import {PROJECT_FILE, PRODUCT_NAME} from '@constants/product'
 
 // Function to mark onboarding as complete
 export function markProjectOnboardingComplete(): void {
@@ -24,7 +19,7 @@ export function markProjectOnboardingComplete(): void {
   if (!projectConfig.hasCompletedProjectOnboarding) {
     saveCurrentProjectConfig({
       ...projectConfig,
-      hasCompletedProjectOnboarding: true,
+      hasCompletedProjectOnboarding: true
     })
   }
 }
@@ -33,7 +28,7 @@ function markReleaseNotesSeen(): void {
   const config = getGlobalConfig()
   saveGlobalConfig({
     ...config,
-    lastReleaseNotesSeen: MACRO.VERSION,
+    lastReleaseNotesSeen: MACRO.VERSION
   })
 }
 
@@ -41,9 +36,7 @@ type Props = {
   workspaceDir: string
 }
 
-export default function ProjectOnboarding({
-  workspaceDir,
-}: Props): React.ReactNode {
+export default function ProjectOnboarding({workspaceDir}: Props): React.ReactNode {
   // Check if project onboarding has already been completed
   const projectConfig = getCurrentProjectConfig()
   const showOnboarding = !projectConfig.hasCompletedProjectOnboarding
@@ -77,8 +70,7 @@ export default function ProjectOnboarding({
   const workspaceHasProjectGuide = existsSync(join(workspaceDir, PROJECT_FILE))
   const isWorkspaceDirEmpty = isDirEmpty(workspaceDir)
   const shouldRecommendProjectGuide = !workspaceHasProjectGuide && !isWorkspaceDirEmpty
-  const showTerminalTip =
-    terminalSetup.isEnabled && !getGlobalConfig().shiftEnterKeyBindingInstalled
+  const showTerminalTip = terminalSetup.isEnabled && !getGlobalConfig().shiftEnterKeyBindingInstalled
 
   const theme = getTheme()
 
@@ -99,11 +91,10 @@ export default function ProjectOnboarding({
                     {/* @ts-expect-error - OrderedList.Item children prop issue */}
                     <OrderedList.Item>
                       <Text color={theme.secondaryText}>
-                        Ask {PRODUCT_NAME} to create a new app or clone a
-                        repository.
+                        Ask {PRODUCT_NAME} to create a new app or clone a repository.
                       </Text>
                     </OrderedList.Item>
-                  </React.Fragment>,
+                  </React.Fragment>
                 )
               }
               if (shouldRecommendProjectGuide) {
@@ -112,12 +103,11 @@ export default function ProjectOnboarding({
                     {/* @ts-expect-error - OrderedList.Item children prop issue */}
                     <OrderedList.Item>
                       <Text color={theme.secondaryText}>
-                        Run <Text color={theme.text}>/init</Text> to create
-                      a&nbsp;
-                      {PROJECT_FILE} file with instructions for {PRODUCT_NAME}.
-                    </Text>
+                        Run <Text color={theme.text}>/init</Text> to create a&nbsp;
+                        {PROJECT_FILE} file with instructions for {PRODUCT_NAME}.
+                      </Text>
                     </OrderedList.Item>
-                  </React.Fragment>,
+                  </React.Fragment>
                 )
               }
 
@@ -131,7 +121,7 @@ export default function ProjectOnboarding({
                         <Text bold={false}> to set up terminal integration</Text>
                       </Text>
                     </OrderedList.Item>
-                  </React.Fragment>,
+                  </React.Fragment>
                 )
               }
 
@@ -139,22 +129,18 @@ export default function ProjectOnboarding({
                 <React.Fragment key="questions">
                   {/* @ts-expect-error - OrderedList.Item children prop issue */}
                   <OrderedList.Item>
-                    <Text color={theme.secondaryText}>
-                      Ask {PRODUCT_NAME} questions about your codebase.
-                    </Text>
+                    <Text color={theme.secondaryText}>Ask {PRODUCT_NAME} questions about your codebase.</Text>
                   </OrderedList.Item>
-                </React.Fragment>,
+                </React.Fragment>
               )
 
               items.push(
                 <React.Fragment key="changes">
                   {/* @ts-expect-error - OrderedList.Item children prop issue */}
                   <OrderedList.Item>
-                    <Text color={theme.secondaryText}>
-                      Ask {PRODUCT_NAME} to implement changes to your codebase.
-                    </Text>
+                    <Text color={theme.secondaryText}>Ask {PRODUCT_NAME} to implement changes to your codebase.</Text>
                   </OrderedList.Item>
-                </React.Fragment>,
+                </React.Fragment>
               )
 
               return items
@@ -164,11 +150,7 @@ export default function ProjectOnboarding({
       )}
 
       {!showOnboarding && hasReleaseNotes && (
-        <Box
-          borderColor={getTheme().secondaryBorder}
-          flexDirection="column"
-          marginRight={1}
-        >
+        <Box borderColor={getTheme().secondaryBorder} flexDirection="column" marginRight={1}>
           <Box flexDirection="column" gap={0}>
             <Box marginBottom={1}>
               <Text>🆕 What&apos;s new in v{MACRO.VERSION}:</Text>
@@ -176,9 +158,7 @@ export default function ProjectOnboarding({
             <Box flexDirection="column" marginLeft={1}>
               {releaseNotesToShow.map((note, noteIndex) => (
                 <React.Fragment key={noteIndex}>
-                  <Text color={getTheme().secondaryText}>
-                    • {note}
-                  </Text>
+                  <Text color={getTheme().secondaryText}>• {note}</Text>
                 </React.Fragment>
               ))}
             </Box>
@@ -188,9 +168,8 @@ export default function ProjectOnboarding({
 
       {workspaceDir === homedir() && (
         <Text color={getTheme().warning}>
-          Note: You have launched <Text bold>anon-code</Text> in your home
-          directory. For the best experience, launch it in a project directory
-          instead.
+          Note: You have launched <Text bold>anon-code</Text> in your home directory. For the best experience, launch it
+          in a project directory instead.
         </Text>
       )}
     </Box>

@@ -1,29 +1,26 @@
-import { statSync } from 'fs'
-import { EOL } from 'os'
-import { isAbsolute, relative, resolve } from 'path'
+import {statSync} from 'fs'
+import {EOL} from 'os'
+import {isAbsolute, relative, resolve} from 'path'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { PRODUCT_NAME } from '@constants/product'
-import { queryQuick } from '@services/claude'
-import { Tool, ValidationResult } from '@tool'
-import { splitCommand } from '@utils/commands'
-import { isInDirectory } from '@utils/file'
-import { logError } from '@utils/log'
-import { PersistentShell } from '@utils/PersistentShell'
-import { getCwd, getOriginalCwd } from '@utils/state'
-import { getGlobalConfig } from '@utils/config'
-import { getModelManager } from '@utils/model'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {PRODUCT_NAME} from '@constants/product'
+import {queryQuick} from '@services/claude'
+import {Tool, ValidationResult} from '@tool'
+import {splitCommand} from '@utils/commands'
+import {isInDirectory} from '@utils/file'
+import {logError} from '@utils/log'
+import {PersistentShell} from '@utils/PersistentShell'
+import {getCwd, getOriginalCwd} from '@utils/state'
+import {getGlobalConfig} from '@utils/config'
+import {getModelManager} from '@utils/model'
 import BashToolResultMessage from './BashToolResultMessage'
-import { BANNED_COMMANDS, PROMPT } from './prompt'
-import { formatOutput, getCommandFilePaths } from './utils'
+import {BANNED_COMMANDS, PROMPT} from './prompt'
+import {formatOutput, getCommandFilePaths} from './utils'
 
 export const inputSchema = z.strictObject({
   command: z.string().describe('The command to execute'),
-  timeout: z
-    .number()
-    .optional()
-    .describe('Optional timeout in milliseconds (max 600000)'),
+  timeout: z.number().optional().describe('Optional timeout in milliseconds (max 600000)')
 })
 
 type In = typeof inputSchema
@@ -44,8 +41,7 @@ export const BashTool = {
     const config = getGlobalConfig()
     // 🔧 Fix: Use ModelManager to get actual current model
     const modelManager = getModelManager()
-    const modelName =
-      modelManager.getModelName('main') || '<No Model Configured>'
+    const modelName = modelManager.getModelName('main') || '<No Model Configured>'
     // Substitute the placeholder in the static PROMPT string
     return PROMPT.replace(/{MODEL_NAME}/g, modelName)
   },
@@ -66,7 +62,7 @@ export const BashTool = {
     // Always check per-project permissions for BashTool
     return true
   },
-  async validateInput({ command }): Promise<ValidationResult> {
+  async validateInput({command}): Promise<ValidationResult> {
     const commands = splitCommand(command)
     for (const cmd of commands) {
       const parts = cmd.split(' ')
@@ -76,38 +72,29 @@ export const BashTool = {
       if (baseCmd && BANNED_COMMANDS.includes(baseCmd.toLowerCase())) {
         return {
           result: false,
-          message: `Command '${baseCmd}' is not allowed for security reasons`,
+          message: `Command '${baseCmd}' is not allowed for security reasons`
         }
       }
 
       // Special handling for cd command
       if (baseCmd === 'cd' && parts[1]) {
         const targetDir = parts[1]!.replace(/^['"]|['"]$/g, '') // Remove quotes if present
-        const fullTargetDir = isAbsolute(targetDir)
-          ? targetDir
-          : resolve(getCwd(), targetDir)
-        if (
-          !isInDirectory(
-            relative(getOriginalCwd(), fullTargetDir),
-            relative(getCwd(), getOriginalCwd()),
-          )
-        ) {
+        const fullTargetDir = isAbsolute(targetDir) ? targetDir : resolve(getCwd(), targetDir)
+        if (!isInDirectory(relative(getOriginalCwd(), fullTargetDir), relative(getCwd(), getOriginalCwd()))) {
           return {
             result: false,
-            message: `ERROR: cd to '${fullTargetDir}' was blocked. For security, ${PRODUCT_NAME} may only change directories to child directories of the original working directory (${getOriginalCwd()}) for this session.`,
+            message: `ERROR: cd to '${fullTargetDir}' was blocked. For security, ${PRODUCT_NAME} may only change directories to child directories of the original working directory (${getOriginalCwd()}) for this session.`
           }
         }
       }
     }
 
-    return { result: true }
+    return {result: true}
   },
-  renderToolUseMessage({ command }) {
+  renderToolUseMessage({command}) {
     // Clean up any command that uses the quoted HEREDOC pattern
     if (command.includes("\"$(cat <<'EOF'")) {
-      const match = command.match(
-        /^(.*?)"?\$\(cat <<'EOF'\n([\s\S]*?)\n\s*EOF\n\s*\)"(.*)$/,
-      )
+      const match = command.match(/^(.*?)"?\$\(cat <<'EOF'\n([\s\S]*?)\n\s*EOF\n\s*\)"(.*)$/)
       if (match && match[1] && match[2]) {
         const prefix = match[1]
         const content = match[2]
@@ -124,7 +111,7 @@ export const BashTool = {
   renderToolResultMessage(content) {
     return <BashToolResultMessage content={content} verbose={false} />
   },
-  renderResultForAssistant({ interrupted, stdout, stderr }) {
+  renderResultForAssistant({interrupted, stdout, stderr}) {
     let errorMessage = stderr.trim()
     if (interrupted) {
       if (stderr) errorMessage += EOL
@@ -133,10 +120,7 @@ export const BashTool = {
     const hasBoth = stdout.trim() && errorMessage
     return `${stdout.trim()}${hasBoth ? '\n' : ''}${errorMessage.trim()}`
   },
-  async *call(
-    { command, timeout = 120000 },
-    { abortController, readFileTimestamps },
-  ) {
+  async *call({command, timeout = 120000}, {abortController, readFileTimestamps}) {
     let stdout = ''
     let stderr = ''
 
@@ -147,24 +131,20 @@ export const BashTool = {
         stdoutLines: 0,
         stderr: 'Command cancelled before execution',
         stderrLines: 1,
-        interrupted: true,
+        interrupted: true
       }
 
       yield {
         type: 'result',
         resultForAssistant: this.renderResultForAssistant(data),
-        data,
+        data
       }
       return
     }
 
     try {
       // Execute commands
-      const result = await PersistentShell.getInstance().exec(
-        command,
-        abortController.signal,
-        timeout,
-      )
+      const result = await PersistentShell.getInstance().exec(command, abortController.signal, timeout)
       stdout += (result.stdout || '').trim() + EOL
       stderr += (result.stderr || '').trim() + EOL
       if (result.code !== 0) {
@@ -175,7 +155,6 @@ export const BashTool = {
         // Shell directory is outside original working directory, reset it
         await PersistentShell.getInstance().setCwd(getOriginalCwd())
         stderr = `${stderr.trim()}${EOL}Shell cwd was reset to ${getOriginalCwd()}`
-        
       }
 
       // Update read timestamps for any files referenced by the command
@@ -185,9 +164,7 @@ export const BashTool = {
       if (process.env.NODE_ENV !== 'test') {
         getCommandFilePaths(command, stdout).then(filePaths => {
           for (const filePath of filePaths) {
-            const fullFilePath = isAbsolute(filePath)
-              ? filePath
-              : resolve(getCwd(), filePath)
+            const fullFilePath = isAbsolute(filePath) ? filePath : resolve(getCwd(), filePath)
 
             // Try/catch in case the file doesn't exist (because Haiku didn't properly extract it)
             try {
@@ -199,44 +176,42 @@ export const BashTool = {
         })
       }
 
-      const { totalLines: stdoutLines, truncatedContent: stdoutContent } =
-        formatOutput(stdout.trim())
-      const { totalLines: stderrLines, truncatedContent: stderrContent } =
-        formatOutput(stderr.trim())
+      const {totalLines: stdoutLines, truncatedContent: stdoutContent} = formatOutput(stdout.trim())
+      const {totalLines: stderrLines, truncatedContent: stderrContent} = formatOutput(stderr.trim())
 
       const data: Out = {
         stdout: stdoutContent,
         stdoutLines,
         stderr: stderrContent,
         stderrLines,
-        interrupted: result.interrupted,
+        interrupted: result.interrupted
       }
 
       yield {
         type: 'result',
         resultForAssistant: this.renderResultForAssistant(data),
-        data,
+        data
       }
     } catch (error) {
       // 🔧 Handle cancellation or other errors properly
       const isAborted = abortController.signal.aborted
-      const errorMessage = isAborted 
-        ? 'Command was cancelled by user' 
+      const errorMessage = isAborted
+        ? 'Command was cancelled by user'
         : `Command failed: ${error instanceof Error ? error.message : String(error)}`
-      
+
       const data: Out = {
         stdout: stdout.trim(),
         stdoutLines: stdout.split('\n').length,
         stderr: errorMessage,
         stderrLines: 1,
-        interrupted: isAborted,
+        interrupted: isAborted
       }
 
       yield {
         type: 'result',
         resultForAssistant: this.renderResultForAssistant(data),
-        data,
+        data
       }
     }
-  },
+  }
 } satisfies Tool<In, Out>

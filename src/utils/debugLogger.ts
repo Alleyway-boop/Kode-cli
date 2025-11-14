@@ -1,12 +1,12 @@
-import { existsSync, mkdirSync, appendFileSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
-import { randomUUID } from 'crypto'
+import {existsSync, mkdirSync, appendFileSync} from 'fs'
+import {join} from 'path'
+import {homedir} from 'os'
+import {randomUUID} from 'crypto'
 import chalk from 'chalk'
 import envPaths from 'env-paths'
-import { PRODUCT_COMMAND } from '@constants/product'
-import { SESSION_ID } from './log'
-import type { Message } from '@kode-types/conversation'
+import {PRODUCT_COMMAND} from '@constants/product'
+import {SESSION_ID} from './log'
+import type {Message} from '@kode-types/conversation'
 
 // 调试日志级别
 export enum LogLevel {
@@ -18,12 +18,11 @@ export enum LogLevel {
   FLOW = 'FLOW',
   API = 'API',
   STATE = 'STATE',
-  REMINDER = 'REMINDER', // 新增：系统提醒事件
+  REMINDER = 'REMINDER' // 新增：系统提醒事件
 }
 
 // 调试模式检测
-const isDebugMode = () =>
-  process.argv.includes('--debug') || process.argv.includes('--debug-verbose')
+const isDebugMode = () => process.argv.includes('--debug') || process.argv.includes('--debug-verbose')
 const isVerboseMode = () => process.argv.includes('--verbose')
 const isDebugVerboseMode = () => process.argv.includes('--debug-verbose')
 
@@ -32,7 +31,7 @@ const TERMINAL_LOG_LEVELS = new Set([
   LogLevel.ERROR,
   LogLevel.WARN,
   LogLevel.INFO, // 添加 INFO 级别，显示关键系统状态
-  LogLevel.REMINDER, // 系统提醒事件，用户应该看到
+  LogLevel.REMINDER // 系统提醒事件，用户应该看到
 ])
 
 // 在调试详细模式下显示更多日志级别
@@ -43,7 +42,7 @@ const DEBUG_VERBOSE_TERMINAL_LOG_LEVELS = new Set([
   LogLevel.API,
   LogLevel.STATE,
   LogLevel.INFO,
-  LogLevel.REMINDER, // 系统提醒在详细模式下也显示
+  LogLevel.REMINDER // 系统提醒在详细模式下也显示
 ])
 
 // 用户友好的日志级别 - 简化的高级日志
@@ -54,7 +53,7 @@ const USER_FRIENDLY_LEVELS = new Set([
   'QUERY_COMPLETE',
   'TOOL_EXECUTION',
   'ERROR_OCCURRED',
-  'PERFORMANCE_SUMMARY',
+  'PERFORMANCE_SUMMARY'
 ])
 
 // 启动时间戳用于文件命名
@@ -72,14 +71,14 @@ const DEBUG_PATHS = {
   detailed: () => join(DEBUG_PATHS.base(), `${STARTUP_TIMESTAMP}-detailed.log`),
   flow: () => join(DEBUG_PATHS.base(), `${STARTUP_TIMESTAMP}-flow.log`),
   api: () => join(DEBUG_PATHS.base(), `${STARTUP_TIMESTAMP}-api.log`),
-  state: () => join(DEBUG_PATHS.base(), `${STARTUP_TIMESTAMP}-state.log`),
+  state: () => join(DEBUG_PATHS.base(), `${STARTUP_TIMESTAMP}-state.log`)
 }
 
 // 确保调试目录存在
 function ensureDebugDir() {
   const debugDir = DEBUG_PATHS.base()
   if (!existsSync(debugDir)) {
-    mkdirSync(debugDir, { recursive: true })
+    mkdirSync(debugDir, {recursive: true})
   }
 }
 
@@ -133,10 +132,10 @@ function writeToFile(filePath: string, entry: LogEntry) {
           ...entry,
           sessionId: SESSION_ID,
           pid: process.pid,
-          uptime: Date.now() - REQUEST_START_TIME,
+          uptime: Date.now() - REQUEST_START_TIME
         },
         null,
-        2,
+        2
       ) + ',\n'
 
     appendFileSync(filePath, logLine)
@@ -162,11 +161,7 @@ function getDedupeKey(level: LogLevel, phase: string, data: any): string {
 }
 
 // 检查是否应该记录日志（去重）
-function shouldLogWithDedupe(
-  level: LogLevel,
-  phase: string,
-  data: any,
-): boolean {
+function shouldLogWithDedupe(level: LogLevel, phase: string, data: any): boolean {
   const key = getDedupeKey(level, phase, data)
   const now = Date.now()
   const lastLogTime = recentLogs.get(key)
@@ -198,10 +193,7 @@ function formatMessages(messages: any): string {
 
         if (typeof msg.content === 'string') {
           // 每条消息最长 300 字符，超出省略
-          content =
-            msg.content.length > 300
-              ? msg.content.substring(0, 300) + '...'
-              : msg.content
+          content = msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
         } else if (typeof msg.content === 'object') {
           content = '[complex_content]'
         } else {
@@ -251,7 +243,7 @@ function logToTerminal(entry: LogEntry) {
   // 使用新的过滤逻辑
   if (!shouldShowInTerminal(entry.level)) return
 
-  const { level, phase, data, requestId, elapsed } = entry
+  const {level, phase, data, requestId, elapsed} = entry
   const timestamp = new Date().toISOString().slice(11, 23) // HH:mm:ss.SSS
 
   let prefix = ''
@@ -303,10 +295,10 @@ function logToTerminal(entry: LogEntry) {
       dataStr = JSON.stringify(
         {
           ...data,
-          messages: `\n    ${formattedMessages}`,
+          messages: `\n    ${formattedMessages}`
         },
         null,
-        2,
+        2
       )
     } else {
       dataStr = JSON.stringify(data, null, 2)
@@ -315,18 +307,11 @@ function logToTerminal(entry: LogEntry) {
     dataStr = typeof data === 'string' ? data : JSON.stringify(data)
   }
 
-  console.log(
-    `${color(`[${timestamp}]`)} ${prefix} ${color(phase)} ${reqId} ${dataStr} ${elapsedStr}`,
-  )
+  console.log(`${color(`[${timestamp}]`)} ${prefix} ${color(phase)} ${reqId} ${dataStr} ${elapsedStr}`)
 }
 
 // 主要调试日志函数
-export function debugLog(
-  level: LogLevel,
-  phase: string,
-  data: any,
-  requestId?: string,
-) {
+export function debugLog(level: LogLevel, phase: string, data: any, requestId?: string) {
   if (!isDebugMode()) return
 
   // 检查是否应该记录（去重检查）
@@ -340,7 +325,7 @@ export function debugLog(
     phase,
     data,
     requestId: requestId || currentRequest?.id,
-    elapsed: currentRequest ? Date.now() - currentRequest.startTime : undefined,
+    elapsed: currentRequest ? Date.now() - currentRequest.startTime : undefined
   }
 
   // 写入对应的日志文件
@@ -364,30 +349,22 @@ export function debugLog(
 
 // 便捷的日志函数
 export const debug = {
-  flow: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.FLOW, phase, data, requestId),
+  flow: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.FLOW, phase, data, requestId),
 
-  api: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.API, phase, data, requestId),
+  api: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.API, phase, data, requestId),
 
-  state: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.STATE, phase, data, requestId),
+  state: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.STATE, phase, data, requestId),
 
-  info: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.INFO, phase, data, requestId),
+  info: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.INFO, phase, data, requestId),
 
-  warn: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.WARN, phase, data, requestId),
+  warn: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.WARN, phase, data, requestId),
 
-  error: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.ERROR, phase, data, requestId),
+  error: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.ERROR, phase, data, requestId),
 
-  trace: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.TRACE, phase, data, requestId),
+  trace: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.TRACE, phase, data, requestId),
 
   // 新增UI相关的调试函数 (只记录到文件，不显示在终端)
-  ui: (phase: string, data: any, requestId?: string) =>
-    debugLog(LogLevel.STATE, `UI_${phase}`, data, requestId),
+  ui: (phase: string, data: any, requestId?: string) => debugLog(LogLevel.STATE, `UI_${phase}`, data, requestId)
 }
 
 // 请求生命周期管理
@@ -398,7 +375,7 @@ export function startRequest(): RequestContext {
 
   debug.flow('REQUEST_START', {
     requestId: ctx.id,
-    activeRequests: activeRequests.size,
+    activeRequests: activeRequests.size
   })
 
   return ctx
@@ -411,7 +388,7 @@ export function endRequest(ctx?: RequestContext) {
   debug.flow('REQUEST_END', {
     requestId: request.id,
     totalTime: Date.now() - request.startTime,
-    phases: request.getAllPhases(),
+    phases: request.getAllPhases()
   })
 
   activeRequests.delete(request.id)
@@ -432,16 +409,12 @@ export function markPhase(phase: string, data?: any) {
   debug.flow(`PHASE_${phase.toUpperCase()}`, {
     requestId: currentRequest.id,
     elapsed: currentRequest.getPhaseTime(phase),
-    data,
+    data
   })
 }
 
 // 新增：Reminder 事件日志记录
-export function logReminderEvent(
-  eventType: string,
-  reminderData: any,
-  agentId?: string,
-) {
+export function logReminderEvent(eventType: string, reminderData: any, agentId?: string) {
   if (!isDebugMode()) return
 
   debug.info('REMINDER_EVENT_TRIGGERED', {
@@ -451,7 +424,7 @@ export function logReminderEvent(
     reminderCategory: reminderData.category || 'general',
     reminderPriority: reminderData.priority || 'medium',
     contentLength: reminderData.content ? reminderData.content.length : 0,
-    timestamp: Date.now(),
+    timestamp: Date.now()
   })
 }
 
@@ -466,23 +439,23 @@ export function logAPIError(context: {
   provider?: string
 }) {
   const errorDir = join(KODE_DIR, 'logs', 'error', 'api')
-  
+
   // 确保目录存在
   if (!existsSync(errorDir)) {
     try {
-      mkdirSync(errorDir, { recursive: true })
+      mkdirSync(errorDir, {recursive: true})
     } catch (err) {
       console.error('Failed to create error log directory:', err)
       return // Exit early if we can't create the directory
     }
   }
-  
+
   // 生成文件名
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
   const sanitizedModel = context.model.replace(/[^a-zA-Z0-9-_]/g, '_')
   const filename = `${sanitizedModel}_${timestamp}.log`
   const filepath = join(errorDir, filename)
-  
+
   // 准备完整的日志内容（文件中保存所有信息）
   const fullLogContent = {
     timestamp: new Date().toISOString(),
@@ -498,10 +471,10 @@ export function logAPIError(context: {
     environment: {
       nodeVersion: process.version,
       platform: process.platform,
-      cwd: process.cwd(),
+      cwd: process.cwd()
     }
   }
-  
+
   // 写入文件（保存完整信息）
   try {
     appendFileSync(filepath, JSON.stringify(fullLogContent, null, 2) + '\n')
@@ -509,7 +482,7 @@ export function logAPIError(context: {
   } catch (err) {
     console.error('Failed to write API error log:', err)
   }
-  
+
   // 在调试模式下记录到系统日志
   if (isDebugMode()) {
     debug.error('API_ERROR', {
@@ -517,21 +490,21 @@ export function logAPIError(context: {
       status: context.status,
       error: typeof context.error === 'string' ? context.error : context.error?.message || 'Unknown error',
       endpoint: context.endpoint,
-      logFile: filename,
+      logFile: filename
     })
   }
-  
+
   // 优雅的终端显示（仅在verbose模式下）
   if (isVerboseMode() || isDebugVerboseMode()) {
     console.log()
     console.log(chalk.red('━'.repeat(60)))
     console.log(chalk.red.bold('⚠️  API Error'))
     console.log(chalk.red('━'.repeat(60)))
-    
+
     // 显示关键信息
     console.log(chalk.white('  Model:  ') + chalk.yellow(context.model))
     console.log(chalk.white('  Status: ') + chalk.red(context.status))
-    
+
     // 格式化错误消息
     let errorMessage = 'Unknown error'
     if (typeof context.error === 'string') {
@@ -541,24 +514,23 @@ export function logAPIError(context: {
     } else if (context.error?.error?.message) {
       errorMessage = context.error.error.message
     }
-    
+
     // 错误消息换行显示
     console.log(chalk.white('  Error:  ') + chalk.red(errorMessage))
-    
+
     // 如果有响应体，显示格式化的响应
     if (context.response) {
       console.log()
       console.log(chalk.gray('  Response:'))
-      const responseStr = typeof context.response === 'string' 
-        ? context.response 
-        : JSON.stringify(context.response, null, 2)
-      
+      const responseStr =
+        typeof context.response === 'string' ? context.response : JSON.stringify(context.response, null, 2)
+
       // 缩进显示响应内容
       responseStr.split('\n').forEach(line => {
         console.log(chalk.gray('    ' + line))
       })
     }
-    
+
     console.log()
     console.log(chalk.dim(`  📁 Full log: ${filepath}`))
     console.log(chalk.red('━'.repeat(60)))
@@ -571,8 +543,8 @@ export function logLLMInteraction(context: {
   systemPrompt: string
   messages: any[]
   response: any
-  usage?: { inputTokens: number; outputTokens: number }
-  timing: { start: number; end: number }
+  usage?: {inputTokens: number; outputTokens: number}
+  timing: {start: number; end: number}
   apiFormat?: 'anthropic' | 'openai'
 }) {
   if (!isDebugMode()) return
@@ -589,15 +561,11 @@ export function logLLMInteraction(context: {
   console.log(`   Duration: ${duration.toFixed(0)}ms`)
 
   if (context.usage) {
-    console.log(
-      `   Token Usage: ${context.usage.inputTokens} → ${context.usage.outputTokens}`,
-    )
+    console.log(`   Token Usage: ${context.usage.inputTokens} → ${context.usage.outputTokens}`)
   }
 
   // 显示真实发送给 LLM API 的 messages（完整还原API调用）
-  const apiLabel = context.apiFormat
-    ? ` (${context.apiFormat.toUpperCase()})`
-    : ''
+  const apiLabel = context.apiFormat ? ` (${context.apiFormat.toUpperCase()})` : ''
   console.log(chalk.cyan(`\n💬 Real API Messages${apiLabel} (last 10):`))
 
   // 这里展示的是真正发送给LLM API的messages，不是内部处理的版本
@@ -605,13 +573,7 @@ export function logLLMInteraction(context: {
   recentMessages.forEach((msg, index) => {
     const globalIndex = context.messages.length - recentMessages.length + index
     const roleColor =
-      msg.role === 'user'
-        ? 'green'
-        : msg.role === 'assistant'
-          ? 'blue'
-          : msg.role === 'system'
-            ? 'yellow'
-            : 'gray'
+      msg.role === 'user' ? 'green' : msg.role === 'assistant' ? 'blue' : msg.role === 'system' ? 'yellow' : 'gray'
 
     let content = ''
     let isReminder = false
@@ -621,33 +583,22 @@ export function logLLMInteraction(context: {
       if (msg.content.includes('<system-reminder>')) {
         isReminder = true
         // 提取 reminder 的核心内容，显示更多字符，记得加省略号
-        const reminderContent = msg.content
-          .replace(/<\/?system-reminder>/g, '')
-          .trim()
+        const reminderContent = msg.content.replace(/<\/?system-reminder>/g, '').trim()
         content = `🔔 ${reminderContent.length > 800 ? reminderContent.substring(0, 800) + '...' : reminderContent}`
       } else {
         // 增加普通消息的显示字符数 - 用户消息和系统消息显示更多
-        const maxLength =
-          msg.role === 'user' ? 1000 : msg.role === 'system' ? 1200 : 800
-        content =
-          msg.content.length > maxLength
-            ? msg.content.substring(0, maxLength) + '...'
-            : msg.content
+        const maxLength = msg.role === 'user' ? 1000 : msg.role === 'system' ? 1200 : 800
+        content = msg.content.length > maxLength ? msg.content.substring(0, maxLength) + '...' : msg.content
       }
     } else if (Array.isArray(msg.content)) {
       // Anthropic格式：content是对象数组
-      const textBlocks = msg.content.filter(
-        (block: any) => block.type === 'text',
-      )
-      const toolBlocks = msg.content.filter(
-        (block: any) => block.type === 'tool_use',
-      )
+      const textBlocks = msg.content.filter((block: any) => block.type === 'text')
+      const toolBlocks = msg.content.filter((block: any) => block.type === 'tool_use')
       if (textBlocks.length > 0) {
         const text = textBlocks[0].text || ''
         // Assistant消息显示更多内容
         const maxLength = msg.role === 'assistant' ? 1000 : 800
-        content =
-          text.length > maxLength ? text.substring(0, maxLength) + '...' : text
+        content = text.length > maxLength ? text.substring(0, maxLength) + '...' : text
       }
       if (toolBlocks.length > 0) {
         content += ` [+ ${toolBlocks.length} tool calls]`
@@ -661,46 +612,29 @@ export function logLLMInteraction(context: {
 
     // 根据消息类型使用不同的显示样式 - 更友好的视觉格式
     if (isReminder) {
-      console.log(
-        `   [${globalIndex}] ${chalk.magenta('🔔 REMINDER')}: ${chalk.dim(content)}`,
-      )
+      console.log(`   [${globalIndex}] ${chalk.magenta('🔔 REMINDER')}: ${chalk.dim(content)}`)
     } else {
       // 为不同角色添加图标
       const roleIcon =
-        msg.role === 'user'
-          ? '👤'
-          : msg.role === 'assistant'
-            ? '🤖'
-            : msg.role === 'system'
-              ? '⚙️'
-              : '📄'
+        msg.role === 'user' ? '👤' : msg.role === 'assistant' ? '🤖' : msg.role === 'system' ? '⚙️' : '📄'
       console.log(
-        `   [${globalIndex}] ${(chalk as any)[roleColor](roleIcon + ' ' + msg.role.toUpperCase())}: ${content}`,
+        `   [${globalIndex}] ${(chalk as any)[roleColor](roleIcon + ' ' + msg.role.toUpperCase())}: ${content}`
       )
     }
 
     // 显示工具调用信息（Anthropic格式）- 更清晰的格式
     if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-      const toolCalls = msg.content.filter(
-        (block: any) => block.type === 'tool_use',
-      )
+      const toolCalls = msg.content.filter((block: any) => block.type === 'tool_use')
       if (toolCalls.length > 0) {
         console.log(
-          chalk.cyan(
-            `       🔧 → Tool calls (${toolCalls.length}): ${toolCalls.map((t: any) => t.name).join(', ')}`,
-          ),
+          chalk.cyan(`       🔧 → Tool calls (${toolCalls.length}): ${toolCalls.map((t: any) => t.name).join(', ')}`)
         )
         // 显示每个工具的详细参数
         toolCalls.forEach((tool: any, idx: number) => {
           const inputStr = JSON.stringify(tool.input || {})
           const maxLength = 200
-          const displayInput =
-            inputStr.length > maxLength
-              ? inputStr.substring(0, maxLength) + '...'
-              : inputStr
-          console.log(
-            chalk.dim(`         [${idx}] ${tool.name}: ${displayInput}`),
-          )
+          const displayInput = inputStr.length > maxLength ? inputStr.substring(0, maxLength) + '...' : inputStr
+          console.log(chalk.dim(`         [${idx}] ${tool.name}: ${displayInput}`))
         })
       }
     }
@@ -708,19 +642,14 @@ export function logLLMInteraction(context: {
     if (msg.tool_calls && msg.tool_calls.length > 0) {
       console.log(
         chalk.cyan(
-          `       🔧 → Tool calls (${msg.tool_calls.length}): ${msg.tool_calls.map((t: any) => t.function.name).join(', ')}`,
-        ),
+          `       🔧 → Tool calls (${msg.tool_calls.length}): ${msg.tool_calls.map((t: any) => t.function.name).join(', ')}`
+        )
       )
       msg.tool_calls.forEach((tool: any, idx: number) => {
         const inputStr = tool.function.arguments || '{}'
         const maxLength = 200
-        const displayInput =
-          inputStr.length > maxLength
-            ? inputStr.substring(0, maxLength) + '...'
-            : inputStr
-        console.log(
-          chalk.dim(`         [${idx}] ${tool.function.name}: ${displayInput}`),
-        )
+        const displayInput = inputStr.length > maxLength ? inputStr.substring(0, maxLength) + '...' : inputStr
+        console.log(chalk.dim(`         [${idx}] ${tool.function.name}: ${displayInput}`))
       })
     }
   })
@@ -734,13 +663,9 @@ export function logLLMInteraction(context: {
 
   if (Array.isArray(context.response.content)) {
     // Anthropic format: content is array of blocks
-    const textBlocks = context.response.content.filter(
-      (block: any) => block.type === 'text',
-    )
+    const textBlocks = context.response.content.filter((block: any) => block.type === 'text')
     responseContent = textBlocks.length > 0 ? textBlocks[0].text || '' : ''
-    toolCalls = context.response.content.filter(
-      (block: any) => block.type === 'tool_use',
-    )
+    toolCalls = context.response.content.filter((block: any) => block.type === 'tool_use')
   } else if (typeof context.response.content === 'string') {
     // OpenAI format: content might be string
     responseContent = context.response.content
@@ -759,32 +684,21 @@ export function logLLMInteraction(context: {
   console.log(`   Content: ${displayContent}`)
 
   if (toolCalls.length > 0) {
-    const toolNames = toolCalls.map(
-      (t: any) => t.name || t.function?.name || 'unknown',
-    )
-    console.log(
-      chalk.cyan(
-        `   🔧 Tool Calls (${toolCalls.length}): ${toolNames.join(', ')}`,
-      ),
-    )
+    const toolNames = toolCalls.map((t: any) => t.name || t.function?.name || 'unknown')
+    console.log(chalk.cyan(`   🔧 Tool Calls (${toolCalls.length}): ${toolNames.join(', ')}`))
     toolCalls.forEach((tool: any, index: number) => {
       const toolName = tool.name || tool.function?.name || 'unknown'
       const toolInput = tool.input || tool.function?.arguments || '{}'
-      const inputStr =
-        typeof toolInput === 'string' ? toolInput : JSON.stringify(toolInput)
+      const inputStr = typeof toolInput === 'string' ? toolInput : JSON.stringify(toolInput)
       // 显示更多工具参数内容
       const maxToolInputLength = 300
       const displayInput =
-        inputStr.length > maxToolInputLength
-          ? inputStr.substring(0, maxToolInputLength) + '...'
-          : inputStr
+        inputStr.length > maxToolInputLength ? inputStr.substring(0, maxToolInputLength) + '...' : inputStr
       console.log(chalk.dim(`     [${index}] ${toolName}: ${displayInput}`))
     })
   }
 
-  console.log(
-    `   Stop Reason: ${context.response.stop_reason || context.response.finish_reason || 'unknown'}`,
-  )
+  console.log(`   Stop Reason: ${context.response.stop_reason || context.response.finish_reason || 'unknown'}`)
   console.log(chalk.gray('━'.repeat(60)))
 }
 
@@ -805,9 +719,7 @@ export function logSystemPromptConstruction(construction: {
   }
 
   if (construction.reminders.length > 0) {
-    console.log(
-      `   + Dynamic Reminders: ${construction.reminders.length} items`,
-    )
+    console.log(`   + Dynamic Reminders: ${construction.reminders.length} items`)
     construction.reminders.forEach((reminder, index) => {
       console.log(chalk.dim(`     [${index}] ${reminder.substring(0, 80)}...`))
     })
@@ -828,12 +740,8 @@ export function logContextCompression(compression: {
 
   console.log('\n' + chalk.red('🗜️  CONTEXT COMPRESSION'))
   console.log(`   Trigger: ${compression.trigger}`)
-  console.log(
-    `   Messages: ${compression.beforeMessages} → ${compression.afterMessages}`,
-  )
-  console.log(
-    `   Compression Ratio: ${(compression.compressionRatio * 100).toFixed(1)}%`,
-  )
+  console.log(`   Messages: ${compression.beforeMessages} → ${compression.afterMessages}`)
+  console.log(`   Compression Ratio: ${(compression.compressionRatio * 100).toFixed(1)}%`)
 
   if (compression.preservedFiles.length > 0) {
     console.log(`   Preserved Files: ${compression.preservedFiles.join(', ')}`)
@@ -904,8 +812,8 @@ export function initDebugLogger() {
       detailed: DEBUG_PATHS.detailed(),
       flow: DEBUG_PATHS.flow(),
       api: DEBUG_PATHS.api(),
-      state: DEBUG_PATHS.state(),
-    },
+      state: DEBUG_PATHS.state()
+    }
   })
 
   // 显示终端输出过滤信息
@@ -913,31 +821,17 @@ export function initDebugLogger() {
     ? Array.from(DEBUG_VERBOSE_TERMINAL_LOG_LEVELS).join(', ')
     : Array.from(TERMINAL_LOG_LEVELS).join(', ')
 
-  console.log(
-    chalk.dim(`[DEBUG] Terminal output filtered to: ${terminalLevels}`),
-  )
-  console.log(
-    chalk.dim(`[DEBUG] Complete logs saved to: ${DEBUG_PATHS.base()}`),
-  )
+  console.log(chalk.dim(`[DEBUG] Terminal output filtered to: ${terminalLevels}`))
+  console.log(chalk.dim(`[DEBUG] Complete logs saved to: ${DEBUG_PATHS.base()}`))
   if (!isDebugVerboseMode()) {
-    console.log(
-      chalk.dim(
-        `[DEBUG] Use --debug-verbose for detailed system logs (FLOW, API, STATE)`,
-      ),
-    )
+    console.log(chalk.dim(`[DEBUG] Use --debug-verbose for detailed system logs (FLOW, API, STATE)`))
   }
 }
 
 // 新增：错误诊断和恢复建议系统
 interface ErrorDiagnosis {
   errorType: string
-  category:
-    | 'NETWORK'
-    | 'API'
-    | 'PERMISSION'
-    | 'CONFIG'
-    | 'SYSTEM'
-    | 'USER_INPUT'
+  category: 'NETWORK' | 'API' | 'PERMISSION' | 'CONFIG' | 'SYSTEM' | 'USER_INPUT'
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
   description: string
   suggestions: string[]
@@ -950,37 +844,29 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
   const errorStack = error instanceof Error ? error.stack : undefined
 
   // AbortController 相关错误
-  if (
-    errorMessage.includes('aborted') ||
-    errorMessage.includes('AbortController')
-  ) {
+  if (errorMessage.includes('aborted') || errorMessage.includes('AbortController')) {
     return {
       errorType: 'REQUEST_ABORTED',
       category: 'SYSTEM',
       severity: 'MEDIUM',
-      description:
-        'Request was aborted, often due to user cancellation or timeout',
+      description: 'Request was aborted, often due to user cancellation or timeout',
       suggestions: [
         '检查是否按下了 ESC 键取消请求',
         '检查网络连接是否稳定',
         '验证 AbortController 状态: isActive 和 signal.aborted 应该一致',
-        '查看是否有重复的请求导致冲突',
+        '查看是否有重复的请求导致冲突'
       ],
       debugSteps: [
         '使用 --debug-verbose 模式查看详细的请求流程',
         '检查 debug 日志中的 BINARY_FEEDBACK_* 事件',
         '验证 REQUEST_START 和 REQUEST_END 日志配对',
-        '查看 QUERY_ABORTED 事件的触发原因',
-      ],
+        '查看 QUERY_ABORTED 事件的触发原因'
+      ]
     }
   }
 
   // API 密钥相关错误
-  if (
-    errorMessage.includes('api-key') ||
-    errorMessage.includes('authentication') ||
-    errorMessage.includes('401')
-  ) {
+  if (errorMessage.includes('api-key') || errorMessage.includes('authentication') || errorMessage.includes('401')) {
     return {
       errorType: 'API_AUTHENTICATION',
       category: 'API',
@@ -990,23 +876,19 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
         '运行 /login 重新设置 API 密钥',
         '检查 ~/.kode/ 配置文件中的 API 密钥',
         '验证 API 密钥是否已过期或被撤销',
-        '确认使用的 provider 设置正确 (anthropic/opendev/bigdream)',
+        '确认使用的 provider 设置正确 (anthropic/opendev/bigdream)'
       ],
       debugSteps: [
         '检查 CONFIG_LOAD 日志中的 provider 和 API 密钥状态',
         '运行 kode doctor 检查系统健康状态',
         '查看 API_ERROR 日志了解详细错误信息',
-        '使用 kode config 命令查看当前配置',
-      ],
+        '使用 kode config 命令查看当前配置'
+      ]
     }
   }
 
   // 网络连接错误
-  if (
-    errorMessage.includes('ECONNREFUSED') ||
-    errorMessage.includes('ENOTFOUND') ||
-    errorMessage.includes('timeout')
-  ) {
+  if (errorMessage.includes('ECONNREFUSED') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('timeout')) {
     return {
       errorType: 'NETWORK_CONNECTION',
       category: 'NETWORK',
@@ -1017,23 +899,19 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
         '确认防火墙没有阻止相关端口',
         '检查 proxy 设置是否正确',
         '尝试切换到不同的网络环境',
-        '验证 baseURL 配置是否正确',
+        '验证 baseURL 配置是否正确'
       ],
       debugSteps: [
         '检查 API_REQUEST_START 和相关网络日志',
         '查看 LLM_REQUEST_ERROR 中的详细错误信息',
         '使用 ping 或 curl 测试 API 端点连通性',
-        '检查企业网络是否需要代理设置',
-      ],
+        '检查企业网络是否需要代理设置'
+      ]
     }
   }
 
   // 权限相关错误
-  if (
-    errorMessage.includes('permission') ||
-    errorMessage.includes('EACCES') ||
-    errorMessage.includes('denied')
-  ) {
+  if (errorMessage.includes('permission') || errorMessage.includes('EACCES') || errorMessage.includes('denied')) {
     return {
       errorType: 'PERMISSION_DENIED',
       category: 'PERMISSION',
@@ -1043,22 +921,19 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
         '检查文件和目录的读写权限',
         '确认当前用户有足够的系统权限',
         '查看是否需要管理员权限运行',
-        '检查工具权限设置是否正确配置',
+        '检查工具权限设置是否正确配置'
       ],
       debugSteps: [
         '查看 PERMISSION_* 日志了解权限检查过程',
         '检查文件系统权限: ls -la',
         '验证工具审批状态',
-        '查看 TOOL_* 相关的调试日志',
-      ],
+        '查看 TOOL_* 相关的调试日志'
+      ]
     }
   }
 
   // LLM 响应格式错误
-  if (
-    errorMessage.includes('substring is not a function') ||
-    errorMessage.includes('content')
-  ) {
+  if (errorMessage.includes('substring is not a function') || errorMessage.includes('content')) {
     return {
       errorType: 'RESPONSE_FORMAT',
       category: 'API',
@@ -1068,23 +943,19 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
         '检查当前使用的 provider 是否与期望一致',
         '验证响应格式处理逻辑',
         '确认不同 provider 的响应格式差异',
-        '检查是否需要更新响应解析代码',
+        '检查是否需要更新响应解析代码'
       ],
       debugSteps: [
         '查看 LLM_CALL_DEBUG 中的响应格式',
         '检查 provider 配置和实际使用的 API',
         '对比 Anthropic 和 OpenAI 响应格式差异',
-        '验证 logLLMInteraction 函数的格式处理',
-      ],
+        '验证 logLLMInteraction 函数的格式处理'
+      ]
     }
   }
 
   // 上下文窗口溢出
-  if (
-    errorMessage.includes('too long') ||
-    errorMessage.includes('context') ||
-    errorMessage.includes('token')
-  ) {
+  if (errorMessage.includes('too long') || errorMessage.includes('context') || errorMessage.includes('token')) {
     return {
       errorType: 'CONTEXT_OVERFLOW',
       category: 'SYSTEM',
@@ -1094,22 +965,19 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
         '运行 /compact 手动压缩对话历史',
         '检查自动压缩设置是否正确配置',
         '减少单次输入的内容长度',
-        '清理不必要的上下文信息',
+        '清理不必要的上下文信息'
       ],
       debugSteps: [
         '查看 AUTO_COMPACT_* 日志检查压缩触发',
         '检查 token 使用量和阈值',
         '查看 CONTEXT_COMPRESSION 相关日志',
-        '验证模型的最大 token 限制',
-      ],
+        '验证模型的最大 token 限制'
+      ]
     }
   }
 
   // 配置相关错误
-  if (
-    errorMessage.includes('config') ||
-    (errorMessage.includes('undefined') && context?.configRelated)
-  ) {
+  if (errorMessage.includes('config') || (errorMessage.includes('undefined') && context?.configRelated)) {
     return {
       errorType: 'CONFIGURATION',
       category: 'CONFIG',
@@ -1119,14 +987,14 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
         '运行 kode config 检查配置设置',
         '删除损坏的配置文件重新初始化',
         '检查 JSON 配置文件语法是否正确',
-        '验证环境变量设置',
+        '验证环境变量设置'
       ],
       debugSteps: [
         '查看 CONFIG_LOAD 和 CONFIG_SAVE 日志',
         '检查配置文件路径和权限',
         '验证 JSON 格式: cat ~/.kode/config.json | jq',
-        '查看配置缓存相关的调试信息',
-      ],
+        '查看配置缓存相关的调试信息'
+      ]
     }
   }
 
@@ -1140,23 +1008,19 @@ export function diagnoseError(error: any, context?: any): ErrorDiagnosis {
       '重新启动应用程序',
       '检查系统资源是否充足',
       '查看完整的错误日志获取更多信息',
-      '如果问题持续，请报告此错误',
+      '如果问题持续，请报告此错误'
     ],
     debugSteps: [
       '使用 --debug-verbose 获取详细日志',
       '检查 error.log 中的完整错误信息',
       '查看系统资源使用情况',
-      '收集重现步骤和环境信息',
+      '收集重现步骤和环境信息'
     ],
-    relatedLogs: errorStack ? [errorStack] : undefined,
+    relatedLogs: errorStack ? [errorStack] : undefined
   }
 }
 
-export function logErrorWithDiagnosis(
-  error: any,
-  context?: any,
-  requestId?: string,
-) {
+export function logErrorWithDiagnosis(error: any, context?: any, requestId?: string) {
   if (!isDebugMode()) return
 
   const diagnosis = diagnoseError(error, context)
@@ -1170,9 +1034,9 @@ export function logErrorWithDiagnosis(
       errorType: diagnosis.errorType,
       category: diagnosis.category,
       severity: diagnosis.severity,
-      context,
+      context
     },
-    requestId,
+    requestId
   )
 
   // 在终端显示诊断信息
@@ -1180,11 +1044,7 @@ export function logErrorWithDiagnosis(
   console.log(chalk.gray('━'.repeat(60)))
 
   console.log(chalk.red(`❌ ${diagnosis.errorType}`))
-  console.log(
-    chalk.dim(
-      `Category: ${diagnosis.category} | Severity: ${diagnosis.severity}`,
-    ),
-  )
+  console.log(chalk.dim(`Category: ${diagnosis.category} | Severity: ${diagnosis.severity}`))
   console.log(`\n${diagnosis.description}`)
 
   console.log(chalk.yellow('\n💡 Recovery Suggestions:'))
@@ -1200,8 +1060,7 @@ export function logErrorWithDiagnosis(
   if (diagnosis.relatedLogs && diagnosis.relatedLogs.length > 0) {
     console.log(chalk.magenta('\n📋 Related Information:'))
     diagnosis.relatedLogs.forEach((log, index) => {
-      const truncatedLog =
-        log.length > 200 ? log.substring(0, 200) + '...' : log
+      const truncatedLog = log.length > 200 ? log.substring(0, 200) + '...' : log
       console.log(chalk.dim(`   ${truncatedLog}`))
     })
   }
@@ -1226,7 +1085,7 @@ export function getDebugInfo() {
       detailed: DEBUG_PATHS.detailed(),
       flow: DEBUG_PATHS.flow(),
       api: DEBUG_PATHS.api(),
-      state: DEBUG_PATHS.state(),
-    },
+      state: DEBUG_PATHS.state()
+    }
   }
 }

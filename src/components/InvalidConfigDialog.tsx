@@ -1,11 +1,11 @@
 import React from 'react'
-import { Box, Newline, Text, useInput } from 'ink'
-import { getTheme } from '@utils/theme'
-import { Select } from './CustomSelect/select'
-import { render } from 'ink'
-import { writeFileSync } from 'fs'
-import { ConfigParseError } from '@utils/errors'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
+import {Box, Newline, Text, useInput} from 'ink'
+import {getTheme} from '@utils/theme'
+import {Select} from './CustomSelect/select'
+import {render} from 'ink'
+import {writeFileSync} from 'fs'
+import {ConfigParseError} from '@utils/errors'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
 interface InvalidConfigHandlerProps {
   error: ConfigParseError
 }
@@ -20,12 +20,7 @@ interface InvalidConfigDialogProps {
 /**
  * Dialog shown when the Kode config file contains invalid JSON
  */
-function InvalidConfigDialog({
-  filePath,
-  errorDescription,
-  onExit,
-  onReset,
-}: InvalidConfigDialogProps): React.ReactNode {
+function InvalidConfigDialog({filePath, errorDescription, onExit, onReset}: InvalidConfigDialogProps): React.ReactNode {
   const theme = getTheme()
 
   // Handle escape key
@@ -48,20 +43,12 @@ function InvalidConfigDialog({
 
   return (
     <>
-      <Box
-        flexDirection="column"
-        borderColor={theme.error}
-        borderStyle="round"
-        padding={1}
-        width={70}
-        gap={1}
-      >
+      <Box flexDirection="column" borderColor={theme.error} borderStyle="round" padding={1} width={70} gap={1}>
         <Text bold>Configuration Error</Text>
 
         <Box flexDirection="column" gap={1}>
           <Text>
-            The configuration file at <Text bold>{filePath}</Text> contains
-            invalid JSON.
+            The configuration file at <Text bold>{filePath}</Text> contains invalid JSON.
           </Text>
           <Text>{errorDescription}</Text>
         </Box>
@@ -70,25 +57,19 @@ function InvalidConfigDialog({
           <Text bold>Choose an option:</Text>
           <Select
             options={[
-              { label: 'Exit and fix manually', value: 'exit' },
-              { label: 'Reset with default configuration', value: 'reset' },
+              {label: 'Exit and fix manually', value: 'exit'},
+              {label: 'Reset with default configuration', value: 'reset'}
             ]}
             onChange={handleSelect}
           />
         </Box>
       </Box>
-      {exitState.pending ? (
-        <Text dimColor>Press {exitState.keyName} again to exit</Text>
-      ) : (
-        <Newline />
-      )}
+      {exitState.pending ? <Text dimColor>Press {exitState.keyName} again to exit</Text> : <Newline />}
     </>
   )
 }
 
-export function showInvalidConfigDialog({
-  error,
-}: InvalidConfigHandlerProps): Promise<void> {
+export function showInvalidConfigDialog({error}: InvalidConfigHandlerProps): Promise<void> {
   return new Promise(resolve => {
     render(
       <InvalidConfigDialog
@@ -99,15 +80,12 @@ export function showInvalidConfigDialog({
           process.exit(1)
         }}
         onReset={() => {
-          writeFileSync(
-            error.filePath,
-            JSON.stringify(error.defaultConfig, null, 2),
-          )
+          writeFileSync(error.filePath, JSON.stringify(error.defaultConfig, null, 2))
           resolve()
           process.exit(0)
         }}
       />,
-      { exitOnCtrlC: false },
+      {exitOnCtrlC: false}
     )
   })
 }

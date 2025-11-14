@@ -1,5 +1,5 @@
-import { Command } from '@commands'
-import { Help } from '@components/Help'
+import {Command} from '@commands'
+import {Help} from '@components/Help'
 import * as React from 'react'
 
 const help = {
@@ -13,7 +13,7 @@ const help = {
   },
   userFacingName() {
     return 'help'
-  },
+  }
 } satisfies Command
 
 export default help

@@ -1,7 +1,7 @@
 import InkLink from 'ink-link'
-import { Text } from 'ink'
+import {Text} from 'ink'
 import React from 'react'
-import { env } from '@utils/env'
+import {env} from '@utils/env'
 
 type LinkProps = {
   url: string
@@ -11,7 +11,7 @@ type LinkProps = {
 // Terminals that support hyperlinks
 const LINK_SUPPORTING_TERMINALS = ['iTerm.app', 'WezTerm', 'Hyper', 'VSCode']
 
-export default function Link({ url, children }: LinkProps): React.ReactNode {
+export default function Link({url, children}: LinkProps): React.ReactNode {
   const supportsLinks = LINK_SUPPORTING_TERMINALS.includes(env.terminal ?? '')
 
   // Determine what text to display - use children or fall back to the URL itself

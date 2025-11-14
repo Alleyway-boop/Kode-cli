@@ -1,17 +1,15 @@
-import { Command } from '@commands'
-import { getMessagesSetter } from '@messages'
-import { getContext } from '@context'
-import { getCodeStyle } from '@utils/style'
-import { clearTerminal } from '@utils/terminal'
-import { getOriginalCwd, setCwd } from '@utils/state'
-import { Message } from '@query'
-import { resetReminderSession } from '@services/systemReminder'
-import { resetFileFreshnessSession } from '@services/fileFreshness'
+import {Command} from '@commands'
+import {getMessagesSetter} from '@messages'
+import {getContext} from '@context'
+import {getCodeStyle} from '@utils/style'
+import {clearTerminal} from '@utils/terminal'
+import {getOriginalCwd, setCwd} from '@utils/state'
+import {Message} from '@query'
+import {resetReminderSession} from '@services/systemReminder'
+import {resetFileFreshnessSession} from '@services/fileFreshness'
 
 export async function clearConversation(context: {
-  setForkConvoWithMessagesOnTheNextRender: (
-    forkConvoWithMessages: Message[],
-  ) => void
+  setForkConvoWithMessagesOnTheNextRender: (forkConvoWithMessages: Message[]) => void
 }) {
   await clearTerminal()
   getMessagesSetter()([])
@@ -37,7 +35,7 @@ const clear = {
   },
   userFacingName() {
     return 'clear'
-  },
+  }
 } satisfies Command
 
 export default clear

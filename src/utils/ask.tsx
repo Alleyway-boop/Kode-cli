@@ -1,15 +1,15 @@
-import { last } from 'lodash-es'
-import { Command } from '@commands'
-import { getSystemPrompt } from '@constants/prompts'
-import { getContext } from '@context'
-import { getTotalCost } from '@costTracker'
-import { Message, query } from '@query'
-import { CanUseToolFn } from '@hooks/useCanUseTool'
-import { Tool } from '@tool'
-import { getModelManager } from '@utils/model'
-import { setCwd } from './state'
-import { getMessagesPath, overwriteLog } from './log'
-import { createUserMessage } from './messages'
+import {last} from 'lodash-es'
+import {Command} from '@commands'
+import {getSystemPrompt} from '@constants/prompts'
+import {getContext} from '@context'
+import {getTotalCost} from '@costTracker'
+import {Message, query} from '@query'
+import {CanUseToolFn} from '@hooks/useCanUseTool'
+import {Tool} from '@tool'
+import {getModelManager} from '@utils/model'
+import {setCwd} from './state'
+import {getMessagesPath, overwriteLog} from './log'
+import {createUserMessage} from './messages'
 
 type Props = {
   commands: Command[]
@@ -33,7 +33,7 @@ export async function ask({
   prompt,
   cwd,
   tools,
-  verbose = false,
+  verbose = false
 }: Props): Promise<{
   resultText: string
   totalCost: number
@@ -46,30 +46,24 @@ export async function ask({
   const [systemPrompt, context, model] = await Promise.all([
     getSystemPrompt(),
     getContext(),
-    getModelManager().getModelName('main'),
+    getModelManager().getModelName('main')
   ])
 
-  for await (const m of query(
-    messages,
-    systemPrompt,
-    context,
-    hasPermissionsToUseTool,
-    {
-      options: {
-        commands,
-        tools,
-        verbose,
-        safeMode,
-        forkNumber: 0,
-        messageLogName: 'unused',
-        maxThinkingTokens: 0,
-      },
-      abortController: new AbortController(),
-      messageId: undefined,
-      readFileTimestamps: {},
-      setToolJSX: () => {}, // No-op function for non-interactive use
+  for await (const m of query(messages, systemPrompt, context, hasPermissionsToUseTool, {
+    options: {
+      commands,
+      tools,
+      verbose,
+      safeMode,
+      forkNumber: 0,
+      messageLogName: 'unused',
+      maxThinkingTokens: 0
     },
-  )) {
+    abortController: new AbortController(),
+    messageId: undefined,
+    readFileTimestamps: {},
+    setToolJSX: () => {} // No-op function for non-interactive use
+  })) {
     messages.push(m)
   }
 
@@ -79,11 +73,7 @@ export async function ask({
   }
   if (result.message.content[0]?.type !== 'text') {
     throw new Error(
-      `Expected first content item to be text, but got ${JSON.stringify(
-        result.message.content[0],
-        null,
-        2,
-      )}`,
+      `Expected first content item to be text, but got ${JSON.stringify(result.message.content[0], null, 2)}`
     )
   }
 
@@ -94,6 +84,6 @@ export async function ask({
   return {
     resultText: result.message.content[0].text,
     totalCost: getTotalCost(),
-    messageHistoryFile,
+    messageHistoryFile
   }
 }

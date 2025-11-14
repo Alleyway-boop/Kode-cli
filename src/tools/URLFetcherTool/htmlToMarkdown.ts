@@ -17,7 +17,7 @@ turndownService.addRule('removeScripts', {
 })
 
 turndownService.addRule('removeComments', {
-  filter: (node) => node.nodeType === 8, // Comment nodes
+  filter: node => node.nodeType === 8, // Comment nodes
   replacement: () => ''
 })
 
@@ -43,7 +43,7 @@ export function convertHtmlToMarkdown(html: string): string {
       .trim()
 
     const markdown = turndownService.turndown(cleanHtml)
-    
+
     // Clean up the resulting markdown
     return markdown
       .replace(/\n{3,}/g, '\n\n') // Remove excessive line breaks

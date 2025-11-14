@@ -1,6 +1,6 @@
 import fs from 'fs/promises'
-import { logError } from './log'
-import { Tool } from '@tool'
+import {logError} from './log'
+import {Tool} from '@tool'
 
 /**
  * Load messages from a log file
@@ -8,10 +8,7 @@ import { Tool } from '@tool'
  * @param tools Available tools for deserializing tool usage
  * @returns Array of deserialized messages
  */
-export async function loadMessagesFromLog(
-  logPath: string,
-  tools: Tool[],
-): Promise<any[]> {
+export async function loadMessagesFromLog(logPath: string, tools: Tool[]): Promise<any[]> {
   try {
     const content = await fs.readFile(logPath, 'utf-8')
     const messages = JSON.parse(content)

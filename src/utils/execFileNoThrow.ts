@@ -1,6 +1,6 @@
-import { execFile } from 'child_process'
-import { getCwd } from './state'
-import { logError } from './log'
+import {execFile} from 'child_process'
+import {getCwd} from './state'
+import {logError} from './log'
 
 const MS_IN_SECOND = 1000
 const SECONDS_IN_MINUTE = 60
@@ -13,8 +13,8 @@ export function execFileNoThrow(
   args: string[],
   abortSignal?: AbortSignal,
   timeout = 10 * SECONDS_IN_MINUTE * MS_IN_SECOND,
-  preserveOutputOnError = true,
-): Promise<{ stdout: string; stderr: string; code: number }> {
+  preserveOutputOnError = true
+): Promise<{stdout: string; stderr: string; code: number}> {
   return new Promise(resolve => {
     try {
       execFile(
@@ -24,7 +24,7 @@ export function execFileNoThrow(
           maxBuffer: 1_000_000,
           signal: abortSignal,
           timeout,
-          cwd: getCwd(),
+          cwd: getCwd()
         },
         (error, stdout, stderr) => {
           if (error) {
@@ -33,19 +33,19 @@ export function execFileNoThrow(
               resolve({
                 stdout: stdout || '',
                 stderr: stderr || '',
-                code: errorCode,
+                code: errorCode
               })
             } else {
-              resolve({ stdout: '', stderr: '', code: 1 })
+              resolve({stdout: '', stderr: '', code: 1})
             }
           } else {
-            resolve({ stdout, stderr, code: 0 })
+            resolve({stdout, stderr, code: 0})
           }
-        },
+        }
       )
     } catch (error) {
       logError(error)
-      resolve({ stdout: '', stderr: '', code: 1 })
+      resolve({stdout: '', stderr: '', code: 1})
     }
   })
 }

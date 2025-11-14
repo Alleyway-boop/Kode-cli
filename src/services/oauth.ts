@@ -1,26 +1,17 @@
 import * as crypto from 'crypto'
 import * as http from 'http'
-import { IncomingMessage, ServerResponse } from 'http'
+import {IncomingMessage, ServerResponse} from 'http'
 import * as url from 'url'
 
-import { OAUTH_CONFIG } from '@constants/oauth'
-import { openBrowser } from '@utils/browser'
-import { logError } from '@utils/log'
-import { resetAnthropicClient } from './claude'
-import {
-  AccountInfo,
-  getGlobalConfig,
-  saveGlobalConfig,
-  normalizeApiKeyForConfig,
-} from '@utils/config'
+import {OAUTH_CONFIG} from '@constants/oauth'
+import {openBrowser} from '@utils/browser'
+import {logError} from '@utils/log'
+import {resetAnthropicClient} from './claude'
+import {AccountInfo, getGlobalConfig, saveGlobalConfig, normalizeApiKeyForConfig} from '@utils/config'
 
 // Base64URL encoding function (RFC 4648)
 function base64URLEncode(buffer: Buffer): string {
-  return buffer
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
+  return buffer.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
 function generateCodeVerifier(): string {
@@ -55,10 +46,7 @@ export class OAuthService {
   private codeVerifier: string
   private expectedState: string | null = null
   private pendingCodePromise: {
-    resolve: (result: {
-      authorizationCode: string
-      useManualRedirect: boolean
-    }) => void
+    resolve: (result: {authorizationCode: string; useManualRedirect: boolean}) => void
     reject: (err: Error) => void
   } | null = null
 
@@ -66,19 +54,14 @@ export class OAuthService {
     this.codeVerifier = generateCodeVerifier()
   }
 
-  private generateAuthUrls(
-    codeChallenge: string,
-    state: string,
-  ): { autoUrl: string; manualUrl: string } {
+  private generateAuthUrls(codeChallenge: string, state: string): {autoUrl: string; manualUrl: string} {
     function makeUrl(isManual: boolean): string {
       const authUrl = new URL(OAUTH_CONFIG.AUTHORIZE_URL)
       authUrl.searchParams.append('client_id', OAUTH_CONFIG.CLIENT_ID)
       authUrl.searchParams.append('response_type', 'code')
       authUrl.searchParams.append(
         'redirect_uri',
-        isManual
-          ? OAUTH_CONFIG.MANUAL_REDIRECT_URL
-          : `http://localhost:${OAUTH_CONFIG.REDIRECT_PORT}/callback`,
+        isManual ? OAUTH_CONFIG.MANUAL_REDIRECT_URL : `http://localhost:${OAUTH_CONFIG.REDIRECT_PORT}/callback`
       )
       authUrl.searchParams.append('scope', OAUTH_CONFIG.SCOPES.join(' '))
       authUrl.searchParams.append('code_challenge', codeChallenge)
@@ -89,28 +72,26 @@ export class OAuthService {
 
     return {
       autoUrl: makeUrl(false),
-      manualUrl: makeUrl(true),
+      manualUrl: makeUrl(true)
     }
   }
 
-  async startOAuthFlow(
-    authURLHandler: (url: string) => Promise<void>,
-  ): Promise<OAuthResult> {
+  async startOAuthFlow(authURLHandler: (url: string) => Promise<void>): Promise<OAuthResult> {
     const codeChallenge = await generateCodeChallenge(this.codeVerifier)
     const state = base64URLEncode(crypto.randomBytes(32))
     this.expectedState = state
-    const { autoUrl, manualUrl } = this.generateAuthUrls(codeChallenge, state)
+    const {autoUrl, manualUrl} = this.generateAuthUrls(codeChallenge, state)
 
     const onReady = async () => {
       await authURLHandler(manualUrl)
       await openBrowser(autoUrl)
     }
 
-    const { authorizationCode, useManualRedirect } = await new Promise<{
+    const {authorizationCode, useManualRedirect} = await new Promise<{
       authorizationCode: string
       useManualRedirect: boolean
     }>((resolve, reject) => {
-      this.pendingCodePromise = { resolve, reject }
+      this.pendingCodePromise = {resolve, reject}
       this.startLocalServer(state, onReady)
     })
 
@@ -118,80 +99,70 @@ export class OAuthService {
     const {
       access_token: accessToken,
       account,
-      organization,
-    } = await this.exchangeCodeForTokens(
-      authorizationCode,
-      state,
-      useManualRedirect,
-    )
+      organization
+    } = await this.exchangeCodeForTokens(authorizationCode, state, useManualRedirect)
 
     // Store account info
     if (account) {
       const accountInfo: AccountInfo = {
         accountUuid: account.uuid,
         emailAddress: account.email_address,
-        organizationUuid: organization?.uuid,
+        organizationUuid: organization?.uuid
       }
       const config = getGlobalConfig()
       config.oauthAccount = accountInfo
       saveGlobalConfig(config)
     }
 
-    return { accessToken }
+    return {accessToken}
   }
 
   private startLocalServer(state: string, onReady?: () => void): void {
     if (this.server) {
       this.closeServer()
     }
-    this.server = http.createServer(
-      (req: IncomingMessage, res: ServerResponse) => {
-        const parsedUrl = url.parse(req.url || '', true)
+    this.server = http.createServer((req: IncomingMessage, res: ServerResponse) => {
+      const parsedUrl = url.parse(req.url || '', true)
 
-        if (parsedUrl.pathname === '/callback') {
-          const authorizationCode = parsedUrl.query.code as string
-          const returnedState = parsedUrl.query.state as string
+      if (parsedUrl.pathname === '/callback') {
+        const authorizationCode = parsedUrl.query.code as string
+        const returnedState = parsedUrl.query.state as string
 
-          if (!authorizationCode) {
-            res.writeHead(400)
-            res.end('Authorization code not found')
-            if (this.pendingCodePromise) {
-              this.pendingCodePromise.reject(
-                new Error('No authorization code received'),
-              )
-            }
-            return
+        if (!authorizationCode) {
+          res.writeHead(400)
+          res.end('Authorization code not found')
+          if (this.pendingCodePromise) {
+            this.pendingCodePromise.reject(new Error('No authorization code received'))
           }
-
-          if (returnedState !== state) {
-            res.writeHead(400)
-            res.end('Invalid state parameter')
-            if (this.pendingCodePromise) {
-              this.pendingCodePromise.reject(
-                new Error('Invalid state parameter'), // Possible CSRF attack
-              )
-            }
-            return
-          }
-
-          res.writeHead(302, {
-            Location: OAUTH_CONFIG.SUCCESS_URL,
-          })
-          res.end()
-
-          
-
-          this.processCallback({
-            authorizationCode,
-            state,
-            useManualRedirect: false,
-          })
-        } else {
-          res.writeHead(404)
-          res.end()
+          return
         }
-      },
-    )
+
+        if (returnedState !== state) {
+          res.writeHead(400)
+          res.end('Invalid state parameter')
+          if (this.pendingCodePromise) {
+            this.pendingCodePromise.reject(
+              new Error('Invalid state parameter') // Possible CSRF attack
+            )
+          }
+          return
+        }
+
+        res.writeHead(302, {
+          Location: OAUTH_CONFIG.SUCCESS_URL
+        })
+        res.end()
+
+        this.processCallback({
+          authorizationCode,
+          state,
+          useManualRedirect: false
+        })
+      } else {
+        res.writeHead(404)
+        res.end()
+      }
+    })
 
     this.server.listen(OAUTH_CONFIG.REDIRECT_PORT, async () => {
       onReady?.()
@@ -201,7 +172,7 @@ export class OAuthService {
       const portError = err as NodeJS.ErrnoException
       if (portError.code === 'EADDRINUSE') {
         const error = new Error(
-          `Port ${OAUTH_CONFIG.REDIRECT_PORT} is already in use. Please ensure no other applications are using this port.`,
+          `Port ${OAUTH_CONFIG.REDIRECT_PORT} is already in use. Please ensure no other applications are using this port.`
         )
         logError(error)
         this.closeServer()
@@ -223,7 +194,7 @@ export class OAuthService {
   private async exchangeCodeForTokens(
     authorizationCode: string,
     state: string,
-    useManualRedirect: boolean = false,
+    useManualRedirect: boolean = false
   ): Promise<OAuthTokenExchangeResponse> {
     const requestBody = {
       grant_type: 'authorization_code',
@@ -233,15 +204,15 @@ export class OAuthService {
         : `http://localhost:${OAUTH_CONFIG.REDIRECT_PORT}/callback`,
       client_id: OAUTH_CONFIG.CLIENT_ID,
       code_verifier: this.codeVerifier,
-      state,
+      state
     }
 
     const response = await fetch(OAUTH_CONFIG.TOKEN_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(requestBody)
     })
 
     if (!response.ok) {
@@ -255,7 +226,7 @@ export class OAuthService {
   processCallback({
     authorizationCode,
     state,
-    useManualRedirect,
+    useManualRedirect
   }: {
     authorizationCode: string
     state: string
@@ -266,7 +237,7 @@ export class OAuthService {
     if (state !== this.expectedState) {
       if (this.pendingCodePromise) {
         this.pendingCodePromise.reject(
-          new Error('Invalid state parameter'), // Possible CSRF attack
+          new Error('Invalid state parameter') // Possible CSRF attack
         )
         this.pendingCodePromise = null
       }
@@ -274,7 +245,7 @@ export class OAuthService {
     }
 
     if (this.pendingCodePromise) {
-      this.pendingCodePromise.resolve({ authorizationCode, useManualRedirect })
+      this.pendingCodePromise.resolve({authorizationCode, useManualRedirect})
       this.pendingCodePromise = null
     }
   }
@@ -287,14 +258,12 @@ export class OAuthService {
   }
 }
 
-export async function createAndStoreApiKey(
-  accessToken: string,
-): Promise<string | null> {
+export async function createAndStoreApiKey(accessToken: string): Promise<string | null> {
   try {
     // Call create_api_key endpoint
     const createApiKeyResp = await fetch(OAUTH_CONFIG.API_KEY_URL, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: {Authorization: `Bearer ${accessToken}`}
     })
 
     let apiKeyData
@@ -307,8 +276,6 @@ export async function createAndStoreApiKey(
       errorText = await createApiKeyResp.text()
     }
 
-    
-
     if (createApiKeyResp.ok && apiKeyData && apiKeyData.raw_key) {
       const apiKey = apiKeyData.raw_key
 
@@ -319,7 +286,7 @@ export async function createAndStoreApiKey(
 
       // Add to approved list
       if (!config.customApiKeyResponses) {
-        config.customApiKeyResponses = { approved: [], rejected: [] }
+        config.customApiKeyResponses = {approved: [], rejected: []}
       }
       if (!config.customApiKeyResponses.approved) {
         config.customApiKeyResponses.approved = []
@@ -341,7 +308,6 @@ export async function createAndStoreApiKey(
 
     return null
   } catch (error) {
-    
     throw error
   }
 }

@@ -1,13 +1,8 @@
-import { useCallback, useState } from 'react'
-import { verifyApiKey } from '@services/claude'
-import { getAnthropicApiKey } from '@utils/config'
+import {useCallback, useState} from 'react'
+import {verifyApiKey} from '@services/claude'
+import {getAnthropicApiKey} from '@utils/config'
 
-export type VerificationStatus =
-  | 'loading'
-  | 'valid'
-  | 'invalid'
-  | 'missing'
-  | 'error'
+export type VerificationStatus = 'loading' | 'valid' | 'invalid' | 'missing' | 'error'
 
 export type ApiKeyVerificationResult = {
   status: VerificationStatus
@@ -54,6 +49,6 @@ export function useApiKeyVerification(): ApiKeyVerificationResult {
   return {
     status: 'valid',
     reverify: async () => {},
-    error: null,
+    error: null
   }
 }

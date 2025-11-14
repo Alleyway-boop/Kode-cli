@@ -1,9 +1,9 @@
-import { marked, Token } from 'marked'
-import { stripSystemMessages } from './messages'
+import {marked, Token} from 'marked'
+import {stripSystemMessages} from './messages'
 import chalk from 'chalk'
-import { EOL } from 'os'
-import { highlight, supportsLanguage } from 'cli-highlight'
-import { logError } from './log'
+import {EOL} from 'os'
+import {highlight, supportsLanguage} from 'cli-highlight'
+import {logError} from './log'
 
 export function applyMarkdown(content: string): string {
   return marked
@@ -17,19 +17,17 @@ function format(
   token: Token,
   listDepth = 0,
   orderedListNumber: number | null = null,
-  parent: Token | null = null,
+  parent: Token | null = null
 ): string {
   switch (token.type) {
     case 'blockquote':
       return chalk.dim.italic((token.tokens ?? []).map(_ => format(_)).join(''))
     case 'code':
       if (token.lang && supportsLanguage(token.lang)) {
-        return highlight(token.text, { language: token.lang }) + EOL
+        return highlight(token.text, {language: token.lang}) + EOL
       } else {
-        logError(
-          `Language not supported while highlighting code, falling back to markdown: ${token.lang}`,
-        )
-        return highlight(token.text, { language: 'markdown' }) + EOL
+        logError(`Language not supported while highlighting code, falling back to markdown: ${token.lang}`)
+        return highlight(token.text, {language: 'markdown'}) + EOL
       }
     case 'codespan':
       // inline code
@@ -41,25 +39,11 @@ function format(
     case 'heading':
       switch (token.depth) {
         case 1: // h1
-          return (
-            chalk.bold.italic.underline(
-              (token.tokens ?? []).map(_ => format(_)).join(''),
-            ) +
-            EOL +
-            EOL
-          )
+          return chalk.bold.italic.underline((token.tokens ?? []).map(_ => format(_)).join('')) + EOL + EOL
         case 2: // h2
-          return (
-            chalk.bold((token.tokens ?? []).map(_ => format(_)).join('')) +
-            EOL +
-            EOL
-          )
+          return chalk.bold((token.tokens ?? []).map(_ => format(_)).join('')) + EOL + EOL
         default: // h3+
-          return (
-            chalk.bold.dim((token.tokens ?? []).map(_ => format(_)).join('')) +
-            EOL +
-            EOL
-          )
+          return chalk.bold.dim((token.tokens ?? []).map(_ => format(_)).join('')) + EOL + EOL
       }
     case 'hr':
       return '---'
@@ -69,22 +53,12 @@ function format(
       return chalk.blue(token.href)
     case 'list': {
       return token.items
-        .map((_: Token, index: number) =>
-          format(
-            _,
-            listDepth,
-            token.ordered ? token.start + index : null,
-            token,
-          ),
-        )
+        .map((_: Token, index: number) => format(_, listDepth, token.ordered ? token.start + index : null, token))
         .join('')
     }
     case 'list_item':
       return (token.tokens ?? [])
-        .map(
-          _ =>
-            `${'  '.repeat(listDepth)}${format(_, listDepth + 1, orderedListNumber, token)}`,
-        )
+        .map(_ => `${'  '.repeat(listDepth)}${format(_, listDepth + 1, orderedListNumber, token)}`)
         .join('')
     case 'paragraph':
       return (token.tokens ?? []).map(_ => format(_)).join('') + EOL
@@ -153,7 +127,7 @@ const DEPTH_1_LIST_NUMBERS = [
   'aw',
   'ax',
   'ay',
-  'az',
+  'az'
 ]
 const DEPTH_2_LIST_NUMBERS = [
   'i',
@@ -195,7 +169,7 @@ const DEPTH_2_LIST_NUMBERS = [
   'xxxvii',
   'xxxviii',
   'xxxix',
-  'xl',
+  'xl'
 ]
 
 function getListNumber(listDepth: number, orderedListNumber: number): string {

@@ -1,26 +1,26 @@
-import { Box, Text, Newline } from 'ink'
+import {Box, Text, Newline} from 'ink'
 import * as React from 'react'
-import { getTheme } from '@utils/theme'
-import { PRODUCT_NAME } from '@constants/product'
-import { getAnthropicApiKey, getGlobalConfig } from '@utils/config'
-import { getCwd } from '@utils/state'
-import { AsciiLogo } from './AsciiLogo'
-import type { WrappedClient } from '@services/mcpClient'
-import { getModelManager } from '@utils/model'
-import { MACRO } from '@constants/macros'
+import {getTheme} from '@utils/theme'
+import {PRODUCT_NAME} from '@constants/product'
+import {getAnthropicApiKey, getGlobalConfig} from '@utils/config'
+import {getCwd} from '@utils/state'
+import {AsciiLogo} from './AsciiLogo'
+import type {WrappedClient} from '@services/mcpClient'
+import {getModelManager} from '@utils/model'
+import {MACRO} from '@constants/macros'
 
 export const MIN_LOGO_WIDTH = 50
 
 const DEFAULT_UPDATE_COMMANDS = [
   'bun add -g @shareai-lab/kode@latest',
-  'npm install -g @shareai-lab/kode@latest',
+  'npm install -g @shareai-lab/kode@latest'
 ] as const
 
 export function Logo({
   mcpClients,
   isDefaultModel = false,
   updateBannerVersion,
-  updateBannerCommands,
+  updateBannerCommands
 }: {
   mcpClients: WrappedClient[]
   isDefaultModel?: boolean
@@ -39,7 +39,7 @@ export function Logo({
     process.env.ANTHROPIC_API_KEY ||
       process.env.DISABLE_PROMPT_CACHING ||
       process.env.API_TIMEOUT_MS ||
-      process.env.MAX_THINKING_TOKENS,
+      process.env.MAX_THINKING_TOKENS
   )
 
   return (
@@ -55,22 +55,21 @@ export function Logo({
       >
         {updateBannerVersion ? (
           <Box flexDirection="column">
-            <Text color="yellow">New version available: {updateBannerVersion} (current: {MACRO.VERSION})</Text>
+            <Text color="yellow">
+              New version available: {updateBannerVersion} (current: {MACRO.VERSION})
+            </Text>
             <Text>Run the following command to update:</Text>
             <Text>
               {'  '}
               {updateBannerCommands?.[1] ?? DEFAULT_UPDATE_COMMANDS[1]}
             </Text>
             {process.platform !== 'win32' && (
-              <Text dimColor>
-                Note: you may need to prefix with "sudo" on macOS/Linux.
-              </Text>
+              <Text dimColor>Note: you may need to prefix with "sudo" on macOS/Linux.</Text>
             )}
           </Box>
         ) : null}
         <Text>
-          <Text color={theme.kode}>✻</Text> Welcome to{' '}
-          <Text bold>{PRODUCT_NAME}</Text> <Text>research preview!</Text>
+          <Text color={theme.kode}>✻</Text> Welcome to <Text bold>{PRODUCT_NAME}</Text> <Text>research preview!</Text>
         </Text>
         {/* <AsciiLogo /> */}
 
@@ -100,8 +99,7 @@ export function Logo({
               </Box>
               {process.env.ANTHROPIC_API_KEY && apiKey ? (
                 <Text color={theme.secondaryText}>
-                  • API Key:{' '}
-                  <Text bold>sk-ant-…{apiKey!.slice(-width + 25)}</Text>
+                  • API Key: <Text bold>sk-ant-…{apiKey!.slice(-width + 25)}</Text>
                 </Text>
               ) : null}
               {process.env.DISABLE_PROMPT_CACHING ? (
@@ -114,20 +112,17 @@ export function Logo({
               ) : null}
               {process.env.API_TIMEOUT_MS ? (
                 <Text color={theme.secondaryText}>
-                  • API timeout:{' '}
-                  <Text bold>{process.env.API_TIMEOUT_MS}ms</Text>
+                  • API timeout: <Text bold>{process.env.API_TIMEOUT_MS}ms</Text>
                 </Text>
               ) : null}
               {process.env.MAX_THINKING_TOKENS ? (
                 <Text color={theme.secondaryText}>
-                  • Max thinking tokens:{' '}
-                  <Text bold>{process.env.MAX_THINKING_TOKENS}</Text>
+                  • Max thinking tokens: <Text bold>{process.env.MAX_THINKING_TOKENS}</Text>
                 </Text>
               ) : null}
               {process.env.ANTHROPIC_BASE_URL ? (
                 <Text color={theme.secondaryText}>
-                  • API Base URL:{' '}
-                  <Text bold>{process.env.ANTHROPIC_BASE_URL}</Text>
+                  • API Base URL: <Text bold>{process.env.ANTHROPIC_BASE_URL}</Text>
                 </Text>
               ) : null}
             </Box>
@@ -153,12 +148,7 @@ export function Logo({
               <Box key={idx} width={width - 6}>
                 <Text color={theme.secondaryText}>• {client.name}</Text>
                 <Box flexGrow={1} />
-                <Text
-                  bold
-                  color={
-                    client.type === 'connected' ? theme.success : theme.error
-                  }
-                >
+                <Text bold color={client.type === 'connected' ? theme.success : theme.error}>
                   {client.type === 'connected' ? 'connected' : 'failed'}
                 </Text>
               </Box>

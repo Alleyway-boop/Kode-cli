@@ -1,11 +1,11 @@
-import { cwd } from 'process'
-import { PersistentShell } from './PersistentShell'
+import {cwd} from 'process'
+import {PersistentShell} from './PersistentShell'
 
 // DO NOT ADD MORE STATE HERE OR BORIS WILL CURSE YOU
 const STATE: {
   originalCwd: string
 } = {
-  originalCwd: cwd(),
+  originalCwd: cwd()
 }
 
 export async function setCwd(cwd: string): Promise<void> {

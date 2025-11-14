@@ -1,7 +1,7 @@
-import { useInput } from 'ink'
-import { ToolUseConfirm } from '@components/permissions/PermissionRequest'
-import { BinaryFeedbackContext } from '@screens/REPL'
-import type { SetToolJSXFn } from '@tool'
+import {useInput} from 'ink'
+import {ToolUseConfirm} from '@components/permissions/PermissionRequest'
+import {BinaryFeedbackContext} from '@screens/REPL'
+import type {SetToolJSXFn} from '@tool'
 
 export function useCancelRequest(
   setToolJSX: SetToolJSXFn,
@@ -10,7 +10,7 @@ export function useCancelRequest(
   onCancel: () => void,
   isLoading: boolean,
   isMessageSelectorVisible: boolean,
-  abortSignal?: AbortSignal,
+  abortSignal?: AbortSignal
 ) {
   useInput((_, key) => {
     if (!key.escape) {
@@ -29,7 +29,7 @@ export function useCancelRequest(
       // Esc closes the message selector
       return
     }
-  
+
     setToolJSX(null)
     setToolUseConfirm(null)
     setBinaryFeedbackContext(null)

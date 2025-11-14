@@ -1,10 +1,7 @@
-import { useState } from 'react'
-import { getHistory } from '@history'
+import {useState} from 'react'
+import {getHistory} from '@history'
 
-export function useArrowKeyHistory(
-  onSetInput: (value: string, mode: 'bash' | 'prompt') => void,
-  currentInput: string,
-) {
+export function useArrowKeyHistory(onSetInput: (value: string, mode: 'bash' | 'prompt') => void, currentInput: string) {
   const [historyIndex, setHistoryIndex] = useState(0)
   const [lastTypedInput, setLastTypedInput] = useState('')
 
@@ -50,6 +47,6 @@ export function useArrowKeyHistory(
     setHistoryIndex,
     onHistoryUp,
     onHistoryDown,
-    resetHistory,
+    resetHistory
   }
 }

@@ -1,15 +1,15 @@
-import { Message } from '@query'
-import { countTokens } from './tokens'
-import { getMessagesGetter, getMessagesSetter } from '@messages'
-import { getContext } from '@context'
-import { getCodeStyle } from '@utils/style'
-import { clearTerminal } from '@utils/terminal'
-import { resetFileFreshnessSession } from '@services/fileFreshness'
-import { createUserMessage, normalizeMessagesForAPI } from '@utils/messages'
-import { queryLLM } from '@services/claude'
-import { selectAndReadFiles } from './fileRecoveryCore'
-import { addLineNumbers } from './file'
-import { getModelManager } from './model'
+import {Message} from '@query'
+import {countTokens} from './tokens'
+import {getMessagesGetter, getMessagesSetter} from '@messages'
+import {getContext} from '@context'
+import {getCodeStyle} from '@utils/style'
+import {clearTerminal} from '@utils/terminal'
+import {resetFileFreshnessSession} from '@services/fileFreshness'
+import {createUserMessage, normalizeMessagesForAPI} from '@utils/messages'
+import {queryLLM} from '@services/claude'
+import {selectAndReadFiles} from './fileRecoveryCore'
+import {addLineNumbers} from './file'
+import {getModelManager} from './model'
 
 /**
  * Threshold ratio for triggering automatic context compression
@@ -78,7 +78,7 @@ async function calculateThresholds(tokenCount: number) {
     isAboveAutoCompactThreshold: tokenCount >= autoCompactThreshold,
     percentUsed: Math.round((tokenCount / contextLimit) * 100),
     tokensRemaining: Math.max(0, autoCompactThreshold - tokenCount),
-    contextLimit,
+    contextLimit
   }
 }
 
@@ -90,7 +90,7 @@ async function shouldAutoCompact(messages: Message[]): Promise<boolean> {
   if (messages.length < 3) return false
 
   const tokenCount = countTokens(messages)
-  const { isAboveAutoCompactThreshold } = await calculateThresholds(tokenCount)
+  const {isAboveAutoCompactThreshold} = await calculateThresholds(tokenCount)
 
   return isAboveAutoCompactThreshold
 }
@@ -112,10 +112,10 @@ async function shouldAutoCompact(messages: Message[]): Promise<boolean> {
  */
 export async function checkAutoCompact(
   messages: Message[],
-  toolUseContext: any,
-): Promise<{ messages: Message[]; wasCompacted: boolean }> {
+  toolUseContext: any
+): Promise<{messages: Message[]; wasCompacted: boolean}> {
   if (!(await shouldAutoCompact(messages))) {
-    return { messages, wasCompacted: false }
+    return {messages, wasCompacted: false}
   }
 
   try {
@@ -123,16 +123,13 @@ export async function checkAutoCompact(
 
     return {
       messages: compactedMessages,
-      wasCompacted: true,
+      wasCompacted: true
     }
   } catch (error) {
     // Graceful degradation: if auto-compact fails, continue with original messages
     // This ensures system remains functional even if compression encounters issues
-    console.error(
-      'Auto-compact failed, continuing with original messages:',
-      error,
-    )
-    return { messages, wasCompacted: false }
+    console.error('Auto-compact failed, continuing with original messages:', error)
+    return {messages, wasCompacted: false}
   }
 }
 
@@ -143,16 +140,13 @@ export async function checkAutoCompact(
  * which is better suited for complex summarization tasks. It also
  * automatically recovers important files to maintain development context.
  */
-async function executeAutoCompact(
-  messages: Message[],
-  toolUseContext: any,
-): Promise<Message[]> {
+async function executeAutoCompact(messages: Message[], toolUseContext: any): Promise<Message[]> {
   const summaryRequest = createUserMessage(COMPRESSION_PROMPT)
 
   const summaryResponse = await queryLLM(
     normalizeMessagesForAPI([...messages, summaryRequest]),
     [
-      'You are a helpful AI assistant tasked with creating comprehensive conversation summaries that preserve all essential context for continuing development work.',
+      'You are a helpful AI assistant tasked with creating comprehensive conversation summaries that preserve all essential context for continuing development work.'
     ],
     0,
     toolUseContext.options.tools,
@@ -160,29 +154,23 @@ async function executeAutoCompact(
     {
       safeMode: false,
       model: 'main', // 使用模型指针，让queryLLM统一解析
-      prependCLISysprompt: true,
-    },
+      prependCLISysprompt: true
+    }
   )
 
   const content = summaryResponse.message.content
   const summary =
-    typeof content === 'string'
-      ? content
-      : content.length > 0 && content[0]?.type === 'text'
-        ? content[0].text
-        : null
+    typeof content === 'string' ? content : content.length > 0 && content[0]?.type === 'text' ? content[0].text : null
 
   if (!summary) {
-    throw new Error(
-      'Failed to generate conversation summary - response did not contain valid text content',
-    )
+    throw new Error('Failed to generate conversation summary - response did not contain valid text content')
   }
 
   summaryResponse.message.usage = {
     input_tokens: 0,
     output_tokens: summaryResponse.message.usage.output_tokens,
     cache_creation_input_tokens: 0,
-    cache_read_input_tokens: 0,
+    cache_read_input_tokens: 0
   }
 
   // Automatic file recovery: preserve recently accessed development files
@@ -190,10 +178,8 @@ async function executeAutoCompact(
   const recoveredFiles = await selectAndReadFiles()
 
   const compactedMessages = [
-    createUserMessage(
-      'Context automatically compressed due to token limit. Essential information preserved.',
-    ),
-    summaryResponse,
+    createUserMessage('Context automatically compressed due to token limit. Essential information preserved.'),
+    summaryResponse
   ]
 
   // Append recovered files to maintain development workflow continuity
@@ -202,11 +188,11 @@ async function executeAutoCompact(
     for (const file of recoveredFiles) {
       const contentWithLines = addLineNumbers({
         content: file.content,
-        startLine: 1,
+        startLine: 1
       })
       const recoveryMessage = createUserMessage(
         `**Recovered File: ${file.path}**\n\n\`\`\`\n${contentWithLines}\n\`\`\`\n\n` +
-          `*Automatically recovered (${file.tokens} tokens)${file.truncated ? ' [truncated]' : ''}*`,
+          `*Automatically recovered (${file.tokens} tokens)${file.truncated ? ' [truncated]' : ''}*`
       )
       compactedMessages.push(recoveryMessage)
     }

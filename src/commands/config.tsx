@@ -1,5 +1,5 @@
-import { Command } from '@commands'
-import { Config } from '@components/Config'
+import {Command} from '@commands'
+import {Config} from '@components/Config'
 import * as React from 'react'
 
 const config = {
@@ -13,7 +13,7 @@ const config = {
   },
   userFacingName() {
     return 'config'
-  },
+  }
 } satisfies Command
 
 export default config

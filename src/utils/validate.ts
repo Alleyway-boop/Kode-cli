@@ -14,10 +14,7 @@ export type ValidationError = {
   message: string
 }
 
-export function validateField(
-  field: keyof FormData,
-  value: string,
-): ValidationError | null {
+export function validateField(field: keyof FormData, value: string): ValidationError | null {
   // Trim whitespace for validation
   const trimmed = value.trim()
 
@@ -27,7 +24,7 @@ export function validateField(
 
   // Basic required field check
   if (!trimmed) {
-    return { message: 'This field is required' }
+    return {message: 'This field is required'}
   }
 
   switch (field) {
@@ -35,26 +32,26 @@ export function validateField(
       const emailRegex =
         /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/
       if (!emailRegex.test(trimmed)) {
-        return { message: 'Please enter a valid email address' }
+        return {message: 'Please enter a valid email address'}
       }
       break
     }
 
     case 'name':
       if (trimmed.length < 2) {
-        return { message: 'Name must be at least 2 characters long' }
+        return {message: 'Name must be at least 2 characters long'}
       }
       break
 
     case 'address1': {
       if (trimmed.length < 3) {
-        return { message: 'Please enter a valid address' }
+        return {message: 'Please enter a valid address'}
       }
       // Accept PO Box format or regular street address
       const isPOBox = /^P\.?O\.?\s*Box\s+\d+$/i.test(trimmed)
       const hasNumber = /\d+/.test(trimmed)
       if (!isPOBox && !hasNumber) {
-        return { message: 'Please include a number in the street address' }
+        return {message: 'Please include a number in the street address'}
       }
       break
     }
@@ -63,12 +60,11 @@ export function validateField(
 
     case 'city':
       if (trimmed.length < 2) {
-        return { message: 'City name must be at least 2 characters long' }
+        return {message: 'City name must be at least 2 characters long'}
       }
       if (!/^[a-zA-Z\s.-]+$/.test(trimmed)) {
         return {
-          message:
-            'City can only contain letters, spaces, periods, and hyphens',
+          message: 'City can only contain letters, spaces, periods, and hyphens'
         }
       }
       break
@@ -125,11 +121,11 @@ export function validateField(
         'WV',
         'WI',
         'WY',
-        'DC',
+        'DC'
       ])
       const stateCode = trimmed.toUpperCase()
       if (!states.has(stateCode)) {
-        return { message: 'Please enter a valid US state code (e.g. CA)' }
+        return {message: 'Please enter a valid US state code (e.g. CA)'}
       }
       break
     }
@@ -137,7 +133,7 @@ export function validateField(
     case 'usLocation': {
       const normalized = trimmed.toLowerCase()
       if (!['y', 'yes', 'n', 'no'].includes(normalized)) {
-        return { message: 'Please enter y/yes or n/no' }
+        return {message: 'Please enter y/yes or n/no'}
       }
       break
     }
@@ -146,7 +142,7 @@ export function validateField(
       // ZIP code validation for US
       if (!/^\d{5}(-\d{4})?$/.test(trimmed)) {
         return {
-          message: 'Please enter a valid ZIP code (e.g. 12345 or 12345-6789)',
+          message: 'Please enter a valid ZIP code (e.g. 12345 or 12345-6789)'
         }
       }
       break
@@ -155,7 +151,7 @@ export function validateField(
       // Phone validation for US (allow various formats)
       if (!/^(\+1\s?)?(\d{3}[-.\s]??)?\d{3}[-.\s]??\d{4}$/.test(trimmed)) {
         return {
-          message: 'Please enter a valid US phone number',
+          message: 'Please enter a valid US phone number'
         }
       }
       break

@@ -1,5 +1,5 @@
-import { readTextContent } from './file'
-import { fileFreshnessService } from '@services/fileFreshness'
+import {readTextContent} from './file'
+import {fileFreshnessService} from '@services/fileFreshness'
 
 /**
  * File recovery configuration for auto-compact feature
@@ -27,14 +27,13 @@ export async function selectAndReadFiles(): Promise<
     truncated: boolean
   }>
 > {
-  const importantFiles =
-    fileFreshnessService.getImportantFiles(MAX_FILES_TO_RECOVER)
+  const importantFiles = fileFreshnessService.getImportantFiles(MAX_FILES_TO_RECOVER)
   const results = []
   let totalTokens = 0
 
   for (const fileInfo of importantFiles) {
     try {
-      const { content } = readTextContent(fileInfo.path)
+      const {content} = readTextContent(fileInfo.path)
       const estimatedTokens = Math.ceil(content.length * 0.25)
 
       // Apply per-file token limit to prevent any single file from dominating context
@@ -59,7 +58,7 @@ export async function selectAndReadFiles(): Promise<
         path: fileInfo.path,
         content: finalContent,
         tokens: finalTokens,
-        truncated,
+        truncated
       })
     } catch (error) {
       // Skip files that cannot be read, don't let one failure stop the process

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import {useEffect, useRef} from 'react'
 
 /**
  * A custom hook that runs a callback at a specified interval.

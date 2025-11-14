@@ -1,15 +1,15 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import React from 'react'
-import { logError } from '@utils/log'
-import { ToolUseBlockParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { Tool } from '@tool'
-import { Cost } from '@components/Cost'
-import { ToolUseLoader } from '@components/ToolUseLoader'
-import { getTheme } from '@utils/theme'
-import { BLACK_CIRCLE } from '@constants/figures'
-import { ThinkTool } from '@tools/ThinkTool/ThinkTool'
-import { AssistantThinkingMessage } from './AssistantThinkingMessage'
-import { TaskToolMessage } from './TaskToolMessage'
+import {logError} from '@utils/log'
+import {ToolUseBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {Tool} from '@tool'
+import {Cost} from '@components/Cost'
+import {ToolUseLoader} from '@components/ToolUseLoader'
+import {getTheme} from '@utils/theme'
+import {BLACK_CIRCLE} from '@constants/figures'
+import {ThinkTool} from '@tools/ThinkTool/ThinkTool'
+import {AssistantThinkingMessage} from './AssistantThinkingMessage'
+import {TaskToolMessage} from './TaskToolMessage'
 
 type Props = {
   param: ToolUseBlockParam
@@ -38,42 +38,30 @@ export function AssistantToolUseMessage({
   inProgressToolUseIDs,
   unresolvedToolUseIDs,
   shouldAnimate,
-  shouldShowDot,
+  shouldShowDot
 }: Props): React.ReactNode {
   const tool = tools.find(_ => _.name === param.name)
   if (!tool) {
     logError(`Tool ${param.name} not found`)
     return null
   }
-  const isQueued =
-    !inProgressToolUseIDs.has(param.id) && unresolvedToolUseIDs.has(param.id)
+  const isQueued = !inProgressToolUseIDs.has(param.id) && unresolvedToolUseIDs.has(param.id)
   // Keeping color undefined makes the OS use the default color regardless of appearance
   const color = isQueued ? getTheme().secondaryText : undefined
 
   // Handle thinking tool with specialized rendering
   if (tool === ThinkTool) {
-    const { thought } = ThinkTool.inputSchema.parse(param.input)
+    const {thought} = ThinkTool.inputSchema.parse(param.input)
     return (
-      <AssistantThinkingMessage
-        param={{ thinking: thought, signature: '', type: 'thinking' }}
-        addMargin={addMargin}
-      />
+      <AssistantThinkingMessage param={{thinking: thought, signature: '', type: 'thinking'}} addMargin={addMargin} />
     )
   }
 
   const userFacingToolName = tool.userFacingName ? tool.userFacingName() : tool.name
   return (
-    <Box
-      flexDirection="row"
-      justifyContent="space-between"
-      marginTop={addMargin ? 1 : 0}
-      width="100%"
-    >
+    <Box flexDirection="row" justifyContent="space-between" marginTop={addMargin ? 1 : 0} width="100%">
       <Box>
-        <Box
-          flexWrap="nowrap"
-          minWidth={userFacingToolName.length + (shouldShowDot ? 2 : 0)}
-        >
+        <Box flexWrap="nowrap" minWidth={userFacingToolName.length + (shouldShowDot ? 2 : 0)}>
           {shouldShowDot &&
             (isQueued ? (
               <Box minWidth={2}>
@@ -99,14 +87,11 @@ export function AssistantToolUseMessage({
           )}
         </Box>
         <Box flexWrap="nowrap">
-          {Object.keys(param.input as { [key: string]: unknown }).length > 0 &&
+          {Object.keys(param.input as {[key: string]: unknown}).length > 0 &&
             (() => {
-              const toolMessage = tool.renderToolUseMessage(
-                param.input as never,
-                {
-                  verbose,
-                },
-              )
+              const toolMessage = tool.renderToolUseMessage(param.input as never, {
+                verbose
+              })
 
               // If the tool returns a React component, render it directly
               if (React.isValidElement(toolMessage)) {

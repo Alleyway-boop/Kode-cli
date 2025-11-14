@@ -1,9 +1,9 @@
 import React from 'react'
-import { Text, useInput } from 'ink'
+import {Text, useInput} from 'ink'
 import chalk from 'chalk'
-import { useTextInput } from '@hooks/useTextInput'
-import { getTheme } from '@utils/theme'
-import { type Key } from 'ink'
+import {useTextInput} from '@hooks/useTextInput'
+import {getTheme} from '@utils/theme'
+import {type Key} from 'ink'
 
 export type Props = {
   /**
@@ -106,7 +106,7 @@ export type Props = {
    * Whether to disable cursor movement for up/down arrow keys
    */
   readonly disableCursorMovementForUpDownKeys?: boolean
-  
+
   /**
    * Optional callback to handle special key combinations before input processing
    * Return true to prevent default handling
@@ -144,9 +144,9 @@ export default function TextInput({
   disableCursorMovementForUpDownKeys = false,
   onSpecialKey,
   cursorOffset,
-  onChangeCursorOffset,
+  onChangeCursorOffset
 }: Props) {
-  const { onInput, renderedValue } = useTextInput({
+  const {onInput, renderedValue} = useTextInput({
     value: originalValue,
     onChange,
     onSubmit,
@@ -167,27 +167,25 @@ export default function TextInput({
     onImagePaste,
     disableCursorMovementForUpDownKeys,
     externalOffset: cursorOffset,
-    onOffsetChange: onChangeCursorOffset,
+    onOffsetChange: onChangeCursorOffset
   })
 
   // Paste detection state
   const [pasteState, setPasteState] = React.useState<{
     chunks: string[]
     timeoutId: ReturnType<typeof setTimeout> | null
-  }>({ chunks: [], timeoutId: null })
+  }>({chunks: [], timeoutId: null})
 
-  const resetPasteTimeout = (
-    currentTimeoutId: ReturnType<typeof setTimeout> | null,
-  ) => {
+  const resetPasteTimeout = (currentTimeoutId: ReturnType<typeof setTimeout> | null) => {
     if (currentTimeoutId) {
       clearTimeout(currentTimeoutId)
     }
     return setTimeout(() => {
-      setPasteState(({ chunks }) => {
+      setPasteState(({chunks}) => {
         const pastedText = chunks.join('')
         // Schedule callback after current render to avoid state updates during render
         Promise.resolve().then(() => onPaste!(pastedText))
-        return { chunks: [], timeoutId: null }
+        return {chunks: [], timeoutId: null}
       })
     }, 100)
   }
@@ -198,19 +196,13 @@ export default function TextInput({
       // Special key was handled, don't process further
       return
     }
-    
+
     // Special handling for backspace or delete
-    if (
-      key.backspace ||
-      key.delete ||
-      input === '\b' ||
-      input === '\x7f' ||
-      input === '\x08'
-    ) {
+    if (key.backspace || key.delete || input === '\b' || input === '\x7f' || input === '\x08') {
       // Ensure backspace is handled directly
       onInput(input, {
         ...key,
-        backspace: true,
+        backspace: true
       })
       return
     }
@@ -223,10 +215,10 @@ export default function TextInput({
     // more in the next frame that belong with the original paste.
     // This batching number is not consistent.
     if (onPaste && (input.length > 800 || pasteState.timeoutId)) {
-      setPasteState(({ chunks, timeoutId }) => {
+      setPasteState(({chunks, timeoutId}) => {
         return {
           chunks: [...chunks, input],
-          timeoutId: resetPasteTimeout(timeoutId),
+          timeoutId: resetPasteTimeout(timeoutId)
         }
       })
       return
@@ -235,18 +227,15 @@ export default function TextInput({
     onInput(input, key)
   }
 
-  useInput(wrappedOnInput, { isActive: focus })
+  useInput(wrappedOnInput, {isActive: focus})
 
-  let renderedPlaceholder = placeholder
-    ? chalk.hex(getTheme().secondaryText)(placeholder)
-    : undefined
+  let renderedPlaceholder = placeholder ? chalk.hex(getTheme().secondaryText)(placeholder) : undefined
 
   // Fake mouse cursor, because we like punishment
   if (showCursor && focus) {
     renderedPlaceholder =
       placeholder.length > 0
-        ? chalk.inverse(placeholder[0]) +
-          chalk.hex(getTheme().secondaryText)(placeholder.slice(1))
+        ? chalk.inverse(placeholder[0]) + chalk.hex(getTheme().secondaryText)(placeholder.slice(1))
         : chalk.inverse(' ')
   }
 

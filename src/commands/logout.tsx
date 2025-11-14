@@ -1,8 +1,8 @@
 import * as React from 'react'
-import type { Command } from '@commands'
-import { getGlobalConfig, saveGlobalConfig } from '@utils/config'
-import { clearTerminal } from '@utils/terminal'
-import { Text } from 'ink'
+import type {Command} from '@commands'
+import {getGlobalConfig, saveGlobalConfig} from '@utils/config'
+import {clearTerminal} from '@utils/terminal'
+import {Text} from 'ink'
 
 export default {
   type: 'local-jsx',
@@ -24,9 +24,7 @@ export default {
 
     saveGlobalConfig(config)
 
-    const message = (
-      <Text>Successfully logged out from your Anthropic account.</Text>
-    )
+    const message = <Text>Successfully logged out from your Anthropic account.</Text>
 
     setTimeout(() => {
       process.exit(0)
@@ -36,5 +34,5 @@ export default {
   },
   userFacingName() {
     return 'logout'
-  },
+  }
 } satisfies Command

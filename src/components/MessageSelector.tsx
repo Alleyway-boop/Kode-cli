@@ -1,19 +1,14 @@
-import { Box, Text, useInput } from 'ink'
+import {Box, Text, useInput} from 'ink'
 import * as React from 'react'
-import { useMemo, useState, useEffect } from 'react'
+import {useMemo, useState, useEffect} from 'react'
 import figures from 'figures'
-import { getTheme } from '@utils/theme'
-import { Message as MessageComponent } from './Message'
-import { randomUUID } from 'crypto'
-import { type Tool } from '@tool'
-import {
-  createUserMessage,
-  isEmptyMessageText,
-  isNotEmptyMessage,
-  normalizeMessages,
-} from '@utils/messages'
-import type { AssistantMessage, UserMessage } from '@query'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
+import {getTheme} from '@utils/theme'
+import {Message as MessageComponent} from './Message'
+import {randomUUID} from 'crypto'
+import {type Tool} from '@tool'
+import {createUserMessage, isEmptyMessageText, isNotEmptyMessage, normalizeMessages} from '@utils/messages'
+import type {AssistantMessage, UserMessage} from '@query'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
 
 type Props = {
   erroredToolUseIDs: Set<string>
@@ -32,7 +27,7 @@ export function MessageSelector({
   onSelect,
   onEscape,
   tools,
-  unresolvedToolUseIDs,
+  unresolvedToolUseIDs
 }: Props): React.ReactNode {
   const currentUUID = useMemo(randomUUID, [])
 
@@ -53,18 +48,13 @@ export function MessageSelector({
       // Filter out tool results
       ...messages
         .filter(
-          _ =>
-            !(
-              _.type === 'user' &&
-              Array.isArray(_.message.content) &&
-              _.message.content[0]?.type === 'tool_result'
-            ),
+          _ => !(_.type === 'user' && Array.isArray(_.message.content) && _.message.content[0]?.type === 'tool_result')
         )
         // Filter out assistant messages, until we have a way to kick off the tool use loop from REPL
         .filter(_ => _.type !== 'assistant'),
-      { ...createUserMessage(''), uuid: currentUUID } as UserMessage,
+      {...createUserMessage(''), uuid: currentUUID} as UserMessage
     ],
-    [messages, currentUUID],
+    [messages, currentUUID]
   )
   const [selectedIndex, setSelectedIndex] = useState(allItems.length - 1)
 
@@ -108,16 +98,10 @@ export function MessageSelector({
 
   const firstVisibleIndex = Math.max(
     0,
-    Math.min(
-      selectedIndex - Math.floor(MAX_VISIBLE_MESSAGES / 2),
-      allItems.length - MAX_VISIBLE_MESSAGES,
-    ),
+    Math.min(selectedIndex - Math.floor(MAX_VISIBLE_MESSAGES / 2), allItems.length - MAX_VISIBLE_MESSAGES)
   )
 
-  const normalizedMessages = useMemo(
-    () => normalizeMessages(messages).filter(isNotEmptyMessage),
-    [messages],
-  )
+  const normalizedMessages = useMemo(() => normalizeMessages(messages).filter(isNotEmptyMessage), [messages])
 
   return (
     <>
@@ -133,59 +117,57 @@ export function MessageSelector({
           <Text bold>Jump to a previous message</Text>
           <Text dimColor>This will fork the conversation</Text>
         </Box>
-        {allItems
-          .slice(firstVisibleIndex, firstVisibleIndex + MAX_VISIBLE_MESSAGES)
-          .map((msg, index) => {
-            const actualIndex = firstVisibleIndex + index
-            const isSelected = actualIndex === selectedIndex
-            const isCurrent = msg.uuid === currentUUID
+        {allItems.slice(firstVisibleIndex, firstVisibleIndex + MAX_VISIBLE_MESSAGES).map((msg, index) => {
+          const actualIndex = firstVisibleIndex + index
+          const isSelected = actualIndex === selectedIndex
+          const isCurrent = msg.uuid === currentUUID
 
-            return (
-              <Box key={msg.uuid} flexDirection="row" height={2} minHeight={2}>
-                <Box width={7}>
-                  {isSelected ? (
-                    <Text color="blue" bold>
-                      {figures.pointer} {firstVisibleIndex + index + 1}{' '}
-                    </Text>
-                  ) : (
-                    <Text>
-                      {'  '}
-                      {firstVisibleIndex + index + 1}{' '}
-                    </Text>
-                  )}
-                </Box>
-                <Box height={1} overflow="hidden" width={100}>
-                  {isCurrent ? (
-                    <Box width="100%">
-                      <Text dimColor italic>
-                        {'(current)'}
-                      </Text>
-                    </Box>
-                  ) : Array.isArray(msg.message.content) &&
-                    msg.message.content[0]?.type === 'text' &&
-                    isEmptyMessageText(msg.message.content[0].text) ? (
-                    <Text dimColor italic>
-                      (empty message)
-                    </Text>
-                  ) : (
-                    <MessageComponent
-                      message={msg}
-                      messages={normalizedMessages}
-                      addMargin={false}
-                      tools={tools}
-                      verbose={false}
-                      debug={false}
-                      erroredToolUseIDs={erroredToolUseIDs}
-                      inProgressToolUseIDs={new Set()}
-                      unresolvedToolUseIDs={unresolvedToolUseIDs}
-                      shouldAnimate={false}
-                      shouldShowDot={false}
-                    />
-                  )}
-                </Box>
+          return (
+            <Box key={msg.uuid} flexDirection="row" height={2} minHeight={2}>
+              <Box width={7}>
+                {isSelected ? (
+                  <Text color="blue" bold>
+                    {figures.pointer} {firstVisibleIndex + index + 1}{' '}
+                  </Text>
+                ) : (
+                  <Text>
+                    {'  '}
+                    {firstVisibleIndex + index + 1}{' '}
+                  </Text>
+                )}
               </Box>
-            )
-          })}
+              <Box height={1} overflow="hidden" width={100}>
+                {isCurrent ? (
+                  <Box width="100%">
+                    <Text dimColor italic>
+                      {'(current)'}
+                    </Text>
+                  </Box>
+                ) : Array.isArray(msg.message.content) &&
+                  msg.message.content[0]?.type === 'text' &&
+                  isEmptyMessageText(msg.message.content[0].text) ? (
+                  <Text dimColor italic>
+                    (empty message)
+                  </Text>
+                ) : (
+                  <MessageComponent
+                    message={msg}
+                    messages={normalizedMessages}
+                    addMargin={false}
+                    tools={tools}
+                    verbose={false}
+                    debug={false}
+                    erroredToolUseIDs={erroredToolUseIDs}
+                    inProgressToolUseIDs={new Set()}
+                    unresolvedToolUseIDs={unresolvedToolUseIDs}
+                    shouldAnimate={false}
+                    shouldShowDot={false}
+                  />
+                )}
+              </Box>
+            </Box>
+          )
+        })}
       </Box>
       <Box marginLeft={3}>
         <Text dimColor>

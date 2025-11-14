@@ -1,15 +1,11 @@
-import { TextBlock, ToolUseBlock } from '@anthropic-ai/sdk/resources/index.mjs'
-import { AssistantMessage, BinaryFeedbackResult } from '@query'
-import { MAIN_QUERY_TEMPERATURE } from '@services/claude'
+import {TextBlock, ToolUseBlock} from '@anthropic-ai/sdk/resources/index.mjs'
+import {AssistantMessage, BinaryFeedbackResult} from '@query'
+import {MAIN_QUERY_TEMPERATURE} from '@services/claude'
 
-import { isEqual, zip } from 'lodash-es'
-import { getGitState } from '@utils/git'
+import {isEqual, zip} from 'lodash-es'
+import {getGitState} from '@utils/git'
 
-export type BinaryFeedbackChoice =
-  | 'prefer-left'
-  | 'prefer-right'
-  | 'neither'
-  | 'no-preference'
+export type BinaryFeedbackChoice = 'prefer-left' | 'prefer-right' | 'neither' | 'no-preference'
 
 export type BinaryFeedbackChoose = (choice: BinaryFeedbackChoice) => void
 
@@ -18,7 +14,7 @@ type BinaryFeedbackConfig = {
 }
 
 async function getBinaryFeedbackConfig(): Promise<BinaryFeedbackConfig> {
-  return { sampleFrequency: 0 }
+  return {sampleFrequency: 0}
 }
 
 function getMessageBlockSequence(m: AssistantMessage) {
@@ -35,10 +31,7 @@ function textContentBlocksEqual(cb1: TextBlock, cb2: TextBlock): boolean {
   return cb1.text === cb2.text
 }
 
-function contentBlocksEqual(
-  cb1: TextBlock | ToolUseBlock,
-  cb2: TextBlock | ToolUseBlock,
-): boolean {
+function contentBlocksEqual(cb1: TextBlock | ToolUseBlock, cb2: TextBlock | ToolUseBlock): boolean {
   if (cb1.type !== cb2.type) {
     return false
   }
@@ -51,14 +44,12 @@ function contentBlocksEqual(
 
 function allContentBlocksEqual(
   content1: (TextBlock | ToolUseBlock)[],
-  content2: (TextBlock | ToolUseBlock)[],
+  content2: (TextBlock | ToolUseBlock)[]
 ): boolean {
   if (content1.length !== content2.length) {
     return false
   }
-  return zip(content1, content2).every(([cb1, cb2]) =>
-    contentBlocksEqual(cb1!, cb2!),
-  )
+  return zip(content1, content2).every(([cb1, cb2]) => contentBlocksEqual(cb1!, cb2!))
 }
 
 export async function shouldUseBinaryFeedback(): Promise<boolean> {
@@ -87,24 +78,16 @@ export async function shouldUseBinaryFeedback(): Promise<boolean> {
   return true
 }
 
-export function messagePairValidForBinaryFeedback(
-  m1: AssistantMessage,
-  m2: AssistantMessage,
-): boolean {
+export function messagePairValidForBinaryFeedback(m1: AssistantMessage, m2: AssistantMessage): boolean {
   const logPass = () => {}
   const logFail = (_reason: string) => {}
 
   // Ignore thinking blocks, on the assumption that users don't find them very relevant
   // compared to other content types
-  const nonThinkingBlocks1 = m1.message.content.filter(
-    b => b.type !== 'thinking' && b.type !== 'redacted_thinking',
-  )
-  const nonThinkingBlocks2 = m2.message.content.filter(
-    b => b.type !== 'thinking' && b.type !== 'redacted_thinking',
-  )
+  const nonThinkingBlocks1 = m1.message.content.filter(b => b.type !== 'thinking' && b.type !== 'redacted_thinking')
+  const nonThinkingBlocks2 = m2.message.content.filter(b => b.type !== 'thinking' && b.type !== 'redacted_thinking')
   const hasToolUse =
-    nonThinkingBlocks1.some(b => b.type === 'tool_use') ||
-    nonThinkingBlocks2.some(b => b.type === 'tool_use')
+    nonThinkingBlocks1.some(b => b.type === 'tool_use') || nonThinkingBlocks2.some(b => b.type === 'tool_use')
 
   // If they're all text blocks, compare those
   if (!hasToolUse) {
@@ -121,7 +104,7 @@ export function messagePairValidForBinaryFeedback(
   if (
     allContentBlocksEqual(
       nonThinkingBlocks1.filter(b => b.type === 'tool_use'),
-      nonThinkingBlocks2.filter(b => b.type === 'tool_use'),
+      nonThinkingBlocks2.filter(b => b.type === 'tool_use')
     )
   ) {
     logFail('contents_identical')
@@ -135,25 +118,25 @@ export function messagePairValidForBinaryFeedback(
 export function getBinaryFeedbackResultForChoice(
   m1: AssistantMessage,
   m2: AssistantMessage,
-  choice: BinaryFeedbackChoice,
+  choice: BinaryFeedbackChoice
 ): BinaryFeedbackResult {
   switch (choice) {
     case 'prefer-left':
-      return { message: m1, shouldSkipPermissionCheck: true }
+      return {message: m1, shouldSkipPermissionCheck: true}
     case 'prefer-right':
-      return { message: m2, shouldSkipPermissionCheck: true }
+      return {message: m2, shouldSkipPermissionCheck: true}
     case 'no-preference':
       return {
         message: Math.random() < 0.5 ? m1 : m2,
-        shouldSkipPermissionCheck: false,
+        shouldSkipPermissionCheck: false
       }
     case 'neither':
-      return { message: null, shouldSkipPermissionCheck: false }
+      return {message: null, shouldSkipPermissionCheck: false}
   }
 }
 // Keep a minimal exported stub to satisfy imports without side effects
 export async function logBinaryFeedbackEvent(
   _m1: AssistantMessage,
   _m2: AssistantMessage,
-  _choice: BinaryFeedbackChoice,
+  _choice: BinaryFeedbackChoice
 ): Promise<void> {}

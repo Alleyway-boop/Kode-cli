@@ -1,11 +1,11 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { type Tool } from '@tool'
-import { getTheme } from '@utils/theme'
-import { DESCRIPTION, PROMPT } from './prompt'
-import { OutputLine } from '@tools/BashTool/OutputLine'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {type Tool} from '@tool'
+import {getTheme} from '@utils/theme'
+import {DESCRIPTION, PROMPT} from './prompt'
+import {OutputLine} from '@tools/BashTool/OutputLine'
 
 // Allow any input object since MCP tools define their own schemas
 const inputSchema = z.object({}).passthrough()
@@ -36,7 +36,7 @@ export const MCPTool = {
     yield {
       type: 'result',
       data: '',
-      resultForAssistant: '',
+      resultForAssistant: ''
     }
   },
   needsPermissions() {
@@ -60,12 +60,7 @@ export const MCPTool = {
           {output.map((item, i) => {
             if (item.type === 'image') {
               return (
-                <Box
-                  key={i}
-                  justifyContent="space-between"
-                  overflowX="hidden"
-                  width="100%"
-                >
+                <Box key={i} justifyContent="space-between" overflowX="hidden" width="100%">
                   <Box flexDirection="row">
                     <Text>&nbsp;&nbsp;⎿ &nbsp;</Text>
                     <Text>[Image]</Text>
@@ -74,14 +69,7 @@ export const MCPTool = {
               )
             }
             const lines = item.text.split('\n').length
-            return (
-              <OutputLine
-                key={i}
-                content={item.text}
-                lines={lines}
-                verbose={verbose}
-              />
-            )
+            return <OutputLine key={i} content={item.text} lines={lines} verbose={verbose} />
           })}
         </Box>
       )
@@ -103,5 +91,5 @@ export const MCPTool = {
   },
   renderResultForAssistant(content) {
     return content
-  },
+  }
 } satisfies Tool<typeof inputSchema, string>

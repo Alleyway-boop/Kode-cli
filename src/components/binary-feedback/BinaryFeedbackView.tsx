@@ -1,22 +1,22 @@
-import { Option, SelectProps } from '@inkjs/ui'
+import {Option, SelectProps} from '@inkjs/ui'
 import chalk from 'chalk'
-import { Box, Text, useInput } from 'ink'
+import {Box, Text, useInput} from 'ink'
 import Link from 'ink-link'
-import React, { useState } from 'react'
-import { getTheme } from '@utils/theme'
-import { Select } from '@components/CustomSelect/select'
-import type { Tool } from '@tool'
-import type { NormalizedMessage } from '@utils/messages'
-import { BinaryFeedbackOption } from './BinaryFeedbackOption'
-import type { AssistantMessage } from '@query'
-import type { BinaryFeedbackChoose } from './utils'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { BinaryFeedbackChoice } from './utils'
-import { PRODUCT_NAME } from '@constants/product'
+import React, {useState} from 'react'
+import {getTheme} from '@utils/theme'
+import {Select} from '@components/CustomSelect/select'
+import type {Tool} from '@tool'
+import type {NormalizedMessage} from '@utils/messages'
+import {BinaryFeedbackOption} from './BinaryFeedbackOption'
+import type {AssistantMessage} from '@query'
+import type {BinaryFeedbackChoose} from './utils'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {BinaryFeedbackChoice} from './utils'
+import {PRODUCT_NAME} from '@constants/product'
 
 const HELP_URL = 'https://go/cli-feedback'
 
-type BinaryFeedbackOption = Option & { value: BinaryFeedbackChoice }
+type BinaryFeedbackOption = Option & {value: BinaryFeedbackChoice}
 
 // Make options a function to avoid early theme access during module initialization
 export function getOptions(): BinaryFeedbackOption[] {
@@ -27,20 +27,20 @@ export function getOptions(): BinaryFeedbackOption[] {
       // - I don't feel confident enough to choose
       // - I don't want to choose right now
       label: 'Choose for me',
-      value: 'no-preference',
+      value: 'no-preference'
     },
     {
       label: 'Left option looks better',
-      value: 'prefer-left',
+      value: 'prefer-left'
     },
     {
       label: 'Right option looks better',
-      value: 'prefer-right',
+      value: 'prefer-right'
     },
     {
       label: `Neither, and tell ${PRODUCT_NAME} what to do differently (${chalk.bold.hex(getTheme().warning)('esc')})`,
-      value: 'neither',
-    },
+      value: 'neither'
+    }
   ]
 }
 
@@ -67,7 +67,7 @@ export function BinaryFeedbackView({
   normalizedMessages,
   tools,
   unresolvedToolUseIDs,
-  verbose,
+  verbose
 }: Props) {
   const theme = getTheme()
   const [focused, setFocus] = useState('no-preference')
@@ -86,13 +86,7 @@ export function BinaryFeedbackView({
 
   return (
     <>
-      <Box
-        flexDirection="column"
-        height="100%"
-        width="100%"
-        borderStyle="round"
-        borderColor={theme.permission}
-      >
+      <Box flexDirection="column" height="100%" width="100%" borderStyle="round" borderColor={theme.permission}>
         <Box width="100%" justifyContent="space-between" paddingX={1}>
           <Text bold color={theme.permission}>
             [ANT-ONLY] Help train {PRODUCT_NAME}
@@ -108,9 +102,7 @@ export function BinaryFeedbackView({
             flexBasis={1}
             gap={1}
             borderStyle={focused === 'prefer-left' ? 'bold' : 'single'}
-            borderColor={
-              focused === 'prefer-left' ? theme.success : theme.secondaryBorder
-            }
+            borderColor={focused === 'prefer-left' ? theme.success : theme.secondaryBorder}
             marginRight={1}
             padding={1}
           >
@@ -131,9 +123,7 @@ export function BinaryFeedbackView({
             flexBasis={1}
             gap={1}
             borderStyle={focused === 'prefer-right' ? 'bold' : 'single'}
-            borderColor={
-              focused === 'prefer-right' ? theme.success : theme.secondaryBorder
-            }
+            borderColor={focused === 'prefer-right' ? theme.success : theme.secondaryBorder}
             marginLeft={1}
             padding={1}
           >

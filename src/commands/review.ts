@@ -1,5 +1,5 @@
-import { Command } from '@commands'
-import { BashTool } from '@tools/BashTool/BashTool'
+import {Command} from '@commands'
+import {BashTool} from '@tools/BashTool/BashTool'
 
 export default {
   type: 'prompt',
@@ -40,10 +40,10 @@ export default {
       Format your review with clear sections and bullet points.
 
       PR number: ${args}
-    `,
-          },
-        ],
-      },
+    `
+          }
+        ]
+      }
     ]
-  },
+  }
 } satisfies Command

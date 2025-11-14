@@ -1,15 +1,12 @@
-import { Command } from '@commands'
-import { getContext } from '@context'
-import { getMessagesGetter, getMessagesSetter } from '@messages'
-import { API_ERROR_MESSAGE_PREFIX, queryLLM } from '@services/claude'
-import {
-  createUserMessage,
-  normalizeMessagesForAPI,
-} from '@utils/messages'
-import { getCodeStyle } from '@utils/style'
-import { clearTerminal } from '@utils/terminal'
-import { resetReminderSession } from '@services/systemReminder'
-import { resetFileFreshnessSession } from '@services/fileFreshness'
+import {Command} from '@commands'
+import {getContext} from '@context'
+import {getMessagesGetter, getMessagesSetter} from '@messages'
+import {API_ERROR_MESSAGE_PREFIX, queryLLM} from '@services/claude'
+import {createUserMessage, normalizeMessagesForAPI} from '@utils/messages'
+import {getCodeStyle} from '@utils/style'
+import {clearTerminal} from '@utils/terminal'
+import {resetReminderSession} from '@services/systemReminder'
+import {resetFileFreshnessSession} from '@services/fileFreshness'
 
 const COMPRESSION_PROMPT = `Please provide a comprehensive summary of our conversation structured as follows:
 
@@ -45,14 +42,7 @@ const compact = {
   description: 'Clear conversation history but keep a summary in context',
   isEnabled: true,
   isHidden: false,
-  async call(
-    _,
-    {
-      options: { tools },
-      abortController,
-      setForkConvoWithMessagesOnTheNextRender,
-    },
-  ) {
+  async call(_, {options: {tools}, abortController, setForkConvoWithMessagesOnTheNextRender}) {
     const messages = getMessagesGetter()()
 
     const summaryRequest = createUserMessage(COMPRESSION_PROMPT)
@@ -60,7 +50,7 @@ const compact = {
     const summaryResponse = await queryLLM(
       normalizeMessagesForAPI([...messages, summaryRequest]),
       [
-        'You are a helpful AI assistant tasked with creating comprehensive conversation summaries that preserve all essential context for continuing development work.',
+        'You are a helpful AI assistant tasked with creating comprehensive conversation summaries that preserve all essential context for continuing development work.'
       ],
       0,
       tools,
@@ -68,21 +58,17 @@ const compact = {
       {
         safeMode: false,
         model: 'main', // 使用模型指针，让queryLLM统一解析
-        prependCLISysprompt: true,
-      },
+        prependCLISysprompt: true
+      }
     )
 
     const content = summaryResponse.message.content
     const summary =
-      typeof content === 'string'
-        ? content
-        : content.length > 0 && content[0]?.type === 'text'
-          ? content[0].text
-          : null
+      typeof content === 'string' ? content : content.length > 0 && content[0]?.type === 'text' ? content[0].text : null
 
     if (!summary) {
       throw new Error(
-        `Failed to generate conversation summary - response did not contain valid text content - ${summaryResponse}`,
+        `Failed to generate conversation summary - response did not contain valid text content - ${summaryResponse}`
       )
     } else if (summary.startsWith(API_ERROR_MESSAGE_PREFIX)) {
       throw new Error(summary)
@@ -92,16 +78,16 @@ const compact = {
       input_tokens: 0,
       output_tokens: summaryResponse.message.usage.output_tokens,
       cache_creation_input_tokens: 0,
-      cache_read_input_tokens: 0,
+      cache_read_input_tokens: 0
     }
 
     await clearTerminal()
     getMessagesSetter()([])
     setForkConvoWithMessagesOnTheNextRender([
       createUserMessage(
-        `Context has been compressed using structured 8-section algorithm. All essential information has been preserved for seamless continuation.`,
+        `Context has been compressed using structured 8-section algorithm. All essential information has been preserved for seamless continuation.`
       ),
-      summaryResponse,
+      summaryResponse
     ])
     getContext.cache.clear?.()
     getCodeStyle.cache.clear?.()
@@ -114,7 +100,7 @@ const compact = {
   },
   userFacingName() {
     return 'compact'
-  },
+  }
 } satisfies Command
 
 export default compact

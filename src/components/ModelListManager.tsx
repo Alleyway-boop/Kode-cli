@@ -1,18 +1,18 @@
-import { Box, Text, useInput } from 'ink'
+import {Box, Text, useInput} from 'ink'
 import * as React from 'react'
-import { useState, useCallback } from 'react'
+import {useState, useCallback} from 'react'
 import figures from 'figures'
-import { getTheme } from '@utils/theme'
-import { getGlobalConfig, ModelPointerType } from '@utils/config'
-import { getModelManager } from '@utils/model'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { ModelSelector } from './ModelSelector'
+import {getTheme} from '@utils/theme'
+import {getGlobalConfig, ModelPointerType} from '@utils/config'
+import {getModelManager} from '@utils/model'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {ModelSelector} from './ModelSelector'
 
 type Props = {
   onClose: () => void
 }
 
-export function ModelListManager({ onClose }: Props): React.ReactNode {
+export function ModelListManager({onClose}: Props): React.ReactNode {
   const config = getGlobalConfig()
   const theme = getTheme()
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -31,7 +31,7 @@ export function ModelListManager({ onClose }: Props): React.ReactNode {
       name: model.name,
       provider: model.provider,
       usedBy: getModelUsage(model.modelName),
-      type: 'model' as const,
+      type: 'model' as const
     }))
 
     return [
@@ -41,8 +41,8 @@ export function ModelListManager({ onClose }: Props): React.ReactNode {
         name: '+ Add New Model',
         provider: '',
         usedBy: [],
-        type: 'action' as const,
-      },
+        type: 'action' as const
+      }
     ]
   }, [availableModels, config.modelPointers, refreshKey])
 
@@ -110,7 +110,7 @@ export function ModelListManager({ onClose }: Props): React.ReactNode {
         // Note: Remove any pointer switching functionality here
       }
     },
-    [selectedIndex, menuItems, onClose, isDeleteMode, availableModels.length],
+    [selectedIndex, menuItems, onClose, isDeleteMode, availableModels.length]
   )
 
   useInput(handleInput)
@@ -140,9 +140,7 @@ export function ModelListManager({ onClose }: Props): React.ReactNode {
       <Box flexDirection="column" minHeight={2} marginBottom={1}>
         <Text bold color={isDeleteMode ? 'red' : undefined}>
           Manage Model List{isDeleteMode ? ' - DELETE MODE' : ''}
-          {exitState.pending
-            ? ` (press ${exitState.keyName} again to exit)`
-            : ''}
+          {exitState.pending ? ` (press ${exitState.keyName} again to exit)` : ''}
         </Text>
         <Text dimColor>
           {isDeleteMode
@@ -160,11 +158,7 @@ export function ModelListManager({ onClose }: Props): React.ReactNode {
           <Box key={item.id} flexDirection="column" marginBottom={1}>
             <Box>
               <Box width={50}>
-                <Text
-                  color={
-                    isSelected ? (isDeleteMode ? 'red' : 'blue') : undefined
-                  }
-                >
+                <Text color={isSelected ? (isDeleteMode ? 'red' : 'blue') : undefined}>
                   {isSelected ? figures.pointer : ' '} {item.name}
                 </Text>
               </Box>
@@ -174,44 +168,31 @@ export function ModelListManager({ onClose }: Props): React.ReactNode {
                     <Text color={theme.secondaryText}>({item.provider})</Text>
                     {item.usedBy.length > 0 && (
                       <Box marginLeft={1}>
-                        <Text color={theme.success}>
-                          [Active: {item.usedBy.join(', ')}]
-                        </Text>
+                        <Text color={theme.success}>[Active: {item.usedBy.join(', ')}]</Text>
                       </Box>
                     )}
                     {item.usedBy.length === 0 && (
                       <Box marginLeft={1}>
-                        <Text color={theme.secondaryText}>
-                          [Available]
-                        </Text>
+                        <Text color={theme.secondaryText}>[Available]</Text>
                       </Box>
                     )}
                   </>
                 )}
                 {item.type === 'action' && (
-                  <Text color={theme.suggestion}>
-                    {isSelected ? '[Press Enter to add new model]' : ''}
-                  </Text>
+                  <Text color={theme.suggestion}>{isSelected ? '[Press Enter to add new model]' : ''}</Text>
                 )}
               </Box>
             </Box>
             {isSelected && item.type === 'action' && (
               <Box paddingLeft={2} marginTop={1}>
-                <Text dimColor>
-                  Configure a new model and add it to your library
-                </Text>
+                <Text dimColor>Configure a new model and add it to your library</Text>
               </Box>
             )}
           </Box>
         )
       })}
 
-      <Box
-        marginTop={1}
-        paddingTop={1}
-        borderTopColor={theme.secondaryBorder}
-        borderTopStyle="single"
-      >
+      <Box marginTop={1} paddingTop={1} borderTopColor={theme.secondaryBorder} borderTopStyle="single">
         <Text dimColor>
           {isDeleteMode
             ? availableModels.length <= 1

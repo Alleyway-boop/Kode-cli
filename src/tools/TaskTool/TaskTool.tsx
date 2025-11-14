@@ -1,116 +1,106 @@
-import { TextBlock } from '@anthropic-ai/sdk/resources/index.mjs'
+import {TextBlock} from '@anthropic-ai/sdk/resources/index.mjs'
 import chalk from 'chalk'
-import { last, memoize } from 'lodash-es'
-import { EOL } from 'os'
-import React, { useState, useEffect } from 'react'
-import { Box, Text } from 'ink'
-import { z } from 'zod'
-import { Tool, ValidationResult } from '@tool'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { getAgentPrompt } from '@constants/prompts'
-import { getContext } from '@context'
-import { hasPermissionsToUseTool } from '@permissions'
-import { AssistantMessage, Message as MessageType, query } from '@query'
-import { formatDuration, formatNumber } from '@utils/format'
-import {
-  getMessagesPath,
-  getNextAvailableLogSidechainNumber,
-  overwriteLog,
-} from '@utils/log'
-import { applyMarkdown } from '@utils/markdown'
+import {last, memoize} from 'lodash-es'
+import {EOL} from 'os'
+import React, {useState, useEffect} from 'react'
+import {Box, Text} from 'ink'
+import {z} from 'zod'
+import {Tool, ValidationResult} from '@tool'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {getAgentPrompt} from '@constants/prompts'
+import {getContext} from '@context'
+import {hasPermissionsToUseTool} from '@permissions'
+import {AssistantMessage, Message as MessageType, query} from '@query'
+import {formatDuration, formatNumber} from '@utils/format'
+import {getMessagesPath, getNextAvailableLogSidechainNumber, overwriteLog} from '@utils/log'
+import {applyMarkdown} from '@utils/markdown'
 import {
   createAssistantMessage,
   createUserMessage,
   getLastAssistantMessageId,
   INTERRUPT_MESSAGE,
-  normalizeMessages,
+  normalizeMessages
 } from '@utils/messages'
-import { getModelManager } from '@utils/model'
-import { getMaxThinkingTokens } from '@utils/thinking'
-import { getTheme } from '@utils/theme'
-import { generateAgentId } from '@utils/agentStorage'
-import { debug as debugLogger } from '@utils/debugLogger'
-import { getTaskTools, getPrompt } from './prompt'
-import { TOOL_NAME } from './constants'
-import { getActiveAgents, getAgentByType, getAvailableAgentTypes } from '@utils/agentLoader'
+import {getModelManager} from '@utils/model'
+import {getMaxThinkingTokens} from '@utils/thinking'
+import {getTheme} from '@utils/theme'
+import {generateAgentId} from '@utils/agentStorage'
+import {debug as debugLogger} from '@utils/debugLogger'
+import {getTaskTools, getPrompt} from './prompt'
+import {TOOL_NAME} from './constants'
+import {getActiveAgents, getAgentByType, getAvailableAgentTypes} from '@utils/agentLoader'
 
 const inputSchema = z.object({
-  description: z
-    .string()
-    .describe('A short (3-5 word) description of the task'),
+  description: z.string().describe('A short (3-5 word) description of the task'),
   prompt: z.string().describe('The task for the agent to perform'),
   model_name: z
     .string()
     .optional()
     .describe(
-      'Optional: Specific model name to use for this task. If not provided, uses the default task model pointer.',
+      'Optional: Specific model name to use for this task. If not provided, uses the default task model pointer.'
     ),
-  subagent_type: z
-    .string()
-    .optional()
-    .describe(
-      'The type of specialized agent to use for this task',
-    ),
+  subagent_type: z.string().optional().describe('The type of specialized agent to use for this task')
 })
 
 export const TaskTool = {
-  async prompt({ safeMode }) {
+  async prompt({safeMode}) {
     // Ensure agent prompts remain compatible with Claude Code `.claude` agent packs
     return await getPrompt(safeMode)
   },
   name: TOOL_NAME,
   async description() {
     // Ensure metadata stays compatible with Claude Code `.claude` agent packs
-    return "Launch a new task"
+    return 'Launch a new task'
   },
   inputSchema,
-  
+
   async *call(
-    { description, prompt, model_name, subagent_type },
-    {
-      abortController,
-      options: { safeMode = false, forkNumber, messageLogName, verbose },
-      readFileTimestamps,
-    },
+    {description, prompt, model_name, subagent_type},
+    {abortController, options: {safeMode = false, forkNumber, messageLogName, verbose}, readFileTimestamps}
   ): AsyncGenerator<
-    | { type: 'result'; data: TextBlock[]; resultForAssistant?: string }
-    | { type: 'progress'; content: any; normalizedMessages?: any[]; tools?: any[] },
+    | {type: 'result'; data: TextBlock[]; resultForAssistant?: string}
+    | {
+        type: 'progress'
+        content: any
+        normalizedMessages?: any[]
+        tools?: any[]
+      },
     void,
     unknown
   > {
     const startTime = Date.now()
-    
+
     // Default to general-purpose if no subagent_type specified
     const agentType = subagent_type || 'general-purpose'
-    
+
     // Apply subagent configuration
     let effectivePrompt = prompt
     let effectiveModel = model_name || 'task'
     let toolFilter = null
     let temperature = undefined
-    
+
     // Load agent configuration dynamically
     if (agentType) {
       const agentConfig = await getAgentByType(agentType)
-      
+
       if (!agentConfig) {
         // If agent type not found, return helpful message instead of throwing
         const availableTypes = await getAvailableAgentTypes()
         const helpMessage = `Agent type '${agentType}' not found.\n\nAvailable agents:\n${availableTypes.map(t => `  • ${t}`).join('\n')}\n\nUse /agents command to manage agent configurations.`
-        
+
         yield {
           type: 'result',
-          data: [{ type: 'text', text: helpMessage }] as TextBlock[],
-          resultForAssistant: helpMessage,
+          data: [{type: 'text', text: helpMessage}] as TextBlock[],
+          resultForAssistant: helpMessage
         }
         return
       }
-      
+
       // Apply system prompt if configured
       if (agentConfig.systemPrompt) {
         effectivePrompt = `${agentConfig.systemPrompt}\n\n${prompt}`
       }
-      
+
       // Apply model if not overridden by model_name parameter
       if (!model_name && agentConfig.model_name) {
         // Support inherit: keep pointer-based default
@@ -118,17 +108,17 @@ export const TaskTool = {
           effectiveModel = agentConfig.model_name as string
         }
       }
-      
+
       // Store tool filter for later application
       toolFilter = agentConfig.tools
-      
+
       // Note: temperature is not currently in our agent configs
       // but could be added in the future
     }
-    
+
     const messages: MessageType[] = [createUserMessage(effectivePrompt)]
     let tools = await getTaskTools(safeMode)
-    
+
     // Apply tool filtering if specified by subagent config
     if (toolFilter) {
       // Back-compat: ['*'] means all tools
@@ -148,44 +138,44 @@ export const TaskTool = {
       type: 'progress',
       content: createAssistantMessage(`Starting agent: ${agentType}`),
       normalizedMessages: normalizeMessages(messages),
-      tools,
+      tools
     }
-    
+
     yield {
-      type: 'progress', 
+      type: 'progress',
       content: createAssistantMessage(`Using model: ${modelToUse}`),
       normalizedMessages: normalizeMessages(messages),
-      tools,
+      tools
     }
-    
+
     yield {
       type: 'progress',
       content: createAssistantMessage(`Task: ${description}`),
       normalizedMessages: normalizeMessages(messages),
-      tools,
+      tools
     }
-    
+
     yield {
       type: 'progress',
       content: createAssistantMessage(`Prompt: ${prompt.length > 150 ? prompt.substring(0, 150) + '...' : prompt}`),
       normalizedMessages: normalizeMessages(messages),
-      tools,
+      tools
     }
 
     const [taskPrompt, context, maxThinkingTokens] = await Promise.all([
       getAgentPrompt(),
       getContext(),
-      getMaxThinkingTokens(messages),
+      getMaxThinkingTokens(messages)
     ])
-    
+
     // Inject model context to prevent self-referential expert consultations
-    taskPrompt.push(`\nIMPORTANT: You are currently running as ${modelToUse}. You do not need to consult ${modelToUse} via AskExpertModel since you ARE ${modelToUse}. Complete tasks directly using your capabilities.`)
+    taskPrompt.push(
+      `\nIMPORTANT: You are currently running as ${modelToUse}. You do not need to consult ${modelToUse} via AskExpertModel since you ARE ${modelToUse}. Complete tasks directly using your capabilities.`
+    )
 
     let toolUseCount = 0
 
-    const getSidechainNumber = memoize(() =>
-      getNextAvailableLogSidechainNumber(messageLogName, forkNumber),
-    )
+    const getSidechainNumber = memoize(() => getNextAvailableLogSidechainNumber(messageLogName, forkNumber))
 
     // Generate unique Task ID for this task execution
     const taskId = generateAgentId()
@@ -200,33 +190,27 @@ export const TaskTool = {
       commands: [],
       verbose,
       maxThinkingTokens,
-      model: modelToUse,
+      model: modelToUse
     }
-    
+
     // Add temperature if specified by subagent config
     if (temperature !== undefined) {
       queryOptions['temperature'] = temperature
     }
-    
-    for await (const message of query(
-      messages,
-      taskPrompt,
-      context,
-      hasPermissionsToUseTool,
-      {
-        abortController,
-        options: queryOptions,
-        messageId: getLastAssistantMessageId(messages),
-        agentId: taskId,
-        readFileTimestamps,
-        setToolJSX: () => {}, // No-op implementation for TaskTool
-      },
-    )) {
+
+    for await (const message of query(messages, taskPrompt, context, hasPermissionsToUseTool, {
+      abortController,
+      options: queryOptions,
+      messageId: getLastAssistantMessageId(messages),
+      agentId: taskId,
+      readFileTimestamps,
+      setToolJSX: () => {} // No-op implementation for TaskTool
+    })) {
       messages.push(message)
 
       overwriteLog(
         getMessagesPath(messageLogName, forkNumber, getSidechainNumber()),
-        messages.filter(_ => _.type !== 'progress'),
+        messages.filter(_ => _.type !== 'progress')
       )
 
       if (message.type !== 'assistant') {
@@ -234,7 +218,7 @@ export const TaskTool = {
       }
 
       const normalizedMessages = normalizeMessages(messages)
-      
+
       // Process tool uses and text content for better visibility
       for (const content of message.message.content) {
         if (content.type === 'text' && content.text && content.text !== INTERRUPT_MESSAGE) {
@@ -244,19 +228,19 @@ export const TaskTool = {
             type: 'progress',
             content: createAssistantMessage(`${preview}`),
             normalizedMessages,
-            tools,
+            tools
           }
         } else if (content.type === 'tool_use') {
           toolUseCount++
-          
+
           // Show which tool is being used with agent context
           const toolMessage = normalizedMessages.find(
             _ =>
               _.type === 'assistant' &&
               _.message.content[0]?.type === 'tool_use' &&
-              _.message.content[0].id === content.id,
+              _.message.content[0].id === content.id
           ) as AssistantMessage
-          
+
           if (toolMessage) {
             // Clone and modify the message to show agent context
             const modifiedMessage = {
@@ -275,12 +259,12 @@ export const TaskTool = {
                 })
               }
             }
-            
+
             yield {
               type: 'progress',
               content: modifiedMessage,
               normalizedMessages,
-              tools,
+              tools
             }
           }
         }
@@ -294,11 +278,7 @@ export const TaskTool = {
     }
 
     // 🔧 CRITICAL FIX: Match original AgentTool interrupt handling pattern exactly
-    if (
-      lastMessage.message.content.some(
-        _ => _.type === 'text' && _.text === INTERRUPT_MESSAGE,
-      )
-    ) {
+    if (lastMessage.message.content.some(_ => _.type === 'text' && _.text === INTERRUPT_MESSAGE)) {
       // Skip progress yield - only yield final result
     } else {
       const result = [
@@ -307,15 +287,15 @@ export const TaskTool = {
           (lastMessage.message.usage.cache_creation_input_tokens ?? 0) +
             (lastMessage.message.usage.cache_read_input_tokens ?? 0) +
             lastMessage.message.usage.input_tokens +
-            lastMessage.message.usage.output_tokens,
+            lastMessage.message.usage.output_tokens
         ) + ' tokens',
-        formatDuration(Date.now() - startTime),
+        formatDuration(Date.now() - startTime)
       ]
       yield {
         type: 'progress',
         content: createAssistantMessage(`Task completed (${result.join(' · ')})`),
         normalizedMessages,
-        tools,
+        tools
       }
     }
 
@@ -325,7 +305,7 @@ export const TaskTool = {
     yield {
       type: 'result',
       data,
-      resultForAssistant: this.renderResultForAssistant(data),
+      resultForAssistant: this.renderResultForAssistant(data)
     }
   },
 
@@ -339,13 +319,13 @@ export const TaskTool = {
     if (!input.description || typeof input.description !== 'string') {
       return {
         result: false,
-        message: 'Description is required and must be a string',
+        message: 'Description is required and must be a string'
       }
     }
     if (!input.prompt || typeof input.prompt !== 'string') {
       return {
         result: false,
-        message: 'Prompt is required and must be a string',
+        message: 'Prompt is required and must be a string'
       }
     }
 
@@ -360,8 +340,8 @@ export const TaskTool = {
           message: `Model '${input.model_name}' does not exist. Available models: ${availableModels.join(', ')}`,
           meta: {
             model_name: input.model_name,
-            availableModels,
-          },
+            availableModels
+          }
         }
       }
     }
@@ -375,13 +355,13 @@ export const TaskTool = {
           message: `Agent type '${input.subagent_type}' does not exist. Available types: ${availableTypes.join(', ')}`,
           meta: {
             subagent_type: input.subagent_type,
-            availableTypes,
-          },
+            availableTypes
+          }
         }
       }
     }
 
-    return { result: true }
+    return {result: true}
   },
   async isEnabled() {
     return true
@@ -395,31 +375,26 @@ export const TaskTool = {
     return false
   },
   renderResultForAssistant(data: TextBlock[]) {
-    return data.map(block => block.type === 'text' ? block.text : '').join('\n')
+    return data.map(block => (block.type === 'text' ? block.text : '')).join('\n')
   },
-  renderToolUseMessage({ description, prompt, model_name, subagent_type }, { verbose }) {
+  renderToolUseMessage({description, prompt, model_name, subagent_type}, {verbose}) {
     if (!description || !prompt) return null
 
     const modelManager = getModelManager()
     const defaultTaskModel = modelManager.getModelName('task')
     const actualModel = model_name || defaultTaskModel
     const agentType = subagent_type || 'general-purpose'
-    const promptPreview =
-      prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt
+    const promptPreview = prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt
 
     const theme = getTheme()
-    
+
     if (verbose) {
       return (
         <Box flexDirection="column">
           <Text>
             [{agentType}] {actualModel}: {description}
           </Text>
-          <Box
-            paddingLeft={2}
-            borderLeftStyle="single"
-            borderLeftColor={theme.secondaryBorder}
-          >
+          <Box paddingLeft={2} borderLeftStyle="single" borderLeftColor={theme.secondaryBorder}>
             <Text color={theme.secondaryText}>{promptPreview}</Text>
           </Box>
         </Box>
@@ -437,15 +412,9 @@ export const TaskTool = {
 
     if (Array.isArray(content)) {
       const textBlocks = content.filter(block => block.type === 'text')
-      const totalLength = textBlocks.reduce(
-        (sum, block) => sum + block.text.length,
-        0,
-      )
+      const totalLength = textBlocks.reduce((sum, block) => sum + block.text.length, 0)
       // 🔧 CRITICAL FIX: Use exact match for interrupt detection, not .includes()
-      const isInterrupted = content.some(
-        block =>
-          block.type === 'text' && block.text === INTERRUPT_MESSAGE,
-      )
+      const isInterrupted = content.some(block => block.type === 'text' && block.text === INTERRUPT_MESSAGE)
 
       if (isInterrupted) {
         // 🔧 CRITICAL FIX: Match original system interrupt rendering exactly
@@ -463,12 +432,7 @@ export const TaskTool = {
             <Box flexDirection="row">
               <Text>&nbsp;&nbsp;⎿ &nbsp;</Text>
               <Text>Task completed</Text>
-              {textBlocks.length > 0 && (
-                <Text color={theme.secondaryText}>
-                  {' '}
-                  ({totalLength} characters)
-                </Text>
-              )}
+              {textBlocks.length > 0 && <Text color={theme.secondaryText}> ({totalLength} characters)</Text>}
             </Box>
           </Box>
         </Box>
@@ -481,5 +445,5 @@ export const TaskTool = {
         <Text color={theme.secondaryText}>Task completed</Text>
       </Box>
     )
-  },
+  }
 } satisfies Tool<typeof inputSchema, TextBlock[]>

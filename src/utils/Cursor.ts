@@ -1,5 +1,5 @@
 import wrapAnsi from 'wrap-ansi'
-import { debug as debugLogger } from './debugLogger'
+import {debug as debugLogger} from './debugLogger'
 
 type WrappedText = string[]
 type Position = {
@@ -12,24 +12,19 @@ export class Cursor {
   constructor(
     readonly measuredText: MeasuredText,
     offset: number = 0,
-    readonly selection: number = 0,
+    readonly selection: number = 0
   ) {
     // it's ok for the cursor to be 1 char beyond the end of the string
     this.offset = Math.max(0, Math.min(this.measuredText.text.length, offset))
   }
 
-  static fromText(
-    text: string,
-    columns: number,
-    offset: number = 0,
-    selection: number = 0,
-  ): Cursor {
+  static fromText(text: string, columns: number, offset: number = 0, selection: number = 0): Cursor {
     // make MeasuredText on less than columns width, to account for cursor
     return new Cursor(new MeasuredText(text, columns - 1), offset, selection)
   }
 
   render(cursorChar: string, mask: string, invert: (text: string) => string) {
-    const { line, column } = this.getPosition()
+    const {line, column} = this.getPosition()
     return this.measuredText
       .getWrappedText()
       .map((text, currentLine, allLines) => {
@@ -59,41 +54,41 @@ export class Cursor {
   }
 
   up(): Cursor {
-    const { line, column } = this.getPosition()
+    const {line, column} = this.getPosition()
     if (line == 0) {
       return new Cursor(this.measuredText, 0, 0)
     }
 
-    const newOffset = this.getOffset({ line: line - 1, column })
+    const newOffset = this.getOffset({line: line - 1, column})
     return new Cursor(this.measuredText, newOffset, 0)
   }
 
   down(): Cursor {
-    const { line, column } = this.getPosition()
+    const {line, column} = this.getPosition()
     if (line >= this.measuredText.lineCount - 1) {
       return new Cursor(this.measuredText, this.text.length, 0)
     }
 
-    const newOffset = this.getOffset({ line: line + 1, column })
+    const newOffset = this.getOffset({line: line + 1, column})
     return new Cursor(this.measuredText, newOffset, 0)
   }
 
   startOfLine(): Cursor {
-    const { line } = this.getPosition()
+    const {line} = this.getPosition()
     return new Cursor(
       this.measuredText,
       this.getOffset({
         line,
-        column: 0,
+        column: 0
       }),
-      0,
+      0
     )
   }
 
   endOfLine(): Cursor {
-    const { line } = this.getPosition()
+    const {line} = this.getPosition()
     const column = this.measuredText.getLineLength(line)
-    const offset = this.getOffset({ line, column })
+    const offset = this.getOffset({line, column})
     return new Cursor(this.measuredText, offset, 0)
   }
 
@@ -139,16 +134,9 @@ export class Cursor {
     const startOffset = this.offset
     const endOffset = end.offset
 
-    const newText =
-      this.text.slice(0, startOffset) +
-      insertString +
-      this.text.slice(endOffset)
+    const newText = this.text.slice(0, startOffset) + insertString + this.text.slice(endOffset)
 
-    return Cursor.fromText(
-      newText,
-      this.columns,
-      startOffset + insertString.length,
-    )
+    return Cursor.fromText(newText, this.columns, startOffset + insertString.length)
   }
 
   insert(insertString: string): Cursor {
@@ -176,8 +164,7 @@ export class Cursor {
     const leftOffset = leftCursor.offset
 
     // Create the new text by removing one character
-    const newText =
-      this.text.slice(0, leftOffset) + this.text.slice(currentOffset)
+    const newText = this.text.slice(0, leftOffset) + this.text.slice(currentOffset)
 
     // Return a new cursor with the updated text and position
     return Cursor.fromText(newText, this.columns, leftOffset)
@@ -217,9 +204,7 @@ export class Cursor {
   }
 
   equals(other: Cursor): boolean {
-    return (
-      this.offset === other.offset && this.measuredText == other.measuredText
-    )
+    return this.offset === other.offset && this.measuredText == other.measuredText
   }
 
   private isAtStart(): boolean {
@@ -251,7 +236,7 @@ class WrappedLine {
     public readonly text: string,
     public readonly startOffset: number,
     public readonly isPrecededByNewline: boolean,
-    public readonly endsWithNewline: boolean = false,
+    public readonly endsWithNewline: boolean = false
   ) {}
 
   equals(other: WrappedLine): boolean {
@@ -268,7 +253,7 @@ export class MeasuredText {
 
   constructor(
     readonly text: string,
-    readonly columns: number,
+    readonly columns: number
   ) {
     this.wrappedLines = this.measureWrappedText()
   }
@@ -276,7 +261,7 @@ export class MeasuredText {
   private measureWrappedText(): WrappedLine[] {
     const wrappedText = wrapAnsi(this.text, this.columns, {
       hard: true,
-      trim: false,
+      trim: false
     })
 
     const wrappedLines: WrappedLine[] = []
@@ -297,25 +282,11 @@ export class MeasuredText {
           const startOffset = lastNewLinePos
           const endsWithNewline = true
 
-          wrappedLines.push(
-            new WrappedLine(
-              text,
-              startOffset,
-              isPrecededByNewline(startOffset),
-              endsWithNewline,
-            ),
-          )
+          wrappedLines.push(new WrappedLine(text, startOffset, isPrecededByNewline(startOffset), endsWithNewline))
         } else {
           // If we can't find another newline, this must be the end of text
           const startOffset = this.text.length
-          wrappedLines.push(
-            new WrappedLine(
-              text,
-              startOffset,
-              isPrecededByNewline(startOffset),
-              false,
-            ),
-          )
+          wrappedLines.push(new WrappedLine(text, startOffset, isPrecededByNewline(startOffset), false))
         }
       } else {
         // For non-blank lines
@@ -325,7 +296,7 @@ export class MeasuredText {
             currentText: text,
             originalText: this.text,
             searchOffset,
-            wrappedText,
+            wrappedText
           })
           throw new Error('Failed to find wrapped line in original text')
         }
@@ -334,22 +305,13 @@ export class MeasuredText {
 
         // Check if this line ends with a newline in the original text
         const potentialNewlinePos = startOffset + text.length
-        const endsWithNewline =
-          potentialNewlinePos < this.text.length &&
-          this.text[potentialNewlinePos] === '\n'
+        const endsWithNewline = potentialNewlinePos < this.text.length && this.text[potentialNewlinePos] === '\n'
 
         if (endsWithNewline) {
           lastNewLinePos = potentialNewlinePos
         }
 
-        wrappedLines.push(
-          new WrappedLine(
-            text,
-            startOffset,
-            isPrecededByNewline(startOffset),
-            endsWithNewline,
-          ),
-        )
+        wrappedLines.push(new WrappedLine(text, startOffset, isPrecededByNewline(startOffset), endsWithNewline))
       }
     }
 
@@ -357,15 +319,11 @@ export class MeasuredText {
   }
 
   public getWrappedText(): WrappedText {
-    return this.wrappedLines.map(line =>
-      line.isPrecededByNewline ? line.text : line.text.trimStart(),
-    )
+    return this.wrappedLines.map(line => (line.isPrecededByNewline ? line.text : line.text.trimStart()))
   }
 
   private getLine(line: number): WrappedLine {
-    return this.wrappedLines[
-      Math.max(0, Math.min(line, this.wrappedLines.length - 1))
-    ]!
+    return this.wrappedLines[Math.max(0, Math.min(line, this.wrappedLines.length - 1))]!
   }
 
   public getOffsetFromPosition(position: Position): number {
@@ -400,23 +358,17 @@ export class MeasuredText {
     for (let line = 0; line < lines.length; line++) {
       const currentLine = lines[line]!
       const nextLine = lines[line + 1]
-      if (
-        offset >= currentLine.startOffset &&
-        (!nextLine || offset < nextLine.startOffset)
-      ) {
+      if (offset >= currentLine.startOffset && (!nextLine || offset < nextLine.startOffset)) {
         const leadingWhitepace = currentLine.isPrecededByNewline
           ? 0
           : currentLine.text.length - currentLine.text.trimStart().length
         const column = Math.max(
           0,
-          Math.min(
-            offset - currentLine.startOffset - leadingWhitepace,
-            currentLine.text.length,
-          ),
+          Math.min(offset - currentLine.startOffset - leadingWhitepace, currentLine.text.length)
         )
         return {
           line,
-          column,
+          column
         }
       }
     }
@@ -425,7 +377,7 @@ export class MeasuredText {
     const line = lines.length - 1
     return {
       line,
-      column: this.wrappedLines[line]!.text.length,
+      column: this.wrappedLines[line]!.text.length
     }
   }
 

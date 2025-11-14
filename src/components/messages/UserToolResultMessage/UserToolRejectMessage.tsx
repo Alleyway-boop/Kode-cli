@@ -1,9 +1,9 @@
 import * as React from 'react'
-import { Tool } from '@tool'
-import { Message } from '@query'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { useGetToolFromMessages } from './utils'
-import { useTerminalSize } from '@hooks/useTerminalSize'
+import {Tool} from '@tool'
+import {Message} from '@query'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {useGetToolFromMessages} from './utils'
+import {useTerminalSize} from '@hooks/useTerminalSize'
 
 type Props = {
   toolUseID: string
@@ -12,19 +12,14 @@ type Props = {
   verbose: boolean
 }
 
-export function UserToolRejectMessage({
-  toolUseID,
-  tools,
-  messages,
-  verbose,
-}: Props): React.ReactNode {
-  const { columns } = useTerminalSize()
-  const { tool, toolUse } = useGetToolFromMessages(toolUseID, tools, messages)
+export function UserToolRejectMessage({toolUseID, tools, messages, verbose}: Props): React.ReactNode {
+  const {columns} = useTerminalSize()
+  const {tool, toolUse} = useGetToolFromMessages(toolUseID, tools, messages)
   const input = tool.inputSchema.safeParse(toolUse.input)
   if (input.success) {
     return tool.renderToolUseRejectedMessage(input.data, {
       columns,
-      verbose,
+      verbose
     })
   }
   return <FallbackToolUseRejectedMessage />

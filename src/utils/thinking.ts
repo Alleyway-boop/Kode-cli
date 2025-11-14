@@ -1,12 +1,10 @@
-import { last } from 'lodash-es'
-import type { Message } from '@query'
-import { getLastAssistantMessageId } from './messages'
-import { ThinkTool } from '@tools/ThinkTool/ThinkTool'
-import { USE_BEDROCK, USE_VERTEX, getModelManager } from './model'
+import {last} from 'lodash-es'
+import type {Message} from '@query'
+import {getLastAssistantMessageId} from './messages'
+import {ThinkTool} from '@tools/ThinkTool/ThinkTool'
+import {USE_BEDROCK, USE_VERTEX, getModelManager} from './model'
 
-export async function getMaxThinkingTokens(
-  messages: Message[],
-): Promise<number> {
+export async function getMaxThinkingTokens(messages: Message[]): Promise<number> {
   if (process.env.MAX_THINKING_TOKENS) {
     const tokens = parseInt(process.env.MAX_THINKING_TOKENS, 10)
     return tokens
@@ -17,10 +15,7 @@ export async function getMaxThinkingTokens(
   }
 
   const lastMessage = last(messages)
-  if (
-    lastMessage?.type !== 'user' ||
-    typeof lastMessage.message.content !== 'string'
-  ) {
+  if (lastMessage?.type !== 'user' || typeof lastMessage.message.content !== 'string') {
     return 0
   }
 
@@ -56,7 +51,7 @@ export async function getMaxThinkingTokens(
 
 export async function getReasoningEffort(
   modelProfile: any,
-  messages: Message[],
+  messages: Message[]
 ): Promise<'low' | 'medium' | 'high' | null> {
   const thinkingTokens = await getMaxThinkingTokens(messages)
 
@@ -68,17 +63,12 @@ export async function getReasoningEffort(
     // 🔧 Fix: Use ModelManager fallback instead of legacy config
     const modelManager = getModelManager()
     const fallbackProfile = modelManager.getModel('main')
-    reasoningEffort = (fallbackProfile?.reasoningEffort === 'minimal' ? 'low' : fallbackProfile?.reasoningEffort) || 'medium'
+    reasoningEffort =
+      (fallbackProfile?.reasoningEffort === 'minimal' ? 'low' : fallbackProfile?.reasoningEffort) || 'medium'
   }
 
   const maxEffort =
-    reasoningEffort === 'high'
-      ? 2
-      : reasoningEffort === 'medium'
-        ? 1
-        : reasoningEffort === 'low'
-          ? 0
-          : null
+    reasoningEffort === 'high' ? 2 : reasoningEffort === 'medium' ? 1 : reasoningEffort === 'low' ? 0 : null
   if (!maxEffort) {
     return null
   }

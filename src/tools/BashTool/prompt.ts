@@ -1,9 +1,9 @@
-import { PRODUCT_NAME, PRODUCT_URL } from '@constants/product'
-import { TOOL_NAME as TASK_TOOL_NAME } from '@tools/TaskTool/constants'
-import { FileReadTool } from '@tools/FileReadTool/FileReadTool'
-import { TOOL_NAME_FOR_PROMPT as GLOB_TOOL_NAME } from '@tools/GlobTool/prompt'
-import { TOOL_NAME_FOR_PROMPT as GREP_TOOL_NAME } from '@tools/GrepTool/prompt'
-import { LSTool } from '@tools/lsTool/lsTool'
+import {PRODUCT_NAME, PRODUCT_URL} from '@constants/product'
+import {TOOL_NAME as TASK_TOOL_NAME} from '@tools/TaskTool/constants'
+import {FileReadTool} from '@tools/FileReadTool/FileReadTool'
+import {TOOL_NAME_FOR_PROMPT as GLOB_TOOL_NAME} from '@tools/GlobTool/prompt'
+import {TOOL_NAME_FOR_PROMPT as GREP_TOOL_NAME} from '@tools/GrepTool/prompt'
+import {LSTool} from '@tools/lsTool/lsTool'
 
 export const MAX_OUTPUT_LENGTH = 30000
 export const MAX_RENDERED_LINES = 5
@@ -24,7 +24,7 @@ export const BANNED_COMMANDS = [
   'http-prompt',
   'chrome',
   'firefox',
-  'safari',
+  'safari'
 ]
 
 export const PROMPT = `Executes a given bash command in a persistent shell session with optional timeout, ensuring proper handling and security measures.

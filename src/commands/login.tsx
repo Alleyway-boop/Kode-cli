@@ -1,19 +1,17 @@
 import * as React from 'react'
-import type { Command } from '@commands'
-import { ConsoleOAuthFlow } from '@components/ConsoleOAuthFlow'
-import { clearTerminal } from '@utils/terminal'
-import { isLoggedInToAnthropic } from '@utils/auth'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { Box, Text } from 'ink'
-import { clearConversation } from './clear'
+import type {Command} from '@commands'
+import {ConsoleOAuthFlow} from '@components/ConsoleOAuthFlow'
+import {clearTerminal} from '@utils/terminal'
+import {isLoggedInToAnthropic} from '@utils/auth'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {Box, Text} from 'ink'
+import {clearConversation} from './clear'
 
 export default () =>
   ({
     type: 'local-jsx',
     name: 'login',
-    description: isLoggedInToAnthropic()
-      ? 'Switch Anthropic accounts'
-      : 'Sign in with your Anthropic account',
+    description: isLoggedInToAnthropic() ? 'Switch Anthropic accounts' : 'Sign in with your Anthropic account',
     isEnabled: true,
     isHidden: false,
     async call(onDone, context) {
@@ -29,22 +27,16 @@ export default () =>
     },
     userFacingName() {
       return 'login'
-    },
+    }
   }) satisfies Command
 
-function Login(props: { onDone: () => void }) {
+function Login(props: {onDone: () => void}) {
   const exitState = useExitOnCtrlCD(props.onDone)
   return (
     <Box flexDirection="column">
       <ConsoleOAuthFlow onDone={props.onDone} />
       <Box marginLeft={3}>
-        <Text dimColor>
-          {exitState.pending ? (
-            <>Press {exitState.keyName} again to exit</>
-          ) : (
-            ''
-          )}
-        </Text>
+        <Text dimColor>{exitState.pending ? <>Press {exitState.keyName} again to exit</> : ''}</Text>
       </Box>
     </Box>
   )

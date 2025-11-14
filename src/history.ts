@@ -1,7 +1,4 @@
-import {
-  getCurrentProjectConfig,
-  saveCurrentProjectConfig,
-} from '@utils/config'
+import {getCurrentProjectConfig, saveCurrentProjectConfig} from '@utils/config'
 
 const MAX_HISTORY_ITEMS = 100
 
@@ -20,6 +17,6 @@ export function addToHistory(command: string): void {
   history.unshift(command)
   saveCurrentProjectConfig({
     ...projectConfig,
-    history: history.slice(0, MAX_HISTORY_ITEMS),
+    history: history.slice(0, MAX_HISTORY_ITEMS)
   })
 }

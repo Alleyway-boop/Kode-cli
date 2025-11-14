@@ -20,15 +20,15 @@ import refreshCommands from './commands/refreshCommands'
 import releaseNotes from './commands/release-notes'
 import review from './commands/review'
 import terminalSetup from './commands/terminalSetup'
-import { Tool, ToolUseContext } from './Tool'
+import {Tool, ToolUseContext} from './Tool'
 import resume from './commands/resume'
 import agents from './commands/agents'
-import { getMCPCommands } from './services/mcpClient'
-import { loadCustomCommands } from './services/customCommands'
-import type { MessageParam } from '@anthropic-ai/sdk/resources/index.mjs'
-import { memoize } from 'lodash-es'
-import type { Message } from './query'
-import { isAnthropicAuthEnabled } from './utils/auth'
+import {getMCPCommands} from './services/mcpClient'
+import {loadCustomCommands} from './services/customCommands'
+import type {MessageParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {memoize} from 'lodash-es'
+import type {Message} from './query'
+import {isAnthropicAuthEnabled} from './utils/auth'
 
 type PromptCommand = {
   type: 'prompt'
@@ -48,10 +48,8 @@ type LocalCommand = {
         slowAndCapableModel: string
       }
       abortController: AbortController
-      setForkConvoWithMessagesOnTheNextRender: (
-        forkConvoWithMessages: Message[],
-      ) => void
-    },
+      setForkConvoWithMessagesOnTheNextRender: (forkConvoWithMessages: Message[]) => void
+    }
   ): Promise<string>
 }
 
@@ -60,10 +58,8 @@ type LocalJSXCommand = {
   call(
     onDone: (result?: string) => void,
     context: ToolUseContext & {
-      setForkConvoWithMessagesOnTheNextRender: (
-        forkConvoWithMessages: Message[],
-      ) => void
-    },
+      setForkConvoWithMessagesOnTheNextRender: (forkConvoWithMessages: Message[]) => void
+    }
   ): Promise<React.ReactNode>
 }
 
@@ -100,30 +96,23 @@ const COMMANDS = memoize((): Command[] => [
   review,
   terminalSetup,
   ...(isAnthropicAuthEnabled() ? [logout, login()] : []),
-  ...INTERNAL_ONLY_COMMANDS,
+  ...INTERNAL_ONLY_COMMANDS
 ])
 
 export const getCommands = memoize(async (): Promise<Command[]> => {
-  const [mcpCommands, customCommands] = await Promise.all([
-    getMCPCommands(),
-    loadCustomCommands(),
-  ])
+  const [mcpCommands, customCommands] = await Promise.all([getMCPCommands(), loadCustomCommands()])
 
-  return [...mcpCommands, ...customCommands, ...COMMANDS()].filter(
-    _ => _.isEnabled,
-  )
+  return [...mcpCommands, ...customCommands, ...COMMANDS()].filter(_ => _.isEnabled)
 })
 
 export function hasCommand(commandName: string, commands: Command[]): boolean {
-  return commands.some(
-    _ => _.userFacingName() === commandName || _.aliases?.includes(commandName),
-  )
+  return commands.some(_ => _.userFacingName() === commandName || _.aliases?.includes(commandName))
 }
 
 export function getCommand(commandName: string, commands: Command[]): Command {
-  const command = commands.find(
-    _ => _.userFacingName() === commandName || _.aliases?.includes(commandName),
-  ) as Command | undefined
+  const command = commands.find(_ => _.userFacingName() === commandName || _.aliases?.includes(commandName)) as
+    | Command
+    | undefined
   if (!command) {
     throw ReferenceError(
       `Command ${commandName} not found. Available commands: ${commands
@@ -131,7 +120,7 @@ export function getCommand(commandName: string, commands: Command[]): Command {
           const name = _.userFacingName()
           return _.aliases ? `${name} (aliases: ${_.aliases.join(', ')})` : name
         })
-        .join(', ')}`,
+        .join(', ')}`
     )
   }
 

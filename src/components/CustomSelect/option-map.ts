@@ -1,5 +1,5 @@
-import { type Option } from '@inkjs/ui'
-import { optionHeaderKey, type OptionHeader } from './select'
+import {type Option} from '@inkjs/ui'
+import {optionHeaderKey, type OptionHeader} from './select'
 
 type OptionMapItem = (Option | OptionHeader) & {
   previous: OptionMapItem | undefined
@@ -21,7 +21,7 @@ export default class OptionMap extends Map<string, OptionMapItem> {
         ...option,
         previous,
         next: undefined,
-        index,
+        index
       }
 
       if (previous) {

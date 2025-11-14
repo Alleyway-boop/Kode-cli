@@ -5,30 +5,31 @@
  * prioritizing Kode-specific overrides.
  */
 
-import { existsSync, readFileSync, readdirSync, statSync, watch, FSWatcher } from 'fs'
-import { join, resolve } from 'path'
-import { homedir } from 'os'
+import {existsSync, readFileSync, readdirSync, statSync, watch, FSWatcher} from 'fs'
+import {join, resolve} from 'path'
+import {homedir} from 'os'
 import matter from 'gray-matter'
-import { getCwd } from './state'
-import { memoize } from 'lodash-es'
+import {getCwd} from './state'
+import {memoize} from 'lodash-es'
 
 // Track warned agents to avoid spam
 const warnedAgents = new Set<string>()
 
 export interface AgentConfig {
-  agentType: string          // Agent identifier (matches subagent_type)
-  whenToUse: string          // Description of when to use this agent  
-  tools: string[] | '*'      // Tool permissions
-  systemPrompt: string       // System prompt content
+  agentType: string // Agent identifier (matches subagent_type)
+  whenToUse: string // Description of when to use this agent
+  tools: string[] | '*' // Tool permissions
+  systemPrompt: string // System prompt content
   location: 'built-in' | 'user' | 'project'
-  color?: string            // Optional UI color
-  model_name?: string       // Optional model override
+  color?: string // Optional UI color
+  model_name?: string // Optional model override
 }
 
 // Built-in general-purpose agent as fallback
 const BUILTIN_GENERAL_PURPOSE: AgentConfig = {
   agentType: 'general-purpose',
-  whenToUse: 'General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks',
+  whenToUse:
+    'General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks',
   tools: '*',
   systemPrompt: `You are a general-purpose agent. Given the user's task, use the tools available to complete it efficiently and thoroughly.
 
@@ -72,35 +73,42 @@ async function scanAgentDirectory(dirPath: string, location: 'user' | 'project')
   }
 
   const agents: AgentConfig[] = []
-  
+
   try {
     const files = readdirSync(dirPath)
-    
+
     for (const file of files) {
       if (!file.endsWith('.md')) continue
-      
+
       const filePath = join(dirPath, file)
       const stat = statSync(filePath)
-      
+
       if (!stat.isFile()) continue
-      
+
       try {
         const content = readFileSync(filePath, 'utf-8')
-        const { data: frontmatter, content: body } = matter(content)
-        
+        const {data: frontmatter, content: body} = matter(content)
+
         // Validate required fields
         if (!frontmatter.name || !frontmatter.description) {
           console.warn(`Skipping ${filePath}: missing required fields (name, description)`)
           continue
         }
-        
+
         // Silently ignore deprecated 'model' field - no warnings by default
         // Only warn if KODE_DEBUG_AGENTS environment variable is set
-        if (frontmatter.model && !frontmatter.model_name && !warnedAgents.has(frontmatter.name) && process.env.KODE_DEBUG_AGENTS) {
-          console.warn(`⚠️ Agent ${frontmatter.name}: 'model' field is deprecated and ignored. Use 'model_name' instead, or omit to use default 'task' model.`)
+        if (
+          frontmatter.model &&
+          !frontmatter.model_name &&
+          !warnedAgents.has(frontmatter.name) &&
+          process.env.KODE_DEBUG_AGENTS
+        ) {
+          console.warn(
+            `⚠️ Agent ${frontmatter.name}: 'model' field is deprecated and ignored. Use 'model_name' instead, or omit to use default 'task' model.`
+          )
           warnedAgents.add(frontmatter.name)
         }
-        
+
         // Build agent config
         const agent: AgentConfig = {
           agentType: frontmatter.name,
@@ -108,11 +116,11 @@ async function scanAgentDirectory(dirPath: string, location: 'user' | 'project')
           tools: parseTools(frontmatter.tools),
           systemPrompt: body.trim(),
           location,
-          ...(frontmatter.color && { color: frontmatter.color }),
+          ...(frontmatter.color && {color: frontmatter.color}),
           // Only use model_name field, ignore deprecated 'model' field
-          ...(frontmatter.model_name && { model_name: frontmatter.model_name })
+          ...(frontmatter.model_name && {model_name: frontmatter.model_name})
         }
-        
+
         agents.push(agent)
       } catch (error) {
         console.warn(`Failed to parse agent file ${filePath}:`, error)
@@ -121,7 +129,7 @@ async function scanAgentDirectory(dirPath: string, location: 'user' | 'project')
   } catch (error) {
     console.warn(`Failed to scan directory ${dirPath}:`, error)
   }
-  
+
   return agents
 }
 
@@ -139,20 +147,20 @@ async function loadAllAgents(): Promise<{
     const userKodeDir = join(homedir(), '.kode', 'agents')
     const projectClaudeDir = join(getCwd(), '.claude', 'agents')
     const projectKodeDir = join(getCwd(), '.kode', 'agents')
-    
+
     const [userClaudeAgents, userKodeAgents, projectClaudeAgents, projectKodeAgents] = await Promise.all([
       scanAgentDirectory(userClaudeDir, 'user'),
       scanAgentDirectory(userKodeDir, 'user'),
       scanAgentDirectory(projectClaudeDir, 'project'),
       scanAgentDirectory(projectKodeDir, 'project')
     ])
-    
+
     // Built-in agents (currently just general-purpose)
     const builtinAgents = [BUILTIN_GENERAL_PURPOSE]
-    
+
     // Apply priority override: built-in < .claude (user) < .kode (user) < .claude (project) < .kode (project)
     const agentMap = new Map<string, AgentConfig>()
-    
+
     // Add in priority order (later entries override earlier ones)
     for (const agent of builtinAgents) {
       agentMap.set(agent.agentType, agent)
@@ -169,11 +177,17 @@ async function loadAllAgents(): Promise<{
     for (const agent of projectKodeAgents) {
       agentMap.set(agent.agentType, agent)
     }
-    
+
     const activeAgents = Array.from(agentMap.values())
-    const allAgents = [...builtinAgents, ...userClaudeAgents, ...userKodeAgents, ...projectClaudeAgents, ...projectKodeAgents]
-    
-    return { activeAgents, allAgents }
+    const allAgents = [
+      ...builtinAgents,
+      ...userClaudeAgents,
+      ...userKodeAgents,
+      ...projectClaudeAgents,
+      ...projectKodeAgents
+    ]
+
+    return {activeAgents, allAgents}
   } catch (error) {
     console.error('Failed to load agents, falling back to built-in:', error)
     return {
@@ -184,20 +198,16 @@ async function loadAllAgents(): Promise<{
 }
 
 // Memoized version for performance
-export const getActiveAgents = memoize(
-  async (): Promise<AgentConfig[]> => {
-    const { activeAgents } = await loadAllAgents()
-    return activeAgents
-  }
-)
+export const getActiveAgents = memoize(async (): Promise<AgentConfig[]> => {
+  const {activeAgents} = await loadAllAgents()
+  return activeAgents
+})
 
 // Get all agents (both active and overridden)
-export const getAllAgents = memoize(
-  async (): Promise<AgentConfig[]> => {
-    const { allAgents } = await loadAllAgents()
-    return allAgents
-  }
-)
+export const getAllAgents = memoize(async (): Promise<AgentConfig[]> => {
+  const {allAgents} = await loadAllAgents()
+  return allAgents
+})
 
 // Clear cache when needed
 export function clearAgentCache() {
@@ -208,20 +218,16 @@ export function clearAgentCache() {
 }
 
 // Get a specific agent by type
-export const getAgentByType = memoize(
-  async (agentType: string): Promise<AgentConfig | undefined> => {
-    const agents = await getActiveAgents()
-    return agents.find(agent => agent.agentType === agentType)
-  }
-)
+export const getAgentByType = memoize(async (agentType: string): Promise<AgentConfig | undefined> => {
+  const agents = await getActiveAgents()
+  return agents.find(agent => agent.agentType === agentType)
+})
 
 // Get all available agent types for validation
-export const getAvailableAgentTypes = memoize(
-  async (): Promise<string[]> => {
-    const agents = await getActiveAgents()
-    return agents.map(agent => agent.agentType)
-  }
-)
+export const getAvailableAgentTypes = memoize(async (): Promise<string[]> => {
+  const agents = await getActiveAgents()
+  return agents.map(agent => agent.agentType)
+})
 
 // File watcher for hot reload
 let watchers: FSWatcher[] = []
@@ -231,16 +237,16 @@ let watchers: FSWatcher[] = []
  */
 export async function startAgentWatcher(onChange?: () => void): Promise<void> {
   await stopAgentWatcher() // Clean up any existing watchers
-  
+
   // Watch both Claude (.claude) and native (.kode) directories
   const userClaudeDir = join(homedir(), '.claude', 'agents')
   const userKodeDir = join(homedir(), '.kode', 'agents')
   const projectClaudeDir = join(getCwd(), '.claude', 'agents')
   const projectKodeDir = join(getCwd(), '.kode', 'agents')
-  
+
   const watchDirectory = (dirPath: string, label: string) => {
     if (existsSync(dirPath)) {
-      const watcher = watch(dirPath, { recursive: false }, async (eventType, filename) => {
+      const watcher = watch(dirPath, {recursive: false}, async (eventType, filename) => {
         if (filename && filename.endsWith('.md')) {
           console.log(`🔄 Agent configuration changed in ${label}: ${filename}`)
           clearAgentCache()
@@ -252,7 +258,7 @@ export async function startAgentWatcher(onChange?: () => void): Promise<void> {
       watchers.push(watcher)
     }
   }
-  
+
   // Watch all directories
   watchDirectory(userClaudeDir, 'user/.claude')
   watchDirectory(userKodeDir, 'user/.kode')

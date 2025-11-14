@@ -1,17 +1,14 @@
-import { FileEditTool } from '@tools/FileEditTool/FileEditTool'
-import { FileEditToolDiff } from '@components/permissions/FileEditPermissionRequest/FileEditToolDiff'
-import { Message } from '@components/Message'
-import {
-  normalizeMessages,
-  type NormalizedMessage,
-} from '@utils/messages'
-import type { Tool } from '@tool'
-import { useTerminalSize } from '@hooks/useTerminalSize'
-import { FileWriteTool } from '@tools/FileWriteTool/FileWriteTool'
-import { FileWriteToolDiff } from '@components/permissions/FileWritePermissionRequest/FileWriteToolDiff'
-import type { AssistantMessage } from '@query'
+import {FileEditTool} from '@tools/FileEditTool/FileEditTool'
+import {FileEditToolDiff} from '@components/permissions/FileEditPermissionRequest/FileEditToolDiff'
+import {Message} from '@components/Message'
+import {normalizeMessages, type NormalizedMessage} from '@utils/messages'
+import type {Tool} from '@tool'
+import {useTerminalSize} from '@hooks/useTerminalSize'
+import {FileWriteTool} from '@tools/FileWriteTool/FileWriteTool'
+import {FileWriteToolDiff} from '@components/permissions/FileWritePermissionRequest/FileWriteToolDiff'
+import type {AssistantMessage} from '@query'
 import * as React from 'react'
-import { Box } from 'ink'
+import {Box} from 'ink'
 
 type Props = {
   debug: boolean
@@ -32,9 +29,9 @@ export function BinaryFeedbackOption({
   normalizedMessages,
   tools,
   unresolvedToolUseIDs,
-  verbose,
+  verbose
 }: Props): React.ReactNode {
-  const { columns } = useTerminalSize()
+  const {columns} = useTerminalSize()
   return normalizeMessages([message])
     .filter(_ => _.type !== 'progress')
     .map((_, index) => (
@@ -58,14 +55,8 @@ export function BinaryFeedbackOption({
     ))
 }
 
-function AdditionalContext({
-  message,
-  verbose,
-}: {
-  message: NormalizedMessage
-  verbose: boolean
-}) {
-  const { columns } = useTerminalSize()
+function AdditionalContext({message, verbose}: {message: NormalizedMessage; verbose: boolean}) {
+  const {columns} = useTerminalSize()
   if (message.type !== 'assistant') {
     return null
   }

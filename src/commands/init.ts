@@ -1,6 +1,6 @@
-import type { Command } from '@commands'
-import { markProjectOnboardingComplete } from '@components/ProjectOnboarding'
-import { PROJECT_FILE } from '@constants/product'
+import type {Command} from '@commands'
+import {markProjectOnboardingComplete} from '@components/ProjectOnboarding'
+import {PROJECT_FILE} from '@constants/product'
 const command = {
   type: 'prompt',
   name: 'init',
@@ -26,12 +26,12 @@ const command = {
 
 The file you create will be given to agentic coding agents (such as yourself) that operate in this repository. Make it about 20 lines long.
 If there's already a ${PROJECT_FILE}, improve it.
-If there are Cursor rules (in .cursor/rules/ or .cursorrules) or Copilot rules (in .github/copilot-instructions.md), make sure to include them.`,
-          },
-        ],
-      },
+If there are Cursor rules (in .cursor/rules/ or .cursorrules) or Copilot rules (in .github/copilot-instructions.md), make sure to include them.`
+          }
+        ]
+      }
     ]
-  },
+  }
 } satisfies Command
 
 export default command

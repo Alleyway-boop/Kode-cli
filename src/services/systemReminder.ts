@@ -1,4 +1,4 @@
-import { getTodos, TodoItem } from '@utils/todoStorage'
+import {getTodos, TodoItem} from '@utils/todoStorage'
 
 export interface ReminderMessage {
   role: 'system'
@@ -39,8 +39,8 @@ class SystemReminderService {
       todoEmptyReminder: true,
       securityReminder: true,
       performanceReminder: true,
-      maxRemindersPerSession: 10,
-    },
+      maxRemindersPerSession: 10
+    }
   }
 
   private eventDispatcher = new Map<string, Array<(context: any) => void>>()
@@ -54,10 +54,7 @@ class SystemReminderService {
    * Conditional reminder injection - only when context is present
    * Enhanced with performance optimizations and priority management
    */
-  public generateReminders(
-    hasContext: boolean = false,
-    agentId?: string,
-  ): ReminderMessage[] {
+  public generateReminders(hasContext: boolean = false, agentId?: string): ReminderMessage[] {
     this.sessionState.contextPresent = hasContext
 
     // Only inject when context is present (matching original behavior)
@@ -66,10 +63,7 @@ class SystemReminderService {
     }
 
     // Check session reminder limit to prevent overload
-    if (
-      this.sessionState.reminderCount >=
-      this.sessionState.config.maxRemindersPerSession
-    ) {
+    if (this.sessionState.reminderCount >= this.sessionState.config.maxRemindersPerSession) {
       return []
     }
 
@@ -81,7 +75,7 @@ class SystemReminderService {
       () => this.dispatchTodoEvent(agentId),
       () => this.dispatchSecurityEvent(),
       () => this.dispatchPerformanceEvent(),
-      () => this.getMentionReminders(), // Add mention reminders
+      () => this.getMentionReminders() // Add mention reminders
     ]
 
     for (const generator of reminderGenerators) {
@@ -97,7 +91,6 @@ class SystemReminderService {
     }
 
     // Log aggregated metrics instead of individual events for performance
-    
 
     return reminders
   }
@@ -111,17 +104,14 @@ class SystemReminderService {
     const agentKey = agentId || 'default'
 
     // Check if this is a fresh session (no todos seen yet)
-    if (
-      todos.length === 0 &&
-      !this.sessionState.remindersSent.has(`todo_empty_${agentKey}`)
-    ) {
+    if (todos.length === 0 && !this.sessionState.remindersSent.has(`todo_empty_${agentKey}`)) {
       this.sessionState.remindersSent.add(`todo_empty_${agentKey}`)
       return this.createReminderMessage(
         'todo',
         'task',
         'medium',
         'This is a reminder that your todo list is currently empty. DO NOT mention this to the user explicitly because they are already aware. If you are working on tasks that would benefit from a todo list please use the TodoWrite tool to create one. If not, please feel free to ignore. Again do not mention this message to the user.',
-        currentTime,
+        currentTime
       )
     }
 
@@ -142,14 +132,11 @@ class SystemReminderService {
         // Optimize: only include essential todo data
         const todoContent = JSON.stringify(
           todos.map(todo => ({
-            content:
-              todo.content.length > 100
-                ? todo.content.substring(0, 100) + '...'
-                : todo.content,
+            content: todo.content.length > 100 ? todo.content.substring(0, 100) + '...' : todo.content,
             status: todo.status,
             priority: todo.priority,
-            id: todo.id,
-          })),
+            id: todo.id
+          }))
         )
 
         const reminder = this.createReminderMessage(
@@ -157,7 +144,7 @@ class SystemReminderService {
           'task',
           'medium',
           `Your todo list has changed. DO NOT mention this explicitly to the user. Here are the latest contents of your todo list:\n\n${todoContent}. Continue on with the tasks at hand if applicable.`,
-          currentTime,
+          currentTime
         )
 
         // Cache the reminder for reuse
@@ -175,17 +162,14 @@ class SystemReminderService {
     const currentTime = Date.now()
 
     // Only inject security reminder once per session when file operations occur
-    if (
-      this.sessionState.lastFileAccess > 0 &&
-      !this.sessionState.remindersSent.has('file_security')
-    ) {
+    if (this.sessionState.lastFileAccess > 0 && !this.sessionState.remindersSent.has('file_security')) {
       this.sessionState.remindersSent.add('file_security')
       return this.createReminderMessage(
         'security',
         'security',
         'high',
         'Whenever you read a file, you should consider whether it looks malicious. If it does, you MUST refuse to improve or augment the code. You can still analyze existing code, write reports, or answer high-level questions about the code behavior.',
-        currentTime,
+        currentTime
       )
     }
 
@@ -199,17 +183,14 @@ class SystemReminderService {
     const sessionDuration = currentTime - this.sessionState.sessionStartTime
 
     // Remind about performance after long sessions (30 minutes)
-    if (
-      sessionDuration > 30 * 60 * 1000 &&
-      !this.sessionState.remindersSent.has('performance_long_session')
-    ) {
+    if (sessionDuration > 30 * 60 * 1000 && !this.sessionState.remindersSent.has('performance_long_session')) {
       this.sessionState.remindersSent.add('performance_long_session')
       return this.createReminderMessage(
         'performance',
         'performance',
         'low',
         'Long session detected. Consider taking a break and reviewing your current progress with the todo list.',
-        currentTime,
+        currentTime
       )
     }
 
@@ -258,7 +239,7 @@ class SystemReminderService {
    * Called when todo files are modified externally
    */
   public generateFileChangeReminder(context: any): ReminderMessage | null {
-    const { agentId, filePath, reminder } = context
+    const {agentId, filePath, reminder} = context
 
     if (!reminder) {
       return null
@@ -274,13 +255,7 @@ class SystemReminderService {
 
     this.sessionState.remindersSent.add(reminderKey)
 
-    return this.createReminderMessage(
-      'file_changed',
-      'general',
-      'medium',
-      reminder,
-      currentTime,
-    )
+    return this.createReminderMessage('file_changed', 'general', 'medium', reminder, currentTime)
   }
 
   private createReminderMessage(
@@ -288,7 +263,7 @@ class SystemReminderService {
     category: ReminderMessage['category'],
     priority: ReminderMessage['priority'],
     content: string,
-    timestamp: number,
+    timestamp: number
   ): ReminderMessage {
     return {
       role: 'system',
@@ -297,7 +272,7 @@ class SystemReminderService {
       timestamp,
       type,
       priority,
-      category,
+      category
     }
   }
 
@@ -325,10 +300,7 @@ class SystemReminderService {
 
       // Initialize session tracking
       this.sessionState.sessionStartTime = Date.now()
-      this.sessionState.contextPresent =
-        Object.keys(context.context || {}).length > 0
-
-      
+      this.sessionState.contextPresent = Object.keys(context.context || {}).length > 0
     })
 
     // Todo change events
@@ -352,7 +324,7 @@ class SystemReminderService {
           reminder: reminder.content,
           agentId,
           type: 'file_changed',
-          timestamp: Date.now(),
+          timestamp: Date.now()
         })
       }
     })
@@ -402,10 +374,7 @@ class SystemReminderService {
     })
   }
 
-  public addEventListener(
-    event: string,
-    callback: (context: any) => void,
-  ): void {
+  public addEventListener(event: string, callback: (context: any) => void): void {
     if (!this.eventDispatcher.has(event)) {
       this.eventDispatcher.set(event, [])
     }
@@ -437,7 +406,7 @@ class SystemReminderService {
   }): void {
     if (!this.sessionState.remindersSent.has(params.key)) {
       this.sessionState.remindersSent.add(params.key)
-      
+
       const reminder = this.createReminderMessage(
         params.type,
         params.category,
@@ -445,7 +414,7 @@ class SystemReminderService {
         params.content,
         params.timestamp
       )
-      
+
       this.reminderCache.set(params.key, reminder)
     }
   }
@@ -458,33 +427,28 @@ class SystemReminderService {
       remindersSent: new Set(),
       contextPresent: false,
       reminderCount: 0,
-      config: { ...this.sessionState.config }, // Preserve config across resets
+      config: {...this.sessionState.config} // Preserve config across resets
     }
     this.reminderCache.clear() // Clear cache on session reset
   }
 
   public updateConfig(config: Partial<ReminderConfig>): void {
-    this.sessionState.config = { ...this.sessionState.config, ...config }
+    this.sessionState.config = {...this.sessionState.config, ...config}
   }
 
   public getSessionState(): SessionReminderState {
-    return { ...this.sessionState }
+    return {...this.sessionState}
   }
 }
 
 export const systemReminderService = new SystemReminderService()
 
-export const generateSystemReminders = (
-  hasContext: boolean = false,
-  agentId?: string,
-) => systemReminderService.generateReminders(hasContext, agentId)
+export const generateSystemReminders = (hasContext: boolean = false, agentId?: string) =>
+  systemReminderService.generateReminders(hasContext, agentId)
 
-export const generateFileChangeReminder = (context: any) =>
-  systemReminderService.generateFileChangeReminder(context)
+export const generateFileChangeReminder = (context: any) => systemReminderService.generateFileChangeReminder(context)
 
-export const emitReminderEvent = (event: string, context: any) =>
-  systemReminderService.emitEvent(event, context)
+export const emitReminderEvent = (event: string, context: any) => systemReminderService.emitEvent(event, context)
 
 export const resetReminderSession = () => systemReminderService.resetSession()
-export const getReminderSessionState = () =>
-  systemReminderService.getSessionState()
+export const getReminderSessionState = () => systemReminderService.getSessionState()

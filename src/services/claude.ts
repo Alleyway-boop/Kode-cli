@@ -1,65 +1,50 @@
 import '@anthropic-ai/sdk/shims/node'
-import Anthropic, { APIConnectionError, APIError } from '@anthropic-ai/sdk'
-import { AnthropicBedrock } from '@anthropic-ai/bedrock-sdk'
-import { AnthropicVertex } from '@anthropic-ai/vertex-sdk'
-import type { BetaUsage } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
+import Anthropic, {APIConnectionError, APIError} from '@anthropic-ai/sdk'
+import {AnthropicBedrock} from '@anthropic-ai/bedrock-sdk'
+import {AnthropicVertex} from '@anthropic-ai/vertex-sdk'
+import type {BetaUsage} from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import chalk from 'chalk'
-import { createHash, randomUUID, UUID } from 'crypto'
+import {createHash, randomUUID, UUID} from 'crypto'
 import 'dotenv/config'
 
-import { addToTotalCost } from '@costTracker'
+import {addToTotalCost} from '@costTracker'
 import models from '@constants/models'
-import type { AssistantMessage, UserMessage } from '@query'
-import { Tool } from '@tool'
-import {
-  getAnthropicApiKey,
-  getOrCreateUserID,
-  getGlobalConfig,
-  ModelProfile,
-} from '@utils/config'
-import { getProjectDocs } from '@context'
-import { logError, SESSION_ID } from '@utils/log'
-import { USER_AGENT } from '@utils/http'
-import {
-  createAssistantAPIErrorMessage,
-  normalizeContentFromAPI,
-} from '@utils/messages'
-import { countTokens } from '@utils/tokens'
-import { withVCR } from './vcr'
+import type {AssistantMessage, UserMessage} from '@query'
+import {Tool} from '@tool'
+import {getAnthropicApiKey, getOrCreateUserID, getGlobalConfig, ModelProfile} from '@utils/config'
+import {getProjectDocs} from '@context'
+import {logError, SESSION_ID} from '@utils/log'
+import {USER_AGENT} from '@utils/http'
+import {createAssistantAPIErrorMessage, normalizeContentFromAPI} from '@utils/messages'
+import {countTokens} from '@utils/tokens'
+import {withVCR} from './vcr'
 import {
   debug as debugLogger,
   markPhase,
   getCurrentRequest,
   logLLMInteraction,
   logSystemPromptConstruction,
-  logErrorWithDiagnosis,
+  logErrorWithDiagnosis
 } from '@utils/debugLogger'
-import {
-  MessageContextManager,
-  createRetentionStrategy,
-} from '@utils/messageContextManager'
-import { getModelManager } from '@utils/model'
-import { zodToJsonSchema } from 'zod-to-json-schema'
-import type { BetaMessageStream } from '@anthropic-ai/sdk/lib/BetaMessageStream.mjs'
-import { ModelAdapterFactory } from './modelAdapterFactory'
-import { UnifiedRequestParams } from '@kode-types/modelCapabilities'
-import { responseStateManager, getConversationId } from './responseStateManager'
-import type { ToolUseContext } from '@tool'
-import type {
-  Message as APIMessage,
-  MessageParam,
-  TextBlockParam,
-} from '@anthropic-ai/sdk/resources/index.mjs'
-import { USE_BEDROCK, USE_VERTEX } from '@utils/model'
-import { getCLISyspromptPrefix } from '@constants/prompts'
-import { getVertexRegionForModel } from '@utils/model'
+import {MessageContextManager, createRetentionStrategy} from '@utils/messageContextManager'
+import {getModelManager} from '@utils/model'
+import {zodToJsonSchema} from 'zod-to-json-schema'
+import type {BetaMessageStream} from '@anthropic-ai/sdk/lib/BetaMessageStream.mjs'
+import {ModelAdapterFactory} from './modelAdapterFactory'
+import {UnifiedRequestParams} from '@kode-types/modelCapabilities'
+import {responseStateManager, getConversationId} from './responseStateManager'
+import type {ToolUseContext} from '@tool'
+import type {Message as APIMessage, MessageParam, TextBlockParam} from '@anthropic-ai/sdk/resources/index.mjs'
+import {USE_BEDROCK, USE_VERTEX} from '@utils/model'
+import {getCLISyspromptPrefix} from '@constants/prompts'
+import {getVertexRegionForModel} from '@utils/model'
 import OpenAI from 'openai'
-import type { ChatCompletionStream } from 'openai/lib/ChatCompletionStream'
-import { ContentBlock } from '@anthropic-ai/sdk/resources/messages/messages'
-import { nanoid } from 'nanoid'
-import { getCompletionWithProfile, getGPT5CompletionWithProfile } from './openai'
-import { getReasoningEffort } from '@utils/thinking'
-import { generateSystemReminders } from './systemReminder'
+import type {ChatCompletionStream} from 'openai/lib/ChatCompletionStream'
+import {ContentBlock} from '@anthropic-ai/sdk/resources/messages/messages'
+import {nanoid} from 'nanoid'
+import {getCompletionWithProfile, getGPT5CompletionWithProfile} from './openai'
+import {getReasoningEffort} from '@utils/thinking'
+import {generateSystemReminders} from './systemReminder'
 
 // Helper function to check if a model is GPT-5
 function isGPT5Model(modelName: string): boolean {
@@ -80,14 +65,12 @@ function getModelConfigForDebug(model: string): {
   const config = getGlobalConfig()
   const modelManager = getModelManager()
 
-
   const modelProfile = modelManager.getModel('main')
 
   let apiKeyStatus: 'configured' | 'missing' | 'invalid' = 'missing'
   let baseURL: string | undefined
   let maxTokens: number | undefined
   let reasoningEffort: string | undefined
-
 
   if (modelProfile) {
     apiKeyStatus = modelProfile.apiKey ? 'configured' : 'missing'
@@ -109,7 +92,7 @@ function getModelConfigForDebug(model: string): {
     maxTokens,
     reasoningEffort,
     isStream: config.stream || false,
-    temperature: MAIN_QUERY_TEMPERATURE,
+    temperature: MAIN_QUERY_TEMPERATURE
   }
 }
 
@@ -149,7 +132,7 @@ class KodeContextManager {
       // 在调试模式下记录加载结果
       if (process.env.NODE_ENV === 'development') {
         debugLogger.info('KODE_CONTEXT_LOADED', {
-          characters: this.projectDocsCache.length,
+          characters: this.projectDocsCache.length
         })
       }
     } catch (error) {
@@ -196,8 +179,7 @@ interface StreamResponse extends APIMessage {
 export const API_ERROR_MESSAGE_PREFIX = 'API Error'
 export const PROMPT_TOO_LONG_ERROR_MESSAGE = 'Prompt is too long'
 export const CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE = 'Credit balance is too low'
-export const INVALID_API_KEY_ERROR_MESSAGE =
-  'Invalid API key · Please run /login'
+export const INVALID_API_KEY_ERROR_MESSAGE = 'Invalid API key · Please run /login'
 export const NO_CONTENT_MESSAGE = '(no content)'
 const PROMPT_CACHING_ENABLED = !process.env.DISABLE_PROMPT_CACHING
 
@@ -216,7 +198,7 @@ export const MAIN_QUERY_TEMPERATURE = 1 // to get more variation for binary feed
 
 function getMetadata() {
   return {
-    user_id: `${getOrCreateUserID()}_${SESSION_ID}`,
+    user_id: `${getOrCreateUserID()}_${SESSION_ID}`
   }
 }
 
@@ -247,15 +229,12 @@ function abortableDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
         clearTimeout(timeoutId)
         reject(new Error('Request was aborted'))
       }
-      signal.addEventListener('abort', abortHandler, { once: true })
+      signal.addEventListener('abort', abortHandler, {once: true})
     }
   })
 }
 
-function getRetryDelay(
-  attempt: number,
-  retryAfterHeader?: string | null,
-): number {
+function getRetryDelay(attempt: number, retryAfterHeader?: string | null): number {
   if (retryAfterHeader) {
     const seconds = parseInt(retryAfterHeader, 10)
     if (!isNaN(seconds)) {
@@ -299,10 +278,7 @@ function shouldRetry(error: APIError): boolean {
   return false
 }
 
-async function withRetry<T>(
-  operation: (attempt: number) => Promise<T>,
-  options: RetryOptions = {},
-): Promise<T> {
+async function withRetry<T>(operation: (attempt: number) => Promise<T>, options: RetryOptions = {}): Promise<T> {
   const maxRetries = options.maxRetries ?? MAX_RETRIES
   let lastError: unknown
 
@@ -312,27 +288,21 @@ async function withRetry<T>(
     } catch (error) {
       lastError = error
       // Only retry if the error indicates we should
-      if (
-        attempt > maxRetries ||
-        !(error instanceof APIError) ||
-        !shouldRetry(error)
-      ) {
+      if (attempt > maxRetries || !(error instanceof APIError) || !shouldRetry(error)) {
         throw error
       }
 
       if (options.signal?.aborted) {
         throw new Error('Request cancelled by user')
       }
-      
+
       // Get retry-after header if available
       const retryAfter = error.headers?.['retry-after'] ?? null
       const delayMs = getRetryDelay(attempt, retryAfter)
 
       console.log(
-        `  ⎿  ${chalk.red(`API ${error.name} (${error.message}) · Retrying in ${Math.round(delayMs / 1000)} seconds… (attempt ${attempt}/${maxRetries})`)}`,
+        `  ⎿  ${chalk.red(`API ${error.name} (${error.message}) · Retrying in ${Math.round(delayMs / 1000)} seconds… (attempt ${attempt}/${maxRetries})`)}`
       )
-
-      
 
       try {
         await abortableDelay(delayMs, options.signal)
@@ -352,46 +322,33 @@ async function withRetry<T>(
 /**
  * Fetch available models from Anthropic API
  */
-export async function fetchAnthropicModels(
-  baseURL: string,
-  apiKey: string,
-): Promise<any[]> {
+export async function fetchAnthropicModels(baseURL: string, apiKey: string): Promise<any[]> {
   try {
     // Use provided baseURL or default to official Anthropic API
-    const modelsURL = baseURL
-      ? `${baseURL.replace(/\/+$/, '')}/v1/models`
-      : 'https://api.anthropic.com/v1/models'
+    const modelsURL = baseURL ? `${baseURL.replace(/\/+$/, '')}/v1/models` : 'https://api.anthropic.com/v1/models'
 
     const response = await fetch(modelsURL, {
       method: 'GET',
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'User-Agent': USER_AGENT,
-      },
+        'User-Agent': USER_AGENT
+      }
     })
 
     if (!response.ok) {
       // Provide user-friendly error messages based on status code
       if (response.status === 401) {
-        throw new Error(
-          'Invalid API key. Please check your Anthropic API key and try again.',
-        )
+        throw new Error('Invalid API key. Please check your Anthropic API key and try again.')
       } else if (response.status === 403) {
-        throw new Error(
-          'API key does not have permission to access models. Please check your API key permissions.',
-        )
+        throw new Error('API key does not have permission to access models. Please check your API key permissions.')
       } else if (response.status === 429) {
-        throw new Error(
-          'Too many requests. Please wait a moment and try again.',
-        )
+        throw new Error('Too many requests. Please wait a moment and try again.')
       } else if (response.status >= 500) {
-        throw new Error(
-          'Anthropic service is temporarily unavailable. Please try again later.',
-        )
+        throw new Error('Anthropic service is temporarily unavailable. Please try again later.')
       } else {
         throw new Error(
-          `Unable to connect to Anthropic API (${response.status}). Please check your internet connection and API key.`,
+          `Unable to connect to Anthropic API (${response.status}). Please check your internet connection and API key.`
         )
       }
     }
@@ -409,17 +366,11 @@ export async function fetchAnthropicModels(
 
     // For network errors or other issues
     console.error('Failed to fetch Anthropic models:', error)
-    throw new Error(
-      'Unable to connect to Anthropic API. Please check your internet connection and try again.',
-    )
+    throw new Error('Unable to connect to Anthropic API. Please check your internet connection and try again.')
   }
 }
 
-export async function verifyApiKey(
-  apiKey: string,
-  baseURL?: string,
-  provider?: string,
-): Promise<boolean> {
+export async function verifyApiKey(apiKey: string, baseURL?: string, provider?: string): Promise<boolean> {
   if (!apiKey) {
     return false
   }
@@ -429,14 +380,11 @@ export async function verifyApiKey(
     try {
       const headers: Record<string, string> = {
         Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       }
 
-
       if (!baseURL) {
-        console.warn(
-          'No baseURL provided for non-Anthropic provider verification',
-        )
+        console.warn('No baseURL provided for non-Anthropic provider verification')
         return false
       }
 
@@ -444,7 +392,7 @@ export async function verifyApiKey(
 
       const response = await fetch(modelsURL, {
         method: 'GET',
-        headers,
+        headers
       })
 
       return response.ok
@@ -460,17 +408,12 @@ export async function verifyApiKey(
     dangerouslyAllowBrowser: true,
     maxRetries: 3,
     defaultHeaders: {
-      'User-Agent': USER_AGENT,
-    },
+      'User-Agent': USER_AGENT
+    }
   }
 
   // Only add baseURL for true Anthropic-compatible APIs
-  if (
-    baseURL &&
-    (provider === 'anthropic' ||
-      provider === 'bigdream' ||
-      provider === 'opendev')
-  ) {
+  if (baseURL && (provider === 'anthropic' || provider === 'bigdream' || provider === 'opendev')) {
     clientConfig.baseURL = baseURL
   }
 
@@ -480,17 +423,17 @@ export async function verifyApiKey(
     await withRetry(
       async () => {
         const model = 'claude-sonnet-4-20250514'
-        const messages: MessageParam[] = [{ role: 'user', content: 'test' }]
+        const messages: MessageParam[] = [{role: 'user', content: 'test'}]
         await anthropic.messages.create({
           model,
           max_tokens: 1000, // Simple test token limit for API verification
           messages,
           temperature: 0,
-          metadata: getMetadata(),
+          metadata: getMetadata()
         })
         return true
       },
-      { maxRetries: 2 }, // Use fewer retries for API key verification
+      {maxRetries: 2} // Use fewer retries for API key verification
     )
     return true
   } catch (error) {
@@ -498,9 +441,7 @@ export async function verifyApiKey(
     // Check for authentication error
     if (
       error instanceof Error &&
-      error.message.includes(
-        '{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}',
-      )
+      error.message.includes('{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}')
     ) {
       return false
     }
@@ -509,15 +450,9 @@ export async function verifyApiKey(
 }
 
 function convertAnthropicMessagesToOpenAIMessages(
-  messages: (UserMessage | AssistantMessage)[],
-): (
-  | OpenAI.ChatCompletionMessageParam
-  | OpenAI.ChatCompletionToolMessageParam
-)[] {
-  const openaiMessages: (
-    | OpenAI.ChatCompletionMessageParam
-    | OpenAI.ChatCompletionToolMessageParam
-  )[] = []
+  messages: (UserMessage | AssistantMessage)[]
+): (OpenAI.ChatCompletionMessageParam | OpenAI.ChatCompletionToolMessageParam)[] {
+  const openaiMessages: (OpenAI.ChatCompletionMessageParam | OpenAI.ChatCompletionToolMessageParam)[] = []
 
   const toolResults: Record<string, OpenAI.ChatCompletionToolMessageParam> = {}
 
@@ -527,8 +462,8 @@ function convertAnthropicMessagesToOpenAIMessages(
       contentBlocks = [
         {
           type: 'text',
-          text: message.message.content,
-        },
+          text: message.message.content
+        }
       ]
     } else if (!Array.isArray(message.message.content)) {
       contentBlocks = [message.message.content]
@@ -540,7 +475,7 @@ function convertAnthropicMessagesToOpenAIMessages(
       if (block.type === 'text') {
         openaiMessages.push({
           role: message.message.role,
-          content: block.text,
+          content: block.text
         })
       } else if (block.type === 'tool_use') {
         openaiMessages.push({
@@ -551,11 +486,11 @@ function convertAnthropicMessagesToOpenAIMessages(
               type: 'function',
               function: {
                 name: block.name,
-                arguments: JSON.stringify(block.input),
+                arguments: JSON.stringify(block.input)
               },
-              id: block.id,
-            },
-          ],
+              id: block.id
+            }
+          ]
         })
       } else if (block.type === 'tool_result') {
         // Ensure content is always a string for role:tool messages
@@ -568,16 +503,13 @@ function convertAnthropicMessagesToOpenAIMessages(
         toolResults[block.tool_use_id] = {
           role: 'tool',
           content: toolContent,
-          tool_call_id: block.tool_use_id,
+          tool_call_id: block.tool_use_id
         }
       }
     }
   }
 
-  const finalMessages: (
-    | OpenAI.ChatCompletionMessageParam
-    | OpenAI.ChatCompletionToolMessageParam
-  )[] = []
+  const finalMessages: (OpenAI.ChatCompletionMessageParam | OpenAI.ChatCompletionToolMessageParam)[] = []
 
   for (const message of openaiMessages) {
     finalMessages.push(message)
@@ -596,10 +528,10 @@ function convertAnthropicMessagesToOpenAIMessages(
 
 function messageReducer(
   previous: OpenAI.ChatCompletionMessage,
-  item: OpenAI.ChatCompletionChunk,
+  item: OpenAI.ChatCompletionChunk
 ): OpenAI.ChatCompletionMessage {
   const reduce = (acc: any, delta: OpenAI.ChatCompletionChunk.Choice.Delta) => {
-    acc = { ...acc }
+    acc = {...acc}
     for (const [key, value] of Object.entries(delta)) {
       if (acc[key] === undefined || acc[key] === null) {
         acc[key] = value
@@ -616,10 +548,10 @@ function messageReducer(
       } else if (Array.isArray(acc[key]) && Array.isArray(value)) {
         const accArray = acc[key]
         for (let i = 0; i < value.length; i++) {
-          const { index, ...chunkTool } = value[i]
+          const {index, ...chunkTool} = value[i]
           if (index - accArray.length > 1) {
             throw new Error(
-              `Error: An array has an empty value when tool_calls are constructed. tool_calls: ${accArray}; tool: ${value}`,
+              `Error: An array has an empty value when tool_calls are constructed. tool_calls: ${accArray}; tool: ${value}`
             )
           }
           accArray[index] = reduce(accArray[index], chunkTool)
@@ -638,17 +570,14 @@ function messageReducer(
   }
   return reduce(previous, choice.delta) as OpenAI.ChatCompletionMessage
 }
-async function handleMessageStream(
-  stream: ChatCompletionStream,
-  signal?: AbortSignal,
-): Promise<OpenAI.ChatCompletion> {
+async function handleMessageStream(stream: ChatCompletionStream, signal?: AbortSignal): Promise<OpenAI.ChatCompletion> {
   const streamStartTime = Date.now()
   let ttftMs: number | undefined
   let chunkCount = 0
   let errorCount = 0
 
   debugLogger.api('OPENAI_STREAM_START', {
-    streamStartTime: String(streamStartTime),
+    streamStartTime: String(streamStartTime)
   })
 
   let message = {} as OpenAI.ChatCompletionMessage
@@ -656,15 +585,14 @@ async function handleMessageStream(
   let id, model, created, object, usage
   try {
     for await (const chunk of stream) {
-
       if (signal?.aborted) {
-        debugLogger.flow('OPENAI_STREAM_ABORTED', { 
+        debugLogger.flow('OPENAI_STREAM_ABORTED', {
           chunkCount,
-          timestamp: Date.now() 
+          timestamp: Date.now()
         })
         throw new Error('Request was cancelled')
       }
-      
+
       chunkCount++
 
       try {
@@ -672,14 +600,14 @@ async function handleMessageStream(
           id = chunk.id
           debugLogger.api('OPENAI_STREAM_ID_RECEIVED', {
             id,
-            chunkNumber: String(chunkCount),
+            chunkNumber: String(chunkCount)
           })
         }
         if (!model) {
           model = chunk.model
           debugLogger.api('OPENAI_STREAM_MODEL_RECEIVED', {
             model,
-            chunkNumber: String(chunkCount),
+            chunkNumber: String(chunkCount)
           })
         }
         if (!created) {
@@ -699,7 +627,7 @@ async function handleMessageStream(
             ttftMs = Date.now() - streamStartTime
             debugLogger.api('OPENAI_STREAM_FIRST_TOKEN', {
               ttftMs: String(ttftMs),
-              chunkNumber: String(chunkCount),
+              chunkNumber: String(chunkCount)
             })
           }
         }
@@ -707,14 +635,8 @@ async function handleMessageStream(
         errorCount++
         debugLogger.error('OPENAI_STREAM_CHUNK_ERROR', {
           chunkNumber: String(chunkCount),
-          errorMessage:
-            chunkError instanceof Error
-              ? chunkError.message
-              : String(chunkError),
-          errorType:
-            chunkError instanceof Error
-              ? chunkError.constructor.name
-              : typeof chunkError,
+          errorMessage: chunkError instanceof Error ? chunkError.message : String(chunkError),
+          errorType: chunkError instanceof Error ? chunkError.constructor.name : typeof chunkError
         })
         // Continue processing other chunks
       }
@@ -725,20 +647,14 @@ async function handleMessageStream(
       errorCount: String(errorCount),
       totalDuration: String(Date.now() - streamStartTime),
       ttftMs: String(ttftMs || 0),
-      finalMessageId: id || 'undefined',
+      finalMessageId: id || 'undefined'
     })
   } catch (streamError) {
     debugLogger.error('OPENAI_STREAM_FATAL_ERROR', {
       totalChunks: String(chunkCount),
       errorCount: String(errorCount),
-      errorMessage:
-        streamError instanceof Error
-          ? streamError.message
-          : String(streamError),
-      errorType:
-        streamError instanceof Error
-          ? streamError.constructor.name
-          : typeof streamError,
+      errorMessage: streamError instanceof Error ? streamError.message : String(streamError),
+      errorType: streamError instanceof Error ? streamError.constructor.name : typeof streamError
     })
     throw streamError
   }
@@ -752,10 +668,10 @@ async function handleMessageStream(
         index: 0,
         message,
         finish_reason: 'stop',
-        logprobs: undefined,
-      },
+        logprobs: undefined
+      }
     ],
-    usage,
+    usage
   }
 }
 
@@ -768,7 +684,7 @@ function convertOpenAIResponseToAnthropic(response: OpenAI.ChatCompletion, tools
       content: [],
       stop_reason: response.choices?.[0]?.finish_reason,
       type: 'message',
-      usage: response.usage,
+      usage: response.usage
     }
   }
 
@@ -787,7 +703,7 @@ function convertOpenAIResponseToAnthropic(response: OpenAI.ChatCompletion, tools
         type: 'tool_use',
         input: toolArgs,
         name: toolName,
-        id: toolCall.id?.length > 0 ? toolCall.id : nanoid(),
+        id: toolCall.id?.length > 0 ? toolCall.id : nanoid()
       })
     }
   }
@@ -796,7 +712,7 @@ function convertOpenAIResponseToAnthropic(response: OpenAI.ChatCompletion, tools
     contentBlocks.push({
       type: 'thinking',
       thinking: (message as any).reasoning,
-      signature: '',
+      signature: ''
     })
   }
 
@@ -805,7 +721,7 @@ function convertOpenAIResponseToAnthropic(response: OpenAI.ChatCompletion, tools
     contentBlocks.push({
       type: 'thinking',
       thinking: (message as any).reasoning_content,
-      signature: '',
+      signature: ''
     })
   }
 
@@ -813,7 +729,7 @@ function convertOpenAIResponseToAnthropic(response: OpenAI.ChatCompletion, tools
     contentBlocks.push({
       type: 'text',
       text: message?.content,
-      citations: [],
+      citations: []
     })
   }
 
@@ -822,22 +738,18 @@ function convertOpenAIResponseToAnthropic(response: OpenAI.ChatCompletion, tools
     content: contentBlocks,
     stop_reason: response.choices?.[0]?.finish_reason,
     type: 'message',
-    usage: response.usage,
+    usage: response.usage
   }
-
 
   return finalMessage
 }
 
-let anthropicClient: Anthropic | AnthropicBedrock | AnthropicVertex | null =
-  null
+let anthropicClient: Anthropic | AnthropicBedrock | AnthropicVertex | null = null
 
 /**
  * Get the Anthropic client, creating it if it doesn't exist
  */
-export function getAnthropicClient(
-  model?: string,
-): Anthropic | AnthropicBedrock | AnthropicVertex {
+export function getAnthropicClient(model?: string): Anthropic | AnthropicBedrock | AnthropicVertex {
   const config = getGlobalConfig()
   const provider = config.primaryProvider
 
@@ -853,19 +765,18 @@ export function getAnthropicClient(
 
   const region = getVertexRegionForModel(model)
 
-  const defaultHeaders: { [key: string]: string } = {
+  const defaultHeaders: {[key: string]: string} = {
     'x-app': 'cli',
-    'User-Agent': USER_AGENT,
+    'User-Agent': USER_AGENT
   }
   if (process.env.ANTHROPIC_AUTH_TOKEN) {
-    defaultHeaders['Authorization'] =
-      `Bearer ${process.env.ANTHROPIC_AUTH_TOKEN}`
+    defaultHeaders['Authorization'] = `Bearer ${process.env.ANTHROPIC_AUTH_TOKEN}`
   }
 
   const ARGS = {
     defaultHeaders,
     maxRetries: 0, // Disabled auto-retry in favor of manual implementation
-    timeout: parseInt(process.env.API_TIMEOUT_MS || String(60 * 1000), 10),
+    timeout: parseInt(process.env.API_TIMEOUT_MS || String(60 * 1000), 10)
   }
   if (USE_BEDROCK) {
     const client = new AnthropicBedrock(ARGS)
@@ -875,7 +786,7 @@ export function getAnthropicClient(
   if (USE_VERTEX) {
     const vertexArgs = {
       ...ARGS,
-      region: region || process.env.CLOUD_ML_REGION || 'us-east5',
+      region: region || process.env.CLOUD_ML_REGION || 'us-east5'
     }
     const client = new AnthropicVertex(vertexArgs)
     anthropicClient = client
@@ -901,8 +812,8 @@ export function getAnthropicClient(
   if (process.env.USER_TYPE === 'ant' && !apiKey && provider === 'anthropic') {
     console.error(
       chalk.red(
-        '[ANT-ONLY] Please set the ANTHROPIC_API_KEY environment variable to use the CLI. To create a new key, go to https://console.anthropic.com/settings/keys.',
-      ),
+        '[ANT-ONLY] Please set the ANTHROPIC_API_KEY environment variable to use the CLI. To create a new key, go to https://console.anthropic.com/settings/keys.'
+      )
     )
   }
 
@@ -912,7 +823,7 @@ export function getAnthropicClient(
     apiKey,
     dangerouslyAllowBrowser: true,
     ...ARGS,
-    ...(baseURL && { baseURL }), // Use baseURL directly, SDK will handle API versioning
+    ...(baseURL && {baseURL}) // Use baseURL directly, SDK will handle API versioning
   }
 
   anthropicClient = new Anthropic(clientConfig)
@@ -963,9 +874,9 @@ export function resetAnthropicClient(): void {
 function applyCacheControlWithLimits(
   systemBlocks: TextBlockParam[],
   messageParams: MessageParam[]
-): { systemBlocks: TextBlockParam[]; messageParams: MessageParam[] } {
+): {systemBlocks: TextBlockParam[]; messageParams: MessageParam[]} {
   if (!PROMPT_CACHING_ENABLED) {
-    return { systemBlocks, messageParams }
+    return {systemBlocks, messageParams}
   }
 
   const maxCacheBlocks = 4
@@ -977,10 +888,10 @@ function applyCacheControlWithLimits(
       usedCacheBlocks++
       return {
         ...block,
-        cache_control: { type: 'ephemeral' as const }
+        cache_control: {type: 'ephemeral' as const}
       }
     }
-    const { cache_control, ...blockWithoutCache } = block
+    const {cache_control, ...blockWithoutCache} = block
     return blockWithoutCache
   })
 
@@ -989,29 +900,27 @@ function applyCacheControlWithLimits(
     if (Array.isArray(message.content)) {
       const processedContent = message.content.map((contentBlock, blockIndex) => {
         // Determine whether this content block should be cached
-        const shouldCache = 
+        const shouldCache =
           usedCacheBlocks < maxCacheBlocks &&
           contentBlock.type === 'text' &&
           typeof contentBlock.text === 'string' &&
-          (
-            // Long documents (over 2000 characters)
-            contentBlock.text.length > 2000 ||
+          // Long documents (over 2000 characters)
+          (contentBlock.text.length > 2000 ||
             // Last content block of the last message (may be important context)
-            (messageIndex === messageParams.length - 1 && 
-             blockIndex === message.content.length - 1 &&
-             contentBlock.text.length > 500)
-          )
+            (messageIndex === messageParams.length - 1 &&
+              blockIndex === message.content.length - 1 &&
+              contentBlock.text.length > 500))
 
         if (shouldCache) {
           usedCacheBlocks++
           return {
             ...contentBlock,
-            cache_control: { type: 'ephemeral' as const }
+            cache_control: {type: 'ephemeral' as const}
           }
         }
 
         // Remove existing cache_control
-        const { cache_control, ...blockWithoutCache } = contentBlock as any
+        const {cache_control, ...blockWithoutCache} = contentBlock as any
         return blockWithoutCache
       })
 
@@ -1030,10 +939,7 @@ function applyCacheControlWithLimits(
   }
 }
 
-export function userMessageToMessageParam(
-  message: UserMessage,
-  addCache = false,
-): MessageParam {
+export function userMessageToMessageParam(message: UserMessage, addCache = false): MessageParam {
   if (addCache) {
     if (typeof message.message.content === 'string') {
       return {
@@ -1041,27 +947,24 @@ export function userMessageToMessageParam(
         content: [
           {
             type: 'text',
-            text: message.message.content,
-          },
-        ],
+            text: message.message.content
+          }
+        ]
       }
     } else {
       return {
         role: 'user',
-        content: message.message.content.map((_) => ({ ..._ })),
+        content: message.message.content.map(_ => ({..._}))
       }
     }
   }
   return {
     role: 'user',
-    content: message.message.content,
+    content: message.message.content
   }
 }
 
-export function assistantMessageToMessageParam(
-  message: AssistantMessage,
-  addCache = false,
-): MessageParam {
+export function assistantMessageToMessageParam(message: AssistantMessage, addCache = false): MessageParam {
   if (addCache) {
     if (typeof message.message.content === 'string') {
       return {
@@ -1069,26 +972,26 @@ export function assistantMessageToMessageParam(
         content: [
           {
             type: 'text',
-            text: message.message.content,
-          },
-        ],
+            text: message.message.content
+          }
+        ]
       }
     } else {
       return {
         role: 'assistant',
-        content: message.message.content.map((_) => ({ ..._ })),
+        content: message.message.content.map(_ => ({..._}))
       }
     }
   }
   return {
     role: 'assistant',
-    content: message.message.content,
+    content: message.message.content
   }
 }
 
 function splitSysPromptPrefix(systemPrompt: string[]): string[] {
   // split out the first block of the system prompt as the "prefix" for API
-  
+
   const systemPromptFirstBlock = systemPrompt[0] || ''
   const systemPromptRest = systemPrompt.slice(1)
   return [systemPromptFirstBlock, systemPromptRest.join('\n')].filter(Boolean)
@@ -1105,16 +1008,13 @@ export async function queryLLM(
     model: string | import('@utils/config').ModelPointerType
     prependCLISysprompt: boolean
     toolUseContext?: ToolUseContext
-  },
+  }
 ): Promise<AssistantMessage> {
-
   const modelManager = getModelManager()
   const modelResolution = modelManager.resolveModelWithInfo(options.model)
 
   if (!modelResolution.success || !modelResolution.profile) {
-    throw new Error(
-      modelResolution.error || `Failed to resolve model: ${options.model}`,
-    )
+    throw new Error(modelResolution.error || `Failed to resolve model: ${options.model}`)
   }
 
   const modelProfile = modelResolution.profile
@@ -1125,7 +1025,7 @@ export async function queryLLM(
   if (toolUseContext && !toolUseContext.responseState) {
     const conversationId = getConversationId(toolUseContext.agentId, toolUseContext.messageId)
     const previousResponseId = responseStateManager.getPreviousResponseId(conversationId)
-    
+
     toolUseContext.responseState = {
       previousResponseId,
       conversationId
@@ -1139,7 +1039,7 @@ export async function queryLLM(
     isPointer: ['main', 'task', 'reasoning', 'quick'].includes(options.model),
     hasResponseState: !!toolUseContext?.responseState,
     conversationId: toolUseContext?.responseState?.conversationId,
-    requestId: getCurrentRequest()?.id,
+    requestId: getCurrentRequest()?.id
   })
 
   const currentRequest = getCurrentRequest()
@@ -1149,7 +1049,7 @@ export async function queryLLM(
     toolCount: tools.length,
     model: resolvedModel,
     originalModelParam: options.model,
-    requestId: getCurrentRequest()?.id,
+    requestId: getCurrentRequest()?.id
   })
 
   markPhase('LLM_CALL')
@@ -1162,28 +1062,25 @@ export async function queryLLM(
         maxThinkingTokens,
         tools,
         signal,
-        { ...options, model: resolvedModel, modelProfile, toolUseContext }, // Pass resolved ModelProfile and toolUseContext
-      ),
+        {...options, model: resolvedModel, modelProfile, toolUseContext} // Pass resolved ModelProfile and toolUseContext
+      )
     )
 
     debugLogger.api('LLM_REQUEST_SUCCESS', {
       costUSD: result.costUSD,
       durationMs: result.durationMs,
       responseLength: result.message.content?.length || 0,
-      requestId: getCurrentRequest()?.id,
+      requestId: getCurrentRequest()?.id
     })
 
     // Update response state for GPT-5 Responses API continuation
     if (toolUseContext?.responseState?.conversationId && result.responseId) {
-      responseStateManager.setPreviousResponseId(
-        toolUseContext.responseState.conversationId, 
-        result.responseId
-      )
-      
+      responseStateManager.setPreviousResponseId(toolUseContext.responseState.conversationId, result.responseId)
+
       debugLogger.api('RESPONSE_STATE_UPDATED', {
         conversationId: toolUseContext.responseState.conversationId,
         responseId: result.responseId,
-        requestId: getCurrentRequest()?.id,
+        requestId: getCurrentRequest()?.id
       })
     }
 
@@ -1197,9 +1094,9 @@ export async function queryLLM(
         systemPromptLength: systemPrompt.join(' ').length,
         model: options.model,
         toolCount: tools.length,
-        phase: 'LLM_CALL',
+        phase: 'LLM_CALL'
       },
-      currentRequest?.id,
+      currentRequest?.id
     )
 
     throw error
@@ -1208,10 +1105,10 @@ export async function queryLLM(
 
 export function formatSystemPromptWithContext(
   systemPrompt: string[],
-  context: { [k: string]: string },
+  context: {[k: string]: string},
   agentId?: string,
-  skipContextReminders = false, // Parameter kept for API compatibility but not used anymore
-): { systemPrompt: string[]; reminders: string } {
+  skipContextReminders = false // Parameter kept for API compatibility but not used anymore
+): {systemPrompt: string[]; reminders: string} {
   // 构建增强的系统提示，保持与原先直接注入方式的兼容
   const enhancedPrompt = [...systemPrompt]
   let reminders = ''
@@ -1222,14 +1119,14 @@ export function formatSystemPromptWithContext(
   if (modelProfile && isGPT5Model(modelProfile.modelName)) {
     // Add coding-specific persistence instructions based on GPT-5 documentation
     const persistencePrompts = [
-      "\n# Agent Persistence for Long-Running Coding Tasks",
-      "You are working on a coding project that may involve multiple steps and iterations. Please maintain context and continuity throughout the session:",
-      "- Remember architectural decisions and design patterns established earlier",
-      "- Keep track of file modifications and their relationships", 
-      "- Maintain awareness of the overall project structure and goals",
-      "- Reference previous implementations when making related changes",
-      "- Ensure consistency with existing code style and conventions",
-      "- Build incrementally on previous work rather than starting from scratch"
+      '\n# Agent Persistence for Long-Running Coding Tasks',
+      'You are working on a coding project that may involve multiple steps and iterations. Please maintain context and continuity throughout the session:',
+      '- Remember architectural decisions and design patterns established earlier',
+      '- Keep track of file modifications and their relationships',
+      '- Maintain awareness of the overall project structure and goals',
+      '- Reference previous implementations when making related changes',
+      '- Ensure consistency with existing code style and conventions',
+      '- Build incrementally on previous work rather than starting from scratch'
     ]
     enhancedPrompt.push(...persistencePrompts)
   }
@@ -1256,25 +1153,19 @@ export function formatSystemPromptWithContext(
     }
 
     // 步骤3: 添加其他上下文到系统提示
-    enhancedPrompt.push(
-      `\nAs you answer the user's questions, you can use the following context:\n`,
-    )
+    enhancedPrompt.push(`\nAs you answer the user's questions, you can use the following context:\n`)
 
     // 过滤掉已经由 Kode 上下文处理的项目文档（避免重复）
     const filteredContext = Object.fromEntries(
-      Object.entries(context).filter(
-        ([key]) => key !== 'projectDocs' && key !== 'userDocs',
-      ),
+      Object.entries(context).filter(([key]) => key !== 'projectDocs' && key !== 'userDocs')
     )
 
     enhancedPrompt.push(
-      ...Object.entries(filteredContext).map(
-        ([key, value]) => `<context name="${key}">${value}</context>`,
-      ),
+      ...Object.entries(filteredContext).map(([key, value]) => `<context name="${key}">${value}</context>`)
     )
   }
 
-  return { systemPrompt: enhancedPrompt, reminders }
+  return {systemPrompt: enhancedPrompt, reminders}
 }
 
 async function queryLLMWithPromptCaching(
@@ -1289,12 +1180,11 @@ async function queryLLMWithPromptCaching(
     prependCLISysprompt: boolean
     modelProfile?: ModelProfile | null
     toolUseContext?: ToolUseContext
-  },
+  }
 ): Promise<AssistantMessage> {
   const config = getGlobalConfig()
   const modelManager = getModelManager()
   const toolUseContext = options.toolUseContext
-
 
   const modelProfile = options.modelProfile || modelManager.getModel('main')
   let provider: string
@@ -1306,26 +1196,19 @@ async function queryLLMWithPromptCaching(
   }
 
   // Use native Anthropic SDK for Anthropic and some Anthropic-compatible providers
-  if (
-    provider === 'anthropic' ||
-    provider === 'bigdream' ||
-    provider === 'opendev'
-  ) {
-    return queryAnthropicNative(
-      messages,
-      systemPrompt,
-      maxThinkingTokens,
-      tools,
-      signal,
-      { ...options, modelProfile, toolUseContext },
-    )
+  if (provider === 'anthropic' || provider === 'bigdream' || provider === 'opendev') {
+    return queryAnthropicNative(messages, systemPrompt, maxThinkingTokens, tools, signal, {
+      ...options,
+      modelProfile,
+      toolUseContext
+    })
   }
 
   // Use OpenAI-compatible interface for all other providers
   return queryOpenAI(messages, systemPrompt, maxThinkingTokens, tools, signal, {
     ...options,
     modelProfile,
-    toolUseContext,
+    toolUseContext
   })
 }
 
@@ -1341,12 +1224,11 @@ async function queryAnthropicNative(
     prependCLISysprompt: boolean
     modelProfile?: ModelProfile | null
     toolUseContext?: ToolUseContext
-  },
+  }
 ): Promise<AssistantMessage> {
   const config = getGlobalConfig()
   const modelManager = getModelManager()
   const toolUseContext = options?.toolUseContext
-
 
   const modelProfile = options?.modelProfile || modelManager.getModel('main')
   let anthropic: Anthropic | AnthropicBedrock | AnthropicVertex
@@ -1363,7 +1245,7 @@ async function queryAnthropicNative(
     modelProfileBaseURL: modelProfile?.baseURL,
     modelProfileApiKeyExists: !!modelProfile?.apiKey,
     optionsModel: options?.model,
-    requestId: getCurrentRequest()?.id,
+    requestId: getCurrentRequest()?.id
   })
 
   if (modelProfile) {
@@ -1384,8 +1266,8 @@ async function queryAnthropicNative(
         timeout: parseInt(process.env.API_TIMEOUT_MS || String(60 * 1000), 10),
         defaultHeaders: {
           'x-app': 'cli',
-          'User-Agent': USER_AGENT,
-        },
+          'User-Agent': USER_AGENT
+        }
       }
 
       // 使用ModelProfile的baseURL而不是全局配置
@@ -1404,11 +1286,11 @@ async function queryAnthropicNative(
       modelProfileExists: !!modelProfile,
       modelProfileModelName: modelProfile?.modelName,
       requestedModel: options?.model,
-      requestId: getCurrentRequest()?.id,
+      requestId: getCurrentRequest()?.id
     }
     debugLogger.error('ANTHROPIC_FALLBACK_ERROR', errorDetails)
     throw new Error(
-      `No valid ModelProfile available for Anthropic provider. Please configure model through /model command. Debug: ${JSON.stringify(errorDetails)}`,
+      `No valid ModelProfile available for Anthropic provider. Please configure model through /model command. Debug: ${JSON.stringify(errorDetails)}`
     )
   }
 
@@ -1420,32 +1302,30 @@ async function queryAnthropicNative(
     systemPrompt = [getCLISyspromptPrefix(), ...systemPrompt]
   }
 
-  const system: TextBlockParam[] = splitSysPromptPrefix(systemPrompt).map(
-    _ => ({
-      text: _,
-      type: 'text',
-    }),
-  )
+  const system: TextBlockParam[] = splitSysPromptPrefix(systemPrompt).map(_ => ({
+    text: _,
+    type: 'text'
+  }))
 
   const toolSchemas = await Promise.all(
-    tools.map(async tool =>
-      ({
-        name: tool.name,
-        description: typeof tool.description === 'function' 
-          ? await tool.description() 
-          : tool.description,
-        input_schema:'inputJSONSchema' in tool && tool.inputJSONSchema
-          ? tool.inputJSONSchema
-          : zodToJsonSchema(tool.inputSchema),
-      }) as unknown as Anthropic.Beta.Messages.BetaTool,
+    tools.map(
+      async tool =>
+        ({
+          name: tool.name,
+          description: typeof tool.description === 'function' ? await tool.description() : tool.description,
+          input_schema:
+            'inputJSONSchema' in tool && tool.inputJSONSchema ? tool.inputJSONSchema : zodToJsonSchema(tool.inputSchema)
+        }) as unknown as Anthropic.Beta.Messages.BetaTool
     )
   )
 
   const anthropicMessages = addCacheBreakpoints(messages)
 
   //  apply cache control
-  const { systemBlocks: processedSystem, messageParams: processedMessages } = 
-    applyCacheControlWithLimits(system, anthropicMessages)
+  const {systemBlocks: processedSystem, messageParams: processedMessages} = applyCacheControlWithLimits(
+    system,
+    anthropicMessages
+  )
   const startIncludingRetries = Date.now()
 
   // 记录系统提示构建过程
@@ -1453,7 +1333,7 @@ async function queryAnthropicNative(
     basePrompt: systemPrompt.join('\n'),
     kodeContext: generateKodeContext() || '',
     reminders: [], // 这里可以从 generateSystemReminders 获取
-    finalPrompt: systemPrompt.join('\n'),
+    finalPrompt: systemPrompt.join('\n')
   })
 
   let start = Date.now()
@@ -1461,196 +1341,195 @@ async function queryAnthropicNative(
   let response
 
   try {
-    response = await withRetry(async attempt => {
-      attemptNumber = attempt
-      start = Date.now()
+    response = await withRetry(
+      async attempt => {
+        attemptNumber = attempt
+        start = Date.now()
 
-      const params: Anthropic.Beta.Messages.MessageCreateParams = {
-        model,
-        max_tokens: getMaxTokensFromProfile(modelProfile),
-        messages: processedMessages,
-        system: processedSystem,
-        tools: toolSchemas.length > 0 ? toolSchemas : undefined,
-        tool_choice: toolSchemas.length > 0 ? { type: 'auto' } : undefined,
-      }
-
-      if (maxThinkingTokens > 0) {
-        ;(params as any).extra_headers = {
-          'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15',
+        const params: Anthropic.Beta.Messages.MessageCreateParams = {
+          model,
+          max_tokens: getMaxTokensFromProfile(modelProfile),
+          messages: processedMessages,
+          system: processedSystem,
+          tools: toolSchemas.length > 0 ? toolSchemas : undefined,
+          tool_choice: toolSchemas.length > 0 ? {type: 'auto'} : undefined
         }
-        ;(params as any).thinking = { max_tokens: maxThinkingTokens }
-      }
 
-      // 🔥 REAL-TIME API CALL DEBUG - 使用全局日志系统 (Anthropic Streaming)
-      debugLogger.api('ANTHROPIC_API_CALL_START_STREAMING', {
-        endpoint: modelProfile?.baseURL || 'DEFAULT_ANTHROPIC',
-        model,
-        provider,
-        apiKeyConfigured: !!modelProfile?.apiKey,
-        apiKeyPrefix: modelProfile?.apiKey
-          ? modelProfile.apiKey.substring(0, 8)
-          : null,
-        maxTokens: params.max_tokens,
-        temperature: MAIN_QUERY_TEMPERATURE,
-        params: params,
-        messageCount: params.messages?.length || 0,
-        streamMode: true,
-        toolsCount: toolSchemas.length,
-        thinkingTokens: maxThinkingTokens,
-        timestamp: new Date().toISOString(),
-        modelProfileId: modelProfile?.modelName,
-        modelProfileName: modelProfile?.name,
-      })
-
-      if (config.stream) {
-
-        const stream = await anthropic.beta.messages.create({
-          ...params,
-          stream: true,
-        }, {
-          signal: signal // ← CRITICAL: Connect the AbortSignal to API call
-        })
-
-        let finalResponse: any | null = null
-        let messageStartEvent: any = null
-        const contentBlocks: any[] = []
-        const inputJSONBuffers = new Map<number, string>()
-        let usage: any = null
-        let stopReason: string | null = null
-        let stopSequence: string | null = null
-
-        for await (const event of stream) {
-
-          if (signal.aborted) {
-            debugLogger.flow('STREAM_ABORTED', { 
-              eventType: event.type,
-              timestamp: Date.now() 
-            })
-            throw new Error('Request was cancelled')
+        if (maxThinkingTokens > 0) {
+          ;(params as any).extra_headers = {
+            'anthropic-beta': 'max-tokens-3-5-sonnet-2024-07-15'
           }
-          
-          switch (event.type) {
-            case 'message_start':
-              messageStartEvent = event
-              finalResponse = {
-                ...event.message,
-                content: [], // Will be populated from content blocks
-              }
-              break
-              
-            case 'content_block_start':
-              contentBlocks[event.index] = { ...event.content_block }
-              // Initialize JSON buffer for tool_use blocks
-              if (event.content_block.type === 'tool_use') {
-                inputJSONBuffers.set(event.index, '')
-              }
-              break
-              
-            case 'content_block_delta':
-              const blockIndex = event.index
-              
-              // Ensure content block exists
-              if (!contentBlocks[blockIndex]) {
-                contentBlocks[blockIndex] = {
-                  type: event.delta.type === 'text_delta' ? 'text' : 'tool_use',
-                  text: event.delta.type === 'text_delta' ? '' : undefined,
-                }
-                if (event.delta.type === 'input_json_delta') {
-                  inputJSONBuffers.set(blockIndex, '')
-                }
-              }
-              
-              if (event.delta.type === 'text_delta') {
-                contentBlocks[blockIndex].text += event.delta.text
-              } else if (event.delta.type === 'input_json_delta') {
-                const currentBuffer = inputJSONBuffers.get(blockIndex) || ''
-                inputJSONBuffers.set(blockIndex, currentBuffer + event.delta.partial_json)
-              }
-              break
-              
-            case 'message_delta':
-              if (event.delta.stop_reason) stopReason = event.delta.stop_reason
-              if (event.delta.stop_sequence) stopSequence = event.delta.stop_sequence
-              if (event.usage) usage = { ...usage, ...event.usage }
-              break
-              
-            case 'content_block_stop':
-              const stopIndex = event.index
-              const block = contentBlocks[stopIndex]
-              
-              if (block?.type === 'tool_use' && inputJSONBuffers.has(stopIndex)) {
-                const jsonStr = inputJSONBuffers.get(stopIndex)
-                if (jsonStr) {
-                  try {
-                    block.input = JSON.parse(jsonStr)
-                  } catch (error) {
-                    debugLogger.error('JSON_PARSE_ERROR', {
-                      blockIndex: stopIndex,
-                      jsonStr,
-                      error: error instanceof Error ? error.message : String(error)
-                    })
-                    block.input = {}
-                  }
-                  inputJSONBuffers.delete(stopIndex)
-                }
-              }
-              break
-              
-            case 'message_stop':
-              // Clear any remaining buffers
-              inputJSONBuffers.clear()
-              break
-          }
-          
-          if (event.type === 'message_stop') {
-            break
-          }
+          ;(params as any).thinking = {max_tokens: maxThinkingTokens}
         }
 
-        if (!finalResponse || !messageStartEvent) {
-          throw new Error('Stream ended without proper message structure')
-        }
-
-        // Construct the final response
-        finalResponse = {
-          ...messageStartEvent.message,
-          content: contentBlocks.filter(Boolean),
-          stop_reason: stopReason,
-          stop_sequence: stopSequence,
-          usage: {
-            ...messageStartEvent.message.usage,
-            ...usage,
-          },
-        }
-
-        return finalResponse
-      } else {
-        // 🔥 REAL-TIME API CALL DEBUG - 使用全局日志系统 (Anthropic Non-Streaming)
-        debugLogger.api('ANTHROPIC_API_CALL_START_NON_STREAMING', {
+        // 🔥 REAL-TIME API CALL DEBUG - 使用全局日志系统 (Anthropic Streaming)
+        debugLogger.api('ANTHROPIC_API_CALL_START_STREAMING', {
           endpoint: modelProfile?.baseURL || 'DEFAULT_ANTHROPIC',
           model,
           provider,
           apiKeyConfigured: !!modelProfile?.apiKey,
-          apiKeyPrefix: modelProfile?.apiKey
-            ? modelProfile.apiKey.substring(0, 8)
-            : null,
+          apiKeyPrefix: modelProfile?.apiKey ? modelProfile.apiKey.substring(0, 8) : null,
           maxTokens: params.max_tokens,
           temperature: MAIN_QUERY_TEMPERATURE,
+          params: params,
           messageCount: params.messages?.length || 0,
-          streamMode: false,
+          streamMode: true,
           toolsCount: toolSchemas.length,
           thinkingTokens: maxThinkingTokens,
           timestamp: new Date().toISOString(),
           modelProfileId: modelProfile?.modelName,
-          modelProfileName: modelProfile?.name,
+          modelProfileName: modelProfile?.name
         })
 
+        if (config.stream) {
+          const stream = await anthropic.beta.messages.create(
+            {
+              ...params,
+              stream: true
+            },
+            {
+              signal: signal // ← CRITICAL: Connect the AbortSignal to API call
+            }
+          )
 
-        return await anthropic.beta.messages.create(params, {
-          signal: signal // ← CRITICAL: Connect the AbortSignal to API call
-        })
-      }
-    }, { signal })
+          let finalResponse: any | null = null
+          let messageStartEvent: any = null
+          const contentBlocks: any[] = []
+          const inputJSONBuffers = new Map<number, string>()
+          let usage: any = null
+          let stopReason: string | null = null
+          let stopSequence: string | null = null
+
+          for await (const event of stream) {
+            if (signal.aborted) {
+              debugLogger.flow('STREAM_ABORTED', {
+                eventType: event.type,
+                timestamp: Date.now()
+              })
+              throw new Error('Request was cancelled')
+            }
+
+            switch (event.type) {
+              case 'message_start':
+                messageStartEvent = event
+                finalResponse = {
+                  ...event.message,
+                  content: [] // Will be populated from content blocks
+                }
+                break
+
+              case 'content_block_start':
+                contentBlocks[event.index] = {...event.content_block}
+                // Initialize JSON buffer for tool_use blocks
+                if (event.content_block.type === 'tool_use') {
+                  inputJSONBuffers.set(event.index, '')
+                }
+                break
+
+              case 'content_block_delta':
+                const blockIndex = event.index
+
+                // Ensure content block exists
+                if (!contentBlocks[blockIndex]) {
+                  contentBlocks[blockIndex] = {
+                    type: event.delta.type === 'text_delta' ? 'text' : 'tool_use',
+                    text: event.delta.type === 'text_delta' ? '' : undefined
+                  }
+                  if (event.delta.type === 'input_json_delta') {
+                    inputJSONBuffers.set(blockIndex, '')
+                  }
+                }
+
+                if (event.delta.type === 'text_delta') {
+                  contentBlocks[blockIndex].text += event.delta.text
+                } else if (event.delta.type === 'input_json_delta') {
+                  const currentBuffer = inputJSONBuffers.get(blockIndex) || ''
+                  inputJSONBuffers.set(blockIndex, currentBuffer + event.delta.partial_json)
+                }
+                break
+
+              case 'message_delta':
+                if (event.delta.stop_reason) stopReason = event.delta.stop_reason
+                if (event.delta.stop_sequence) stopSequence = event.delta.stop_sequence
+                if (event.usage) usage = {...usage, ...event.usage}
+                break
+
+              case 'content_block_stop':
+                const stopIndex = event.index
+                const block = contentBlocks[stopIndex]
+
+                if (block?.type === 'tool_use' && inputJSONBuffers.has(stopIndex)) {
+                  const jsonStr = inputJSONBuffers.get(stopIndex)
+                  if (jsonStr) {
+                    try {
+                      block.input = JSON.parse(jsonStr)
+                    } catch (error) {
+                      debugLogger.error('JSON_PARSE_ERROR', {
+                        blockIndex: stopIndex,
+                        jsonStr,
+                        error: error instanceof Error ? error.message : String(error)
+                      })
+                      block.input = {}
+                    }
+                    inputJSONBuffers.delete(stopIndex)
+                  }
+                }
+                break
+
+              case 'message_stop':
+                // Clear any remaining buffers
+                inputJSONBuffers.clear()
+                break
+            }
+
+            if (event.type === 'message_stop') {
+              break
+            }
+          }
+
+          if (!finalResponse || !messageStartEvent) {
+            throw new Error('Stream ended without proper message structure')
+          }
+
+          // Construct the final response
+          finalResponse = {
+            ...messageStartEvent.message,
+            content: contentBlocks.filter(Boolean),
+            stop_reason: stopReason,
+            stop_sequence: stopSequence,
+            usage: {
+              ...messageStartEvent.message.usage,
+              ...usage
+            }
+          }
+
+          return finalResponse
+        } else {
+          // 🔥 REAL-TIME API CALL DEBUG - 使用全局日志系统 (Anthropic Non-Streaming)
+          debugLogger.api('ANTHROPIC_API_CALL_START_NON_STREAMING', {
+            endpoint: modelProfile?.baseURL || 'DEFAULT_ANTHROPIC',
+            model,
+            provider,
+            apiKeyConfigured: !!modelProfile?.apiKey,
+            apiKeyPrefix: modelProfile?.apiKey ? modelProfile.apiKey.substring(0, 8) : null,
+            maxTokens: params.max_tokens,
+            temperature: MAIN_QUERY_TEMPERATURE,
+            messageCount: params.messages?.length || 0,
+            streamMode: false,
+            toolsCount: toolSchemas.length,
+            thinkingTokens: maxThinkingTokens,
+            timestamp: new Date().toISOString(),
+            modelProfileId: modelProfile?.modelName,
+            modelProfileName: modelProfile?.name
+          })
+
+          return await anthropic.beta.messages.create(params, {
+            signal: signal // ← CRITICAL: Connect the AbortSignal to API call
+          })
+        }
+      },
+      {signal}
+    )
 
     debugLogger.api('ANTHROPIC_API_CALL_SUCCESS', {
       content: response.content
@@ -1663,14 +1542,14 @@ async function queryAnthropicNative(
       if (block.type === 'text') {
         return {
           type: 'text' as const,
-          text: block.text,
+          text: block.text
         }
       } else if (block.type === 'tool_use') {
         return {
           type: 'tool_use' as const,
           id: block.id,
           name: block.name,
-          input: block.input,
+          input: block.input
         }
       }
       return block
@@ -1685,19 +1564,19 @@ async function queryAnthropicNative(
         stop_reason: response.stop_reason,
         stop_sequence: response.stop_sequence,
         type: 'message',
-        usage: response.usage,
+        usage: response.usage
       },
       type: 'assistant',
       uuid: nanoid() as UUID,
       durationMs,
-      costUSD: 0, // Will be calculated below
+      costUSD: 0 // Will be calculated below
     }
 
     // 记录完整的 LLM 交互调试信息 (Anthropic path)
     // 注意：Anthropic API将system prompt和messages分开，这里重构为完整的API调用视图
     const systemMessages = system.map(block => ({
       role: 'system',
-      content: block.text,
+      content: block.text
     }))
 
     logLLMInteraction({
@@ -1707,35 +1586,30 @@ async function queryAnthropicNative(
       usage: response.usage
         ? {
             inputTokens: response.usage.input_tokens,
-            outputTokens: response.usage.output_tokens,
+            outputTokens: response.usage.output_tokens
           }
         : undefined,
       timing: {
         start: start,
-        end: Date.now(),
+        end: Date.now()
       },
-      apiFormat: 'anthropic',
+      apiFormat: 'anthropic'
     })
 
     // Calculate cost using native Anthropic usage data
     const inputTokens = response.usage.input_tokens
     const outputTokens = response.usage.output_tokens
-    const cacheCreationInputTokens =
-      response.usage.cache_creation_input_tokens ?? 0
+    const cacheCreationInputTokens = response.usage.cache_creation_input_tokens ?? 0
     const cacheReadInputTokens = response.usage.cache_read_input_tokens ?? 0
 
     const costUSD =
       (inputTokens / 1_000_000) * getModelInputTokenCostUSD(model) +
       (outputTokens / 1_000_000) * getModelOutputTokenCostUSD(model) +
-      (cacheCreationInputTokens / 1_000_000) *
-        getModelInputTokenCostUSD(model) +
-      (cacheReadInputTokens / 1_000_000) *
-        (getModelInputTokenCostUSD(model) * 0.1) // Cache reads are 10% of input cost
+      (cacheCreationInputTokens / 1_000_000) * getModelInputTokenCostUSD(model) +
+      (cacheReadInputTokens / 1_000_000) * (getModelInputTokenCostUSD(model) * 0.1) // Cache reads are 10% of input cost
 
     assistantMessage.costUSD = costUSD
     addToTotalCost(costUSD, durationMs)
-
-    
 
     return assistantMessage
   } catch (error) {
@@ -1747,35 +1621,25 @@ function getAssistantMessageFromError(error: unknown): AssistantMessage {
   if (error instanceof Error && error.message.includes('prompt is too long')) {
     return createAssistantAPIErrorMessage(PROMPT_TOO_LONG_ERROR_MESSAGE)
   }
-  if (
-    error instanceof Error &&
-    error.message.includes('Your credit balance is too low')
-  ) {
+  if (error instanceof Error && error.message.includes('Your credit balance is too low')) {
     return createAssistantAPIErrorMessage(CREDIT_BALANCE_TOO_LOW_ERROR_MESSAGE)
   }
-  if (
-    error instanceof Error &&
-    error.message.toLowerCase().includes('x-api-key')
-  ) {
+  if (error instanceof Error && error.message.toLowerCase().includes('x-api-key')) {
     return createAssistantAPIErrorMessage(INVALID_API_KEY_ERROR_MESSAGE)
   }
   if (error instanceof Error) {
     if (process.env.NODE_ENV === 'development') {
       debugLogger.error('ANTHROPIC_API_ERROR', {
         message: error.message,
-        stack: error.stack,
+        stack: error.stack
       })
     }
-    return createAssistantAPIErrorMessage(
-      `${API_ERROR_MESSAGE_PREFIX}: ${error.message}`,
-    )
+    return createAssistantAPIErrorMessage(`${API_ERROR_MESSAGE_PREFIX}: ${error.message}`)
   }
   return createAssistantAPIErrorMessage(API_ERROR_MESSAGE_PREFIX)
 }
 
-function addCacheBreakpoints(
-  messages: (UserMessage | AssistantMessage)[],
-): MessageParam[] {
+function addCacheBreakpoints(messages: (UserMessage | AssistantMessage)[]): MessageParam[] {
   return messages.map((msg, index) => {
     return msg.type === 'user'
       ? userMessageToMessageParam(msg, index > messages.length - 3)
@@ -1795,12 +1659,11 @@ async function queryOpenAI(
     prependCLISysprompt: boolean
     modelProfile?: ModelProfile | null
     toolUseContext?: ToolUseContext
-  },
+  }
 ): Promise<AssistantMessage> {
   const config = getGlobalConfig()
   const modelManager = getModelManager()
   const toolUseContext = options?.toolUseContext
-
 
   const modelProfile = options?.modelProfile || modelManager.getModel('main')
   let model: string
@@ -1816,7 +1679,7 @@ async function queryOpenAI(
     modelProfileBaseURL: modelProfile?.baseURL,
     modelProfileApiKeyExists: !!modelProfile?.apiKey,
     optionsModel: options?.model,
-    requestId: getCurrentRequest()?.id,
+    requestId: getCurrentRequest()?.id
   })
 
   if (modelProfile) {
@@ -1826,21 +1689,16 @@ async function queryOpenAI(
   }
   // Prepend system prompt block for easy API identification
   if (options?.prependCLISysprompt) {
-    
     const [firstSyspromptBlock] = splitSysPromptPrefix(systemPrompt)
 
     systemPrompt = [getCLISyspromptPrefix() + systemPrompt] // some openai-like providers need the entire system prompt as a single block
   }
 
-  const system: TextBlockParam[] = splitSysPromptPrefix(systemPrompt).map(
-    _ => ({
-      ...(PROMPT_CACHING_ENABLED
-        ? { cache_control: { type: 'ephemeral' } }
-        : {}),
-      text: _,
-      type: 'text',
-    }),
-  )
+  const system: TextBlockParam[] = splitSysPromptPrefix(systemPrompt).map(_ => ({
+    ...(PROMPT_CACHING_ENABLED ? {cache_control: {type: 'ephemeral'}} : {}),
+    text: _,
+    type: 'text'
+  }))
 
   const toolSchemas = await Promise.all(
     tools.map(
@@ -1850,24 +1708,21 @@ async function queryOpenAI(
           function: {
             name: _.name,
             description: await _.prompt({
-              safeMode: options?.safeMode,
+              safeMode: options?.safeMode
             }),
             // Use tool's JSON schema directly if provided, otherwise convert Zod schema
-            parameters:
-              'inputJSONSchema' in _ && _.inputJSONSchema
-                ? _.inputJSONSchema
-                : zodToJsonSchema(_.inputSchema),
-          },
-        }) as OpenAI.ChatCompletionTool,
-    ),
+            parameters: 'inputJSONSchema' in _ && _.inputJSONSchema ? _.inputJSONSchema : zodToJsonSchema(_.inputSchema)
+          }
+        }) as OpenAI.ChatCompletionTool
+    )
   )
 
   const openaiSystem = system.map(
     s =>
       ({
         role: 'system',
-        content: s.text,
-      }) as OpenAI.ChatCompletionMessageParam,
+        content: s.text
+      }) as OpenAI.ChatCompletionMessageParam
   )
 
   const openaiMessages = convertAnthropicMessagesToOpenAIMessages(messages)
@@ -1878,7 +1733,7 @@ async function queryOpenAI(
     basePrompt: systemPrompt.join('\n'),
     kodeContext: generateKodeContext() || '',
     reminders: [], // 这里可以从 generateSystemReminders 获取
-    finalPrompt: systemPrompt.join('\n'),
+    finalPrompt: systemPrompt.join('\n')
   })
 
   let start = Date.now()
@@ -1886,102 +1741,117 @@ async function queryOpenAI(
   let response
 
   try {
-    response = await withRetry(async attempt => {
-      attemptNumber = attempt
-      start = Date.now()
-      // 🔥 GPT-5 Enhanced Parameter Construction
-      const maxTokens = getMaxTokensFromProfile(modelProfile)
-      const isGPT5 = isGPT5Model(model)
-      
-      const opts: OpenAI.ChatCompletionCreateParams = {
-        model,
+    response = await withRetry(
+      async attempt => {
+        attemptNumber = attempt
+        start = Date.now()
+        // 🔥 GPT-5 Enhanced Parameter Construction
+        const maxTokens = getMaxTokensFromProfile(modelProfile)
+        const isGPT5 = isGPT5Model(model)
 
-        ...(isGPT5 ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens }),
-        messages: [...openaiSystem, ...openaiMessages],
+        const opts: OpenAI.ChatCompletionCreateParams = {
+          model,
 
-        temperature: isGPT5 ? 1 : MAIN_QUERY_TEMPERATURE,
-      }
-      if (config.stream) {
-        ;(opts as OpenAI.ChatCompletionCreateParams).stream = true
-        opts.stream_options = {
-          include_usage: true,
+          ...(isGPT5 ? {max_completion_tokens: maxTokens} : {max_tokens: maxTokens}),
+          messages: [...openaiSystem, ...openaiMessages],
+
+          temperature: isGPT5 ? 1 : MAIN_QUERY_TEMPERATURE
         }
-      }
-
-      if (toolSchemas.length > 0) {
-        opts.tools = toolSchemas
-        opts.tool_choice = 'auto'
-      }
-      const reasoningEffort = await getReasoningEffort(modelProfile, messages)
-      if (reasoningEffort) {
-        opts.reasoning_effort = reasoningEffort
-      }
-
-
-      if (modelProfile && modelProfile.modelName) {
-        debugLogger.api('USING_MODEL_PROFILE_PATH', {
-          modelProfileName: modelProfile.modelName,
-          modelName: modelProfile.modelName,
-          provider: modelProfile.provider,
-          baseURL: modelProfile.baseURL,
-          apiKeyExists: !!modelProfile.apiKey,
-          requestId: getCurrentRequest()?.id,
-        })
-
-        // Enable new adapter system with environment variable
-        const USE_NEW_ADAPTER_SYSTEM = process.env.USE_NEW_ADAPTERS !== 'false'
-        
-        if (USE_NEW_ADAPTER_SYSTEM) {
-          // New adapter system
-          const adapter = ModelAdapterFactory.createAdapter(modelProfile)
-          
-          // Build unified request parameters
-          const unifiedParams: UnifiedRequestParams = {
-            messages: openaiMessages,
-            systemPrompt: openaiSystem.map(s => s.content as string),
-            tools: tools,
-            maxTokens: getMaxTokensFromProfile(modelProfile),
-            stream: config.stream,
-            reasoningEffort: reasoningEffort as any,
-            temperature: isGPT5Model(model) ? 1 : MAIN_QUERY_TEMPERATURE,
-            previousResponseId: toolUseContext?.responseState?.previousResponseId,
-            verbosity: 'high' // High verbosity for coding tasks
+        if (config.stream) {
+          ;(opts as OpenAI.ChatCompletionCreateParams).stream = true
+          opts.stream_options = {
+            include_usage: true
           }
-          
-          // Create request using adapter
-          const request = adapter.createRequest(unifiedParams)
-          
-          // Determine which API to use
-          if (ModelAdapterFactory.shouldUseResponsesAPI(modelProfile)) {
-            // Use Responses API for GPT-5 and similar models
-            const { callGPT5ResponsesAPI } = await import('./openai')
-            const response = await callGPT5ResponsesAPI(modelProfile, request, signal)
-            const unifiedResponse = adapter.parseResponse(response)
-            
-            // Convert unified response back to Anthropic format
-            const apiMessage = {
-              role: 'assistant' as const,
-              content: unifiedResponse.content,
-              tool_calls: unifiedResponse.toolCalls,
-              usage: {
-                prompt_tokens: unifiedResponse.usage.promptTokens,
-                completion_tokens: unifiedResponse.usage.completionTokens,
+        }
+
+        if (toolSchemas.length > 0) {
+          opts.tools = toolSchemas
+          opts.tool_choice = 'auto'
+        }
+        const reasoningEffort = await getReasoningEffort(modelProfile, messages)
+        if (reasoningEffort) {
+          opts.reasoning_effort = reasoningEffort
+        }
+
+        if (modelProfile && modelProfile.modelName) {
+          debugLogger.api('USING_MODEL_PROFILE_PATH', {
+            modelProfileName: modelProfile.modelName,
+            modelName: modelProfile.modelName,
+            provider: modelProfile.provider,
+            baseURL: modelProfile.baseURL,
+            apiKeyExists: !!modelProfile.apiKey,
+            requestId: getCurrentRequest()?.id
+          })
+
+          // Enable new adapter system with environment variable
+          const USE_NEW_ADAPTER_SYSTEM = process.env.USE_NEW_ADAPTERS !== 'false'
+
+          if (USE_NEW_ADAPTER_SYSTEM) {
+            // New adapter system
+            const adapter = ModelAdapterFactory.createAdapter(modelProfile)
+
+            // Build unified request parameters
+            const unifiedParams: UnifiedRequestParams = {
+              messages: openaiMessages,
+              systemPrompt: openaiSystem.map(s => s.content as string),
+              tools: tools,
+              maxTokens: getMaxTokensFromProfile(modelProfile),
+              stream: config.stream,
+              reasoningEffort: reasoningEffort as any,
+              temperature: isGPT5Model(model) ? 1 : MAIN_QUERY_TEMPERATURE,
+              previousResponseId: toolUseContext?.responseState?.previousResponseId,
+              verbosity: 'high' // High verbosity for coding tasks
+            }
+
+            // Create request using adapter
+            const request = adapter.createRequest(unifiedParams)
+
+            // Determine which API to use
+            if (ModelAdapterFactory.shouldUseResponsesAPI(modelProfile)) {
+              // Use Responses API for GPT-5 and similar models
+              const {callGPT5ResponsesAPI} = await import('./openai')
+              const response = await callGPT5ResponsesAPI(modelProfile, request, signal)
+              const unifiedResponse = adapter.parseResponse(response)
+
+              // Convert unified response back to Anthropic format
+              const apiMessage = {
+                role: 'assistant' as const,
+                content: unifiedResponse.content,
+                tool_calls: unifiedResponse.toolCalls,
+                usage: {
+                  prompt_tokens: unifiedResponse.usage.promptTokens,
+                  completion_tokens: unifiedResponse.usage.completionTokens
+                }
               }
+              const assistantMsg: AssistantMessage = {
+                type: 'assistant',
+                message: apiMessage as any,
+                costUSD: 0, // Will be calculated later
+                durationMs: Date.now() - start,
+                uuid: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as any,
+                responseId: unifiedResponse.responseId // For state management
+              }
+              return assistantMsg
+            } else {
+              // Use existing Chat Completions flow
+              const s = await getCompletionWithProfile(modelProfile, request, 0, 10, signal)
+              let finalResponse
+              if (config.stream) {
+                finalResponse = await handleMessageStream(s as ChatCompletionStream, signal)
+              } else {
+                finalResponse = s
+              }
+              const r = convertOpenAIResponseToAnthropic(finalResponse, tools)
+              return r
             }
-            const assistantMsg: AssistantMessage = {
-              type: 'assistant',
-              message: apiMessage as any,
-              costUSD: 0, // Will be calculated later
-              durationMs: Date.now() - start,
-              uuid: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as any,
-              responseId: unifiedResponse.responseId  // For state management
-            }
-            return assistantMsg
           } else {
-            // Use existing Chat Completions flow
-            const s = await getCompletionWithProfile(modelProfile, request, 0, 10, signal)
+            // Legacy system (preserved for fallback)
+            const completionFunction = isGPT5Model(modelProfile.modelName)
+              ? getGPT5CompletionWithProfile
+              : getCompletionWithProfile
+            const s = await completionFunction(modelProfile, opts, 0, 10, signal)
             let finalResponse
-            if (config.stream) {
+            if (opts.stream) {
               finalResponse = await handleMessageStream(s as ChatCompletionStream, signal)
             } else {
               finalResponse = s
@@ -1990,45 +1860,32 @@ async function queryOpenAI(
             return r
           }
         } else {
-          // Legacy system (preserved for fallback)
-          const completionFunction = isGPT5Model(modelProfile.modelName) 
-            ? getGPT5CompletionWithProfile 
-            : getCompletionWithProfile
-          const s = await completionFunction(modelProfile, opts, 0, 10, signal)
-          let finalResponse
-          if (opts.stream) {
-            finalResponse = await handleMessageStream(s as ChatCompletionStream, signal)
-          } else {
-            finalResponse = s
-          }
-          const r = convertOpenAIResponseToAnthropic(finalResponse, tools)
-          return r
-        }
-      } else {
-        // 🚨 警告：ModelProfile不可用，使用旧逻辑路径
-        debugLogger.api('USING_LEGACY_PATH', {
-          modelProfileExists: !!modelProfile,
-          modelProfileId: modelProfile?.modelName,
-          modelNameExists: !!modelProfile?.modelName,
-          fallbackModel: 'main',
-          actualModel: model,
-          requestId: getCurrentRequest()?.id,
-        })
+          // 🚨 警告：ModelProfile不可用，使用旧逻辑路径
+          debugLogger.api('USING_LEGACY_PATH', {
+            modelProfileExists: !!modelProfile,
+            modelProfileId: modelProfile?.modelName,
+            modelNameExists: !!modelProfile?.modelName,
+            fallbackModel: 'main',
+            actualModel: model,
+            requestId: getCurrentRequest()?.id
+          })
 
-        // 🚨 FALLBACK: 没有有效的ModelProfile时，应该抛出错误而不是使用遗留系统
-        const errorDetails = {
-          modelProfileExists: !!modelProfile,
-          modelProfileId: modelProfile?.modelName,
-          modelNameExists: !!modelProfile?.modelName,
-          requestedModel: model,
-          requestId: getCurrentRequest()?.id,
+          // 🚨 FALLBACK: 没有有效的ModelProfile时，应该抛出错误而不是使用遗留系统
+          const errorDetails = {
+            modelProfileExists: !!modelProfile,
+            modelProfileId: modelProfile?.modelName,
+            modelNameExists: !!modelProfile?.modelName,
+            requestedModel: model,
+            requestId: getCurrentRequest()?.id
+          }
+          debugLogger.error('NO_VALID_MODEL_PROFILE', errorDetails)
+          throw new Error(
+            `No valid ModelProfile available for model: ${model}. Please configure model through /model command. Debug: ${JSON.stringify(errorDetails)}`
+          )
         }
-        debugLogger.error('NO_VALID_MODEL_PROFILE', errorDetails)
-        throw new Error(
-          `No valid ModelProfile available for model: ${model}. Please configure model through /model command. Debug: ${JSON.stringify(errorDetails)}`,
-        )
-      }
-    }, { signal })
+      },
+      {signal}
+    )
   } catch (error) {
     logError(error)
     return getAssistantMessageFromError(error)
@@ -2038,17 +1895,13 @@ async function queryOpenAI(
 
   const inputTokens = response.usage?.prompt_tokens ?? 0
   const outputTokens = response.usage?.completion_tokens ?? 0
-  const cacheReadInputTokens =
-    response.usage?.prompt_token_details?.cached_tokens ?? 0
-  const cacheCreationInputTokens =
-    response.usage?.prompt_token_details?.cached_tokens ?? 0
+  const cacheReadInputTokens = response.usage?.prompt_token_details?.cached_tokens ?? 0
+  const cacheCreationInputTokens = response.usage?.prompt_token_details?.cached_tokens ?? 0
   const costUSD =
     (inputTokens / 1_000_000) * SONNET_COST_PER_MILLION_INPUT_TOKENS +
     (outputTokens / 1_000_000) * SONNET_COST_PER_MILLION_OUTPUT_TOKENS +
-    (cacheReadInputTokens / 1_000_000) *
-      SONNET_COST_PER_MILLION_PROMPT_CACHE_READ_TOKENS +
-    (cacheCreationInputTokens / 1_000_000) *
-      SONNET_COST_PER_MILLION_PROMPT_CACHE_WRITE_TOKENS
+    (cacheReadInputTokens / 1_000_000) * SONNET_COST_PER_MILLION_PROMPT_CACHE_READ_TOKENS +
+    (cacheCreationInputTokens / 1_000_000) * SONNET_COST_PER_MILLION_PROMPT_CACHE_WRITE_TOKENS
 
   addToTotalCost(costUSD, durationMsIncludingRetries)
 
@@ -2059,13 +1912,13 @@ async function queryOpenAI(
     response: response,
     usage: {
       inputTokens: inputTokens,
-      outputTokens: outputTokens,
+      outputTokens: outputTokens
     },
     timing: {
       start: start,
-      end: Date.now(),
+      end: Date.now()
     },
-    apiFormat: 'openai',
+    apiFormat: 'openai'
   })
 
   return {
@@ -2076,13 +1929,13 @@ async function queryOpenAI(
         input_tokens: inputTokens,
         output_tokens: outputTokens,
         cache_read_input_tokens: cacheReadInputTokens,
-        cache_creation_input_tokens: 0,
-      },
+        cache_creation_input_tokens: 0
+      }
     },
     costUSD,
     durationMs,
     type: 'assistant',
-    uuid: randomUUID(),
+    uuid: randomUUID()
   }
 }
 
@@ -2120,7 +1973,7 @@ export async function queryModel(
   modelPointer: import('@utils/config').ModelPointerType,
   messages: (UserMessage | AssistantMessage)[],
   systemPrompt: string[] = [],
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<AssistantMessage> {
   // Use queryLLM with the pointer directly
   return queryLLM(
@@ -2132,8 +1985,8 @@ export async function queryModel(
     {
       safeMode: false,
       model: modelPointer,
-      prependCLISysprompt: true,
-    },
+      prependCLISysprompt: true
+    }
   )
 }
 
@@ -2145,7 +1998,7 @@ export async function queryQuick({
   userPrompt,
   assistantPrompt,
   enablePromptCaching = false,
-  signal,
+  signal
 }: {
   systemPrompt?: string[]
   userPrompt: string
@@ -2155,10 +2008,10 @@ export async function queryQuick({
 }): Promise<AssistantMessage> {
   const messages = [
     {
-      message: { role: 'user', content: userPrompt },
+      message: {role: 'user', content: userPrompt},
       type: 'user',
-      uuid: randomUUID(),
-    },
+      uuid: randomUUID()
+    }
   ] as (UserMessage | AssistantMessage)[]
 
   return queryModel('quick', messages, systemPrompt, signal)

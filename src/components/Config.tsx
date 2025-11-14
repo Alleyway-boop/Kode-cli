@@ -1,16 +1,12 @@
-import { Box, Text, useInput } from 'ink'
+import {Box, Text, useInput} from 'ink'
 import * as React from 'react'
-import { useState } from 'react'
+import {useState} from 'react'
 import figures from 'figures'
-import { getTheme } from '@utils/theme'
-import {
-  GlobalConfig,
-  saveGlobalConfig,
-  getGlobalConfig,
-} from '@utils/config'
+import {getTheme} from '@utils/theme'
+import {GlobalConfig, saveGlobalConfig, getGlobalConfig} from '@utils/config'
 import chalk from 'chalk'
-import { useExitOnCtrlCD } from '@hooks/useExitOnCtrlCD'
-import { getModelManager } from '@utils/model'
+import {useExitOnCtrlCD} from '@hooks/useExitOnCtrlCD'
+import {getModelManager} from '@utils/model'
 
 type Props = {
   onClose: () => void
@@ -51,7 +47,7 @@ type Setting =
       disabled?: boolean
     }
 
-export function Config({ onClose }: Props): React.ReactNode {
+export function Config({onClose}: Props): React.ReactNode {
   const [globalConfig, setGlobalConfig] = useState(getGlobalConfig())
   const initialConfig = React.useRef(getGlobalConfig())
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -71,34 +67,34 @@ export function Config({ onClose }: Props): React.ReactNode {
       value: globalConfig.theme ?? 'dark',
       options: ['dark', 'light'],
       onChange(theme: string) {
-        const config = { ...getGlobalConfig(), theme: theme as any }
+        const config = {...getGlobalConfig(), theme: theme as any}
         saveGlobalConfig(config)
         setGlobalConfig(config)
       },
-      type: 'enum',
+      type: 'enum'
     },
     {
       id: 'verbose',
       label: 'Verbose mode',
       value: globalConfig.verbose ?? false,
       onChange(verbose: boolean) {
-        const config = { ...getGlobalConfig(), verbose }
+        const config = {...getGlobalConfig(), verbose}
         saveGlobalConfig(config)
         setGlobalConfig(config)
       },
-      type: 'boolean',
+      type: 'boolean'
     },
     {
       id: 'stream',
       label: 'Stream responses',
       value: globalConfig.stream ?? true,
       onChange(stream: boolean) {
-        const config = { ...getGlobalConfig(), stream }
+        const config = {...getGlobalConfig(), stream}
         saveGlobalConfig(config)
         setGlobalConfig(config)
       },
-      type: 'boolean',
-    },
+      type: 'boolean'
+    }
   ]
 
   const theme = getTheme()
@@ -114,9 +110,7 @@ export function Config({ onClose }: Props): React.ReactNode {
             setCurrentInput('')
             setInputError(null)
           } catch (error) {
-            setInputError(
-              error instanceof Error ? error.message : 'Invalid input',
-            )
+            setInputError(error instanceof Error ? error.message : 'Invalid input')
           }
         } else if (currentSetting?.type === 'number') {
           const numValue = parseFloat(currentInput)
@@ -129,9 +123,7 @@ export function Config({ onClose }: Props): React.ReactNode {
               setCurrentInput('')
               setInputError(null)
             } catch (error) {
-              setInputError(
-                error instanceof Error ? error.message : 'Invalid input',
-              )
+              setInputError(error instanceof Error ? error.message : 'Invalid input')
             }
           }
         }
@@ -158,15 +150,10 @@ export function Config({ onClose }: Props): React.ReactNode {
       if (currentSetting?.type === 'boolean') {
         currentSetting.onChange(!currentSetting.value)
       } else if (currentSetting?.type === 'enum') {
-        const currentIndex = currentSetting.options.indexOf(
-          currentSetting.value,
-        )
+        const currentIndex = currentSetting.options.indexOf(currentSetting.value)
         const nextIndex = (currentIndex + 1) % currentSetting.options.length
         currentSetting.onChange(currentSetting.options[nextIndex])
-      } else if (
-        currentSetting?.type === 'string' ||
-        currentSetting?.type === 'number'
-      ) {
+      } else if (currentSetting?.type === 'string' || currentSetting?.type === 'number') {
         setCurrentInput(String(currentSetting.value))
         setEditingString(true)
         setInputError(null)
@@ -195,12 +182,7 @@ export function Config({ onClose }: Props): React.ReactNode {
         paddingY={1}
         gap={1}
       >
-        <Text bold>
-          Configuration{' '}
-          {exitState.pending
-            ? `(press ${exitState.keyName} again to exit)`
-            : ''}
-        </Text>
+        <Text bold>Configuration {exitState.pending ? `(press ${exitState.keyName} again to exit)` : ''}</Text>
 
         {/* Model Configuration Summary */}
         <Box flexDirection="column" marginY={1}>
@@ -208,9 +190,7 @@ export function Config({ onClose }: Props): React.ReactNode {
             Model Configuration:
           </Text>
           {activeProfiles.length === 0 ? (
-            <Text color={theme.secondaryText}>
-              No models configured. Use /model to add models.
-            </Text>
+            <Text color={theme.secondaryText}>No models configured. Use /model to add models.</Text>
           ) : (
             <Box flexDirection="column" marginLeft={2}>
               {activeProfiles.map(profile => (
@@ -221,9 +201,7 @@ export function Config({ onClose }: Props): React.ReactNode {
                 </React.Fragment>
               ))}
               <Box marginTop={1}>
-                <Text color={theme.suggestion}>
-                  Use /model to manage model configurations
-                </Text>
+                <Text color={theme.suggestion}>Use /model to manage model configurations</Text>
               </Box>
             </Box>
           )}
@@ -235,22 +213,11 @@ export function Config({ onClose }: Props): React.ReactNode {
             <Box key={setting.id} flexDirection="column">
               <Box flexDirection="row" gap={1}>
                 <Text
-                  color={
-                    index === selectedIndex
-                      ? theme.success
-                      : setting.disabled
-                        ? theme.secondaryText
-                        : theme.text
-                  }
+                  color={index === selectedIndex ? theme.success : setting.disabled ? theme.secondaryText : theme.text}
                 >
-                  {index === selectedIndex ? figures.pointer : ' '}{' '}
-                  {setting.label}
+                  {index === selectedIndex ? figures.pointer : ' '} {setting.label}
                 </Text>
-                <Text
-                  color={
-                    setting.disabled ? theme.secondaryText : theme.suggestion
-                  }
-                >
+                <Text color={setting.disabled ? theme.secondaryText : theme.suggestion}>
                   {setting.type === 'boolean'
                     ? setting.value
                       ? 'enabled'
@@ -262,9 +229,7 @@ export function Config({ onClose }: Props): React.ReactNode {
               </Box>
               {index === selectedIndex && editingString && (
                 <Box flexDirection="column" marginLeft={2}>
-                  <Text color={theme.suggestion}>
-                    Enter new value: {currentInput}
-                  </Text>
+                  <Text color={theme.suggestion}>Enter new value: {currentInput}</Text>
                   {inputError && <Text color="red">{inputError}</Text>}
                 </Box>
               )}
@@ -279,10 +244,7 @@ export function Config({ onClose }: Props): React.ReactNode {
             ) : (
               <>
                 ↑/↓ to navigate · Enter to change · Esc to close
-                <Text color={theme.suggestion}>
-                  {' '}
-                  · Use /model for model config
-                </Text>
+                <Text color={theme.suggestion}> · Use /model for model config</Text>
               </>
             )}
           </Text>

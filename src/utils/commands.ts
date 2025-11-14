@@ -1,7 +1,7 @@
-import { memoize } from 'lodash-es'
-import { API_ERROR_MESSAGE_PREFIX, queryQuick } from '@services/claude'
-import { type ControlOperator, parse, ParseEntry } from 'shell-quote'
-import { PRODUCT_NAME } from '@constants/product'
+import {memoize} from 'lodash-es'
+import {API_ERROR_MESSAGE_PREFIX, queryQuick} from '@services/claude'
+import {type ControlOperator, parse, ParseEntry} from 'shell-quote'
+import {PRODUCT_NAME} from '@constants/product'
 
 const SINGLE_QUOTE = '__SINGLE_QUOTE__'
 const DOUBLE_QUOTE = '__DOUBLE_QUOTE__'
@@ -11,7 +11,7 @@ export type CommandPrefixResult =
       commandPrefix: string | null
       commandInjectionDetected: false
     }
-  | { commandInjectionDetected: true }
+  | {commandInjectionDetected: true}
 
 // Command prefix result alongside subcommand prefixes
 export type CommandSubcommandPrefixResult = CommandPrefixResult & {
@@ -29,7 +29,7 @@ export function splitCommand(command: string): string[] {
     command
       .replaceAll('"', `"${DOUBLE_QUOTE}`) // parse() strips out quotes :P
       .replaceAll("'", `'${SINGLE_QUOTE}`), // parse() strips out quotes :P
-    varName => `$${varName}`, // Preserve shell variables
+    varName => `$${varName}` // Preserve shell variables
   )) {
     if (typeof part === 'string') {
       if (parts.length > 0 && typeof parts[parts.length - 1] === 'string') {
@@ -62,64 +62,49 @@ export function splitCommand(command: string): string[] {
 
   // 3. Map quotes back to their original form
   const quotedParts = stringParts.map(part => {
-    return part
-      .replaceAll(`${SINGLE_QUOTE}`, "'")
-      .replaceAll(`${DOUBLE_QUOTE}`, '"')
+    return part.replaceAll(`${SINGLE_QUOTE}`, "'").replaceAll(`${DOUBLE_QUOTE}`, '"')
   })
 
   // 4. Filter out separators
-  return quotedParts.filter(
-    part => !(COMMAND_LIST_SEPARATORS as Set<string>).has(part),
-  )
+  return quotedParts.filter(part => !(COMMAND_LIST_SEPARATORS as Set<string>).has(part))
 }
 
 export const getCommandSubcommandPrefix = memoize(
-  async (
-    command: string,
-    abortSignal: AbortSignal,
-  ): Promise<CommandSubcommandPrefixResult | null> => {
+  async (command: string, abortSignal: AbortSignal): Promise<CommandSubcommandPrefixResult | null> => {
     const subcommands = splitCommand(command)
 
-    const [fullCommandPrefix, ...subcommandPrefixesResults] = await Promise.all(
-      [
-        getCommandPrefix(command, abortSignal),
-        ...subcommands.map(async subcommand => ({
-          subcommand,
-          prefix: await getCommandPrefix(subcommand, abortSignal),
-        })),
-      ],
-    )
+    const [fullCommandPrefix, ...subcommandPrefixesResults] = await Promise.all([
+      getCommandPrefix(command, abortSignal),
+      ...subcommands.map(async subcommand => ({
+        subcommand,
+        prefix: await getCommandPrefix(subcommand, abortSignal)
+      }))
+    ])
     if (!fullCommandPrefix) {
       return null
     }
-    const subcommandPrefixes = subcommandPrefixesResults.reduce(
-      (acc, { subcommand, prefix }) => {
-        if (prefix) {
-          acc.set(subcommand, prefix)
-        }
-        return acc
-      },
-      new Map<string, CommandPrefixResult>(),
-    )
+    const subcommandPrefixes = subcommandPrefixesResults.reduce((acc, {subcommand, prefix}) => {
+      if (prefix) {
+        acc.set(subcommand, prefix)
+      }
+      return acc
+    }, new Map<string, CommandPrefixResult>())
 
     return {
       ...fullCommandPrefix,
-      subcommandPrefixes,
+      subcommandPrefixes
     }
   },
-  command => command, // memoize by command only
+  command => command // memoize by command only
 )
 
 const getCommandPrefix = memoize(
-  async (
-    command: string,
-    abortSignal: AbortSignal,
-  ): Promise<CommandPrefixResult | null> => {
+  async (command: string, abortSignal: AbortSignal): Promise<CommandPrefixResult | null> => {
     const response = await queryQuick({
       systemPrompt: [
         `Your task is to process Bash commands that an AI coding agent wants to run.
 
-This policy spec defines how to determine the prefix of a Bash command:`,
+This policy spec defines how to determine the prefix of a Bash command:`
       ],
       userPrompt: `<policy_spec>
 # ${PRODUCT_NAME} Code Bash command prefix detection
@@ -175,15 +160,14 @@ ONLY return the prefix. Do not return any other text, markdown markers, or other
 Command: ${command}
 `,
       signal: abortSignal,
-      enablePromptCaching: false,
+      enablePromptCaching: false
     })
 
     const prefix =
       typeof response.message.content === 'string'
         ? response.message.content
         : Array.isArray(response.message.content)
-          ? (response.message.content.find(_ => _.type === 'text')?.text ??
-            'none')
+          ? (response.message.content.find(_ => _.type === 'text')?.text ?? 'none')
           : 'none'
 
     if (prefix.startsWith(API_ERROR_MESSAGE_PREFIX)) {
@@ -191,38 +175,33 @@ Command: ${command}
     }
 
     if (prefix === 'command_injection_detected') {
-      return { commandInjectionDetected: true }
+      return {commandInjectionDetected: true}
     }
 
     // Never accept base `git` as a prefix (if e.g. `git diff` prefix not detected)
     if (prefix === 'git') {
       return {
         commandPrefix: null,
-        commandInjectionDetected: false,
+        commandInjectionDetected: false
       }
     }
 
     if (prefix === 'none') {
       return {
         commandPrefix: null,
-        commandInjectionDetected: false,
+        commandInjectionDetected: false
       }
     }
 
     return {
       commandPrefix: prefix,
-      commandInjectionDetected: false,
+      commandInjectionDetected: false
     }
   },
-  command => command, // memoize by command only
+  command => command // memoize by command only
 )
 
-const COMMAND_LIST_SEPARATORS = new Set<ControlOperator>([
-  '&&',
-  '||',
-  ';',
-  ';;',
-])
+const COMMAND_LIST_SEPARATORS = new Set<ControlOperator>(['&&', '||', ';', ';;'])
 
 // Checks if this is just a list of commands
 function isCommandList(command: string): boolean {
@@ -230,7 +209,7 @@ function isCommandList(command: string): boolean {
     command
       .replaceAll('"', `"${DOUBLE_QUOTE}`) // parse() strips out quotes :P
       .replaceAll("'", `'${SINGLE_QUOTE}`), // parse() strips out quotes :P
-    varName => `$${varName}`, // Preserve shell variables
+    varName => `$${varName}` // Preserve shell variables
   )) {
     if (typeof part === 'string') {
       // Strings are safe

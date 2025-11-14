@@ -1,4 +1,3 @@
-
 export const TOOL_NAME_FOR_PROMPT = 'WebSearch'
 export const DESCRIPTION = `- Allows Kode to search the web and use the results to inform responses
 - Provides up-to-date information for current events and recent data

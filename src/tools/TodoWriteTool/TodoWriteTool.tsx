@@ -1,28 +1,24 @@
-import { Box, Text } from 'ink'
+import {Box, Text} from 'ink'
 import * as React from 'react'
-import { z } from 'zod'
-import { FallbackToolUseRejectedMessage } from '@components/FallbackToolUseRejectedMessage'
-import { TodoItem as TodoItemComponent } from '@components/TodoItem'
-import { Tool, ValidationResult } from '@tool'
-import { setTodos, getTodos, TodoItem } from '@utils/todoStorage'
-import { emitReminderEvent } from '@services/systemReminder'
-import { startWatchingTodoFile } from '@services/fileFreshness'
-import { DESCRIPTION, PROMPT } from './prompt'
-import { getTheme } from '@utils/theme'
+import {z} from 'zod'
+import {FallbackToolUseRejectedMessage} from '@components/FallbackToolUseRejectedMessage'
+import {TodoItem as TodoItemComponent} from '@components/TodoItem'
+import {Tool, ValidationResult} from '@tool'
+import {setTodos, getTodos, TodoItem} from '@utils/todoStorage'
+import {emitReminderEvent} from '@services/systemReminder'
+import {startWatchingTodoFile} from '@services/fileFreshness'
+import {DESCRIPTION, PROMPT} from './prompt'
+import {getTheme} from '@utils/theme'
 
 const TodoItemSchema = z.object({
   content: z.string().min(1).describe('The task description or content'),
-  status: z
-    .enum(['pending', 'in_progress', 'completed'])
-    .describe('Current status of the task'),
-  priority: z
-    .enum(['high', 'medium', 'low'])
-    .describe('Priority level of the task'),
-  id: z.string().min(1).describe('Unique identifier for the task'),
+  status: z.enum(['pending', 'in_progress', 'completed']).describe('Current status of the task'),
+  priority: z.enum(['high', 'medium', 'low']).describe('Priority level of the task'),
+  id: z.string().min(1).describe('Unique identifier for the task')
 })
 
 const inputSchema = z.strictObject({
-  todos: z.array(TodoItemSchema).describe('The updated todo list'),
+  todos: z.array(TodoItemSchema).describe('The updated todo list')
 })
 
 function validateTodos(todos: TodoItem[]): ValidationResult {
@@ -35,8 +31,8 @@ function validateTodos(todos: TodoItem[]): ValidationResult {
       errorCode: 1,
       message: 'Duplicate todo IDs found',
       meta: {
-        duplicateIds: ids.filter((id, index) => ids.indexOf(id) !== index),
-      },
+        duplicateIds: ids.filter((id, index) => ids.indexOf(id) !== index)
+      }
     }
   }
 
@@ -47,7 +43,7 @@ function validateTodos(todos: TodoItem[]): ValidationResult {
       result: false,
       errorCode: 2,
       message: 'Only one task can be in_progress at a time',
-      meta: { inProgressTaskIds: inProgressTasks.map(t => t.id) },
+      meta: {inProgressTaskIds: inProgressTasks.map(t => t.id)}
     }
   }
 
@@ -58,7 +54,7 @@ function validateTodos(todos: TodoItem[]): ValidationResult {
         result: false,
         errorCode: 3,
         message: `Todo with ID "${todo.id}" has empty content`,
-        meta: { todoId: todo.id },
+        meta: {todoId: todo.id}
       }
     }
     if (!['pending', 'in_progress', 'completed'].includes(todo.status)) {
@@ -66,7 +62,7 @@ function validateTodos(todos: TodoItem[]): ValidationResult {
         result: false,
         errorCode: 4,
         message: `Invalid status "${todo.status}" for todo "${todo.id}"`,
-        meta: { todoId: todo.id, invalidStatus: todo.status },
+        meta: {todoId: todo.id, invalidStatus: todo.status}
       }
     }
     if (!['high', 'medium', 'low'].includes(todo.priority)) {
@@ -74,12 +70,12 @@ function validateTodos(todos: TodoItem[]): ValidationResult {
         result: false,
         errorCode: 5,
         message: `Invalid priority "${todo.priority}" for todo "${todo.id}"`,
-        meta: { todoId: todo.id, invalidPriority: todo.priority },
+        meta: {todoId: todo.id, invalidPriority: todo.priority}
       }
     }
   }
 
-  return { result: true }
+  return {result: true}
 }
 
 function generateTodoSummary(todos: TodoItem[]): string {
@@ -87,7 +83,7 @@ function generateTodoSummary(todos: TodoItem[]): string {
     total: todos.length,
     pending: todos.filter(t => t.status === 'pending').length,
     inProgress: todos.filter(t => t.status === 'in_progress').length,
-    completed: todos.filter(t => t.status === 'completed').length,
+    completed: todos.filter(t => t.status === 'completed').length
   }
 
   // Enhanced summary with statistics
@@ -128,7 +124,7 @@ export const TodoWriteTool = {
     // Match official implementation - return static confirmation message
     return 'Todos have been modified successfully. Ensure that you continue to use the todo list to track your progress. Please proceed with the current tasks if applicable'
   },
-  renderToolUseMessage(input, { verbose }) {
+  renderToolUseMessage(input, {verbose}) {
     // Show a simple confirmation message when the tool is being used
     return '{ params.todo }'
   },
@@ -141,7 +137,7 @@ export const TodoWriteTool = {
     // For non-error output, get current todos from storage and render them
     if (!isError && typeof output === 'string') {
       const currentTodos = getTodos()
-      
+
       if (currentTodos.length === 0) {
         return (
           <Box flexDirection="column" width="100%">
@@ -156,10 +152,7 @@ export const TodoWriteTool = {
       // Sort: [completed, in_progress, pending]
       const sortedTodos = [...currentTodos].sort((a, b) => {
         const order = ['completed', 'in_progress', 'pending']
-        return (
-          order.indexOf(a.status) - order.indexOf(b.status) ||
-          a.content.localeCompare(b.content)
-        )
+        return order.indexOf(a.status) - order.indexOf(b.status) || a.content.localeCompare(b.content)
       })
 
       // Find the next pending task (first pending task after sorting)
@@ -224,16 +217,16 @@ export const TodoWriteTool = {
       </Box>
     )
   },
-  async validateInput({ todos }: z.infer<typeof inputSchema>) {
+  async validateInput({todos}: z.infer<typeof inputSchema>) {
     // Type assertion to ensure todos match TodoItem[] interface
     const todoItems = todos as TodoItem[]
     const validation = validateTodos(todoItems)
     if (!validation.result) {
       return validation
     }
-    return { result: true }
+    return {result: true}
   },
-  async *call({ todos }: z.infer<typeof inputSchema>, context) {
+  async *call({todos}: z.infer<typeof inputSchema>, context) {
     try {
       // Get agent ID from context
       const agentId = context?.agentId
@@ -256,8 +249,7 @@ export const TodoWriteTool = {
       setTodos(todoItems, agentId)
 
       // Emit todo change event for system reminders (optimized - only if todos actually changed)
-      const hasChanged =
-        JSON.stringify(previousTodos) !== JSON.stringify(todoItems)
+      const hasChanged = JSON.stringify(previousTodos) !== JSON.stringify(todoItems)
       if (hasChanged) {
         emitReminderEvent('todo:changed', {
           previousTodos,
@@ -269,7 +261,7 @@ export const TodoWriteTool = {
               ? 'added'
               : todoItems.length < previousTodos.length
                 ? 'removed'
-                : 'modified',
+                : 'modified'
         })
       }
 
@@ -280,19 +272,18 @@ export const TodoWriteTool = {
       const resultData = {
         oldTodos: previousTodos,
         newTodos: todoItems,
-        summary,
+        summary
       }
 
       yield {
         type: 'result',
         data: summary, // Return string to satisfy interface
-        resultForAssistant: summary,
+        resultForAssistant: summary
         // Store todo data in a way accessible to the renderer
         // We'll modify the renderToolResultMessage to get todos from storage
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred'
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       const errorResult = `Error updating todos: ${errorMessage}`
 
       // Emit error event for system monitoring
@@ -300,14 +291,14 @@ export const TodoWriteTool = {
         error: errorMessage,
         timestamp: Date.now(),
         agentId: context?.agentId || 'default',
-        context: 'TodoWriteTool.call',
+        context: 'TodoWriteTool.call'
       })
 
       yield {
         type: 'result',
         data: errorResult,
-        resultForAssistant: errorResult,
+        resultForAssistant: errorResult
       }
     }
-  },
+  }
 } satisfies Tool<typeof inputSchema, string>

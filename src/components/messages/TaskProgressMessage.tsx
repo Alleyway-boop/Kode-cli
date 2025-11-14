@@ -1,6 +1,6 @@
 import React from 'react'
-import { Box, Text } from 'ink'
-import { getTheme } from '@utils/theme'
+import {Box, Text} from 'ink'
+import {getTheme} from '@utils/theme'
 
 interface Props {
   agentType: string
@@ -8,9 +8,9 @@ interface Props {
   toolCount?: number
 }
 
-export function TaskProgressMessage({ agentType, status, toolCount }: Props) {
+export function TaskProgressMessage({agentType, status, toolCount}: Props) {
   const theme = getTheme()
-  
+
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box flexDirection="row">
@@ -22,9 +22,7 @@ export function TaskProgressMessage({ agentType, status, toolCount }: Props) {
       </Box>
       {toolCount && toolCount > 0 && (
         <Box marginLeft={3}>
-          <Text color={theme.secondaryText}>
-            Tools used: {toolCount}
-          </Text>
+          <Text color={theme.secondaryText}>Tools used: {toolCount}</Text>
         </Box>
       )}
     </Box>

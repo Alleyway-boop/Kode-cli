@@ -1,20 +1,17 @@
-import { type Option } from '@inkjs/ui'
+import {type Option} from '@inkjs/ui'
 import chalk from 'chalk'
-import {
-  type ToolUseConfirm,
-  toolUseConfirmGetPrefix,
-} from './PermissionRequest'
-import { isUnsafeCompoundCommand } from '@utils/commands'
-import { getCwd } from '@utils/state'
-import { getTheme } from '@utils/theme'
-import { type OptionSubtree } from '@components/CustomSelect/select'
+import {type ToolUseConfirm, toolUseConfirmGetPrefix} from './PermissionRequest'
+import {isUnsafeCompoundCommand} from '@utils/commands'
+import {getCwd} from '@utils/state'
+import {getTheme} from '@utils/theme'
+import {type OptionSubtree} from '@components/CustomSelect/select'
 
 /**
  * Generates options for the tool use confirmation dialog
  */
 export function toolUseOptions({
   toolUseConfirm,
-  command,
+  command
 }: {
   toolUseConfirm: ToolUseConfirm
   command: string
@@ -33,27 +30,27 @@ export function toolUseOptions({
     dontShowAgainOptions = [
       {
         label: `Yes, and don't ask again for ${chalk.bold(prefix)} commands in ${chalk.bold(getCwd())}`,
-        value: 'yes-dont-ask-again-prefix',
-      },
+        value: 'yes-dont-ask-again-prefix'
+      }
     ]
   } else if (showDontAskAgainOption) {
     dontShowAgainOptions = [
       {
         label: `Yes, and don't ask again for ${chalk.bold(command)} commands in ${chalk.bold(getCwd())}`,
-        value: 'yes-dont-ask-again-full',
-      },
+        value: 'yes-dont-ask-again-full'
+      }
     ]
   }
 
   return [
     {
       label: 'Yes',
-      value: 'yes',
+      value: 'yes'
     },
     ...dontShowAgainOptions,
     {
       label: `No, and provide instructions (${chalk.bold.hex(getTheme().warning)('esc')})`,
-      value: 'no',
-    },
+      value: 'no'
+    }
   ]
 }
